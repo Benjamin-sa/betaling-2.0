@@ -5,7 +5,8 @@ const express = require('express');
 const cors = require('cors');
 const productRoutes = require('./routes/product.routes');
 const checkoutRoutes = require('./routes/checkout.routes');
-const webhookService = require('./services/webhook.service');
+//const webhookService = require('./services/webhook.service');//
+const orderRoutes = require('./routes/order.routes');
 const authRoutes = require('./routes/auth.routes');
 
 const app = express();
@@ -20,6 +21,8 @@ app.use('/uploads', express.static(path.join(__dirname, '../public/uploads')));
 app.use('/api/products', productRoutes);
 app.use('/api/checkout', checkoutRoutes);
 app.use('/api/auth', authRoutes);
+app.use('/api/orders', orderRoutes);
+
 
 app.post('/api/webhook', express.raw({ type: 'application/json' }), async (req, res) => {
   try {

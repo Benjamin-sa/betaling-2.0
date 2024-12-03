@@ -1,54 +1,36 @@
 <template>
-  <div class="home">
-    <h1>Scoutswinkel</h1>
-    
-    <div v-if="products.length > 0" class="products-grid">
-      <div v-for="product in products" :key="product.id" class="product-card">
-        <img :src="product.imageUrl" :alt="product.name" class="product-image">
-        <div class="product-info">
-          <h3>{{ product.name }}</h3>
-          <p class="description">{{ product.description }}</p>
-          <p class="price">€{{ product.price.toFixed(2) }}</p>
-          
-          <div class="quantity-control">
-            <button 
-              @click="updateQuantity(product.id, getQuantity(product.id) - 1)"
-              :disabled="getQuantity(product.id) <= 0"
-            >-</button>
+  <div class="py-8">
+    <h1 class="text-4xl font-bold text-center text-text mb-8">Welkom bij Scoutswinkel</h1>
+    <div v-if="loading" class="text-center text-lg text-text">Bezig met laden...</div>
+    <div v-else>
+      <div v-if="products.length === 0" class="text-center text-text">
+        <p>Momenteel geen producten in de aanbieding. Kom later terug!</p>
+      </div>
+      <div v-else class="grid grid-cols-1 gap-8 md:grid-cols-2 lg:grid-cols-3">
+        <div v-for="product in products" :key="product.id" class="bg-cardBackground rounded-lg shadow-lg overflow-hidden">
+          <img :src="product.imageUrl" :alt="product.name" class="w-full h-48 object-cover">
+          <div class="p-4 text-center">
+            <h3 class="text-xl font-semibold text-primary">{{ product.name }}</h3>
+            <p class="text-lg font-bold text-text">€{{ product.price.toFixed(2) }}</p>
             <input 
               type="number" 
               v-model.number="quantities[product.id]" 
-              min="0"
-              @change="validateQuantity(product.id)"
-            >
-            <button 
-              @click="updateQuantity(product.id, getQuantity(product.id) + 1)"
-            >+</button>
+              min="0" 
+              placeholder="Aantal" 
+              class="mt-2 w-3/4 mx-auto p-2 border border-gray-300 rounded focus:outline-none focus:ring-primary focus:border-primary"
+            />
           </div>
         </div>
       </div>
-    </div>
 
-    <div v-else class="no-products">
-      <div class="no-products-content">
-        <i class="no-products-icon">📦</i>
-        <h2>Momenteel geen producten in de aanbieding</h2>
-        <p>Kom later terug voor nieuwe artikelen!</p>
+      <div v-if="hasItems" class="fixed bottom-0 left-0 right-0 bg-navBackground p-4 shadow-inner flex justify-between items-center">
+        <div class="font-bold text-text">
+          Totaal: €{{ total.toFixed(2) }}
+        </div>
+        <button @click="handleCheckout" :disabled="loading" class="bg-primary text-white px-6 py-3 rounded hover:bg-green-700 disabled:bg-gray-400 transition duration-300">
+          {{ loading ? 'Bezig met afrekenen...' : 'Afrekenen' }}
+        </button>
       </div>
-    </div>
-
-    <div class="checkout-bar" v-if="hasItems">
-      <div class="checkout-info">
-        <span>Totaal: €{{ total.toFixed(2) }}</span>
-        <span>Aantal items: {{ totalItems }}</span>
-      </div>
-      <button 
-        @click="handleCheckout"
-        :disabled="loading"
-        class="checkout-button"
-      >
-        {{ loading ? 'Bezig met laden...' : 'Afrekenen' }}
-      </button>
     </div>
   </div>
 </template>
@@ -89,19 +71,6 @@ const loadProducts = async () => {
 
 const getQuantity = (productId) => {
   return quantities.value[productId] || 0;
-};
-
-const updateQuantity = (productId, value) => {
-  quantities.value[productId] = Math.max(0, value);
-};
-
-const validateQuantity = (productId) => {
-  const value = quantities.value[productId];
-  if (isNaN(value) || value < 0) {
-    quantities.value[productId] = 0;
-  } else {
-    quantities.value[productId] = Math.floor(value);
-  }
 };
 
 const hasItems = computed(() => {
@@ -163,170 +132,3 @@ onMounted(() => {
 });
 </script>
 
-<style scoped>
-.home {
-  padding: 2rem;
-  max-width: 1200px;
-  margin: 0 auto;
-}
-
-h1 {
-  text-align: center;
-  margin-bottom: 2rem;
-  color: #2c3e50;
-}
-
-.products-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-  gap: 2rem;
-  margin-bottom: 80px;
-}
-
-.product-card {
-  background: white;
-  border-radius: 8px;
-  overflow: hidden;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-  transition: transform 0.2s;
-}
-
-.product-card:hover {
-  transform: translateY(-4px);
-}
-
-.product-image {
-  width: 100%;
-  height: 200px;
-  object-fit: cover;
-}
-
-.product-info {
-  padding: 1rem;
-}
-
-.product-info h3 {
-  margin: 0 0 0.5rem 0;
-  color: #2c3e50;
-}
-
-.description {
-  color: #666;
-  margin-bottom: 1rem;
-  font-size: 0.9rem;
-}
-
-.price {
-  font-size: 1.2rem;
-  font-weight: bold;
-  color: #2c3e50;
-  margin-bottom: 1rem;
-}
-
-.quantity-control {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-}
-
-.quantity-control button {
-  width: 36px;
-  height: 36px;
-  border: 1px solid #ddd;
-  background: #f8f9fa;
-  border-radius: 4px;
-  cursor: pointer;
-  font-size: 1.2rem;
-}
-
-.quantity-control button:hover:not(:disabled) {
-  background: #e9ecef;
-}
-
-.quantity-control button:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-.quantity-control input {
-  width: 60px;
-  height: 36px;
-  text-align: center;
-  border: 1px solid #ddd;
-  border-radius: 4px;
-  font-size: 1rem;
-}
-
-.checkout-bar {
-  position: fixed;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  background: white;
-  padding: 1rem 2rem;
-  box-shadow: 0 -2px 4px rgba(0,0,0,0.1);
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.checkout-info {
-  display: flex;
-  gap: 2rem;
-  font-size: 1.1rem;
-  font-weight: bold;
-  color: #2c3e50;
-}
-
-.checkout-button {
-  background: #4CAF50;
-  color: white;
-  border: none;
-  padding: 0.75rem 2rem;
-  border-radius: 4px;
-  font-size: 1.1rem;
-  cursor: pointer;
-  transition: background-color 0.2s;
-}
-
-.checkout-button:hover:not(:disabled) {
-  background: #45a049;
-}
-
-.checkout-button:disabled {
-  background: #cccccc;
-  cursor: not-allowed;
-}
-
-.no-products {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  min-height: 400px;
-  background: white;
-  border-radius: 8px;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-  margin: 2rem 0;
-}
-
-.no-products-content {
-  text-align: center;
-  color: #2c3e50;
-}
-
-.no-products-icon {
-  font-size: 4rem;
-  margin-bottom: 1rem;
-  display: block;
-}
-
-.no-products-content h2 {
-  margin-bottom: 0.5rem;
-  font-size: 1.5rem;
-}
-
-.no-products-content p {
-  color: #666;
-  font-size: 1rem;
-}
-</style>

@@ -1,34 +1,40 @@
 <template>
-  <form @submit.prevent="handleSubmit" class="auth-form">
-    <h2>Inloggen</h2>
-    
+  <form @submit.prevent="handleSubmit" class="max-w-md mx-auto p-6 bg-cardBackground rounded-lg shadow-md space-y-6">
+    <h2 class="text-2xl font-semibold text-center text-primary">Inloggen</h2>
+
     <div class="form-group">
-      <label for="email">E-mail</label>
+      <label for="email" class="block text-sm font-medium text-text">E-mail</label>
       <input
         id="email"
         v-model="email"
         type="email"
         required
         placeholder="Uw e-mailadres"
+        class="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-primary focus:border-primary"
       />
     </div>
 
     <div class="form-group">
-      <label for="password">Wachtwoord</label>
+      <label for="password" class="block text-sm font-medium text-text">Wachtwoord</label>
       <input
         id="password"
         v-model="password"
         type="password"
         required
         placeholder="Uw wachtwoord"
+        class="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-primary focus:border-primary"
       />
     </div>
 
-    <div v-if="error" class="error-message">
+    <div v-if="error" class="text-red-500 text-sm">
       {{ error }}
     </div>
 
-    <button type="submit" :disabled="loading">
+    <button
+      type="submit"
+      :disabled="loading"
+      class="w-full bg-primary text-white px-4 py-2 rounded-md hover:bg-green-700 disabled:bg-gray-400 transition duration-300"
+    >
       {{ loading ? 'Bezig met inloggen...' : 'Inloggen' }}
     </button>
   </form>
@@ -60,59 +66,3 @@ const handleSubmit = async () => {
   }
 };
 </script>
-
-<style scoped>
-.auth-form {
-  max-width: 400px;
-  margin: 2rem auto;
-  padding: 2rem;
-  border: 1px solid #ddd;
-  border-radius: 8px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-}
-
-.form-group {
-  margin-bottom: 1rem;
-}
-
-label {
-  display: block;
-  margin-bottom: 0.5rem;
-  font-weight: bold;
-}
-
-input {
-  width: 100%;
-  padding: 0.5rem;
-  border: 1px solid #ddd;
-  border-radius: 4px;
-  font-size: 1rem;
-}
-
-button {
-  width: 100%;
-  padding: 0.75rem;
-  background-color: #2196F3;
-  color: white;
-  border: none;
-  border-radius: 4px;
-  font-size: 1rem;
-  cursor: pointer;
-  transition: background-color 0.2s;
-}
-
-button:hover {
-  background-color: #1976D2;
-}
-
-button:disabled {
-  background-color: #cccccc;
-  cursor: not-allowed;
-}
-
-.error-message {
-  color: #ff0000;
-  margin-bottom: 1rem;
-  font-size: 0.9rem;
-}
-</style>

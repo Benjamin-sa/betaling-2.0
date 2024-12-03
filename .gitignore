@@ -18,6 +18,7 @@ dist-ssr
 server/config/scoutswinkel-firebase-adminsdk-ucote-7f034f7aec.json
 
 
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json

@@ -57,7 +57,7 @@ class StripeService {
         mode: 'payment',
         customer: stripeCustomerId,
         success_url: `${process.env.VITE_APP_URL}/success`,
-        cancel_url: `${process.env.VITE_APP_URL}/cancel`,
+        cancel_url: `${process.env.VITE_APP_URL}/`,
       });
     } catch (error) {
       console.error('Error creating checkout session:', error);
@@ -119,6 +119,56 @@ class StripeService {
       return customer;
     } catch (error) {
       console.error('Error creating Stripe customer:', error);
+      throw error;
+    }
+  }
+
+
+  /**
+   * Haal alle Checkout Sessions op voor een specifieke klant
+   * @param {string} customerId - De Stripe klant ID
+   * @returns {Array} - Een array van Checkout Sessions
+   */
+  async getCustomerCheckoutSessions(customerId) {
+    try {
+      const sessions = await stripe.checkout.sessions.list({
+        customer: customerId,
+        limit: 100, // Pas aan indien nodig
+      });
+
+      return sessions.data;
+    } catch (error) {
+      console.error('Error fetching Checkout Sessions:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Haal line items op voor een specifieke Checkout Session
+   * @param {string} sessionId - De Stripe Checkout Session ID
+   * @returns {Array} - Een array van Line Items
+   */
+  async getSessionLineItems(sessionId) {
+    try {
+      const items = await stripe.checkout.sessions.listLineItems(sessionId, { limit: 100 });
+      return items.data;
+    } catch (error) {
+      console.error('Error fetching session line items:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Haal een specifieke Checkout Session op
+   * @param {string} sessionId - De Stripe Checkout Session ID
+   * @returns {object} - De Checkout Session object
+   */
+  async getCheckoutSession(sessionId) {
+    try {
+      const session = await stripe.checkout.sessions.retrieve(sessionId);
+      return session;
+    } catch (error) {
+      console.error('Error retrieving checkout session:', error);
       throw error;
     }
   }
