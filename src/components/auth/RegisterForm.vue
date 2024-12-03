@@ -53,6 +53,7 @@ const handleSubmit = async () => {
     loading.value = true;
     error.value = '';
     await auth.register(email.value, password.value);
+    await auth.login(email.value, password.value);
     router.push('/'); // Redirect to home page after successful registration
   } catch (e) {
     error.value = e.message;

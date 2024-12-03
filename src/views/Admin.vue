@@ -97,7 +97,9 @@
 
 <script setup>
 import { ref, onMounted } from 'vue';
+import { useAuthStore } from '@/stores/auth';
 
+const auth = useAuthStore();
 const loading = ref(false);
 const products = ref([]);
 const newAdminEmail = ref('');
@@ -123,11 +125,17 @@ const handleAddProduct = async () => {
     formData.append('name', newProduct.value.name);
     formData.append('description', newProduct.value.description);
     formData.append('price', newProduct.value.price);
-    formData.append('image', newProduct.value.image);
+    if (newProduct.value.image) {
+      formData.append('image', newProduct.value.image);
+    }
 
     // Send POST request with form data
-    const response = await fetch('/api/products', {
+    const response = await fetch(`${import.meta.env.VITE_SERVER_URL}/api/products`, {
       method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${auth.token}`, // Voeg het ID-token toe
+        // 'Content-Type' wordt automatisch ingesteld door de browser voor FormData
+      },
       body: formData,
     });
 

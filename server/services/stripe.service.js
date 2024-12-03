@@ -1,12 +1,26 @@
 const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
 const storageService = require('./storage.service');
+const admin = require('../config/firebaseAdmin');
 
 class StripeService {
   /**
    * Creëer een checkout sessie met lokaal opgeslagen productdata
    */
-  async createCheckoutSession(items) {
+  async createCheckoutSession(items, userId) {
     try {
+
+      // Retrieve user from Firestore
+      const userDoc = await admin.firestore().collection('users').doc(userId).get();
+      if (!userDoc.exists) {
+        throw new Error('User not found');
+      }
+
+      const { stripeCustomerId } = userDoc.data();
+      if (!stripeCustomerId) {
+        throw new Error('Stripe customer ID not found for user');
+      }
+
+
       // Haal alle producten op uit de lokale opslag
       const products = await storageService.getAllProducts();
 
@@ -41,6 +55,7 @@ class StripeService {
         payment_method_types: ['card', 'ideal'],
         line_items: lineItems,
         mode: 'payment',
+        customer: stripeCustomerId,
         success_url: `${process.env.VITE_APP_URL}/success`,
         cancel_url: `${process.env.VITE_APP_URL}/cancel`,
       });
@@ -61,7 +76,7 @@ class StripeService {
   }
 
   /**
-   * Maak een Stripe product en prijs aan, en sla lokaal op
+   * Maak een Stripe product en prijs aan
    */
   async createProduct(productData) {
     try {
@@ -84,18 +99,26 @@ class StripeService {
         default_price: price.id,
       });
 
-      // Voeg het nieuwe product toe aan lokale opslag
-      const savedProduct = await storageService.saveProduct({
-        name: productData.name,
-        description: productData.description,
-        price: parseFloat(productData.price),
-        stripeProductId: product.id,
-        stripePriceId: price.id,
-      });
 
-      return { product: savedProduct, price };
+      return { product, price };
     } catch (error) {
       console.error('Error creating product:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Creëer een Stripe-klant.
+   * @param {string} email - Het e-mailadres van de gebruiker
+   * @param {string} uid - De UID van de Firebase-gebruiker
+   * @returns {object} - Het aangemaakte Stripe-klantobject
+   */
+  async createCustomer(email, uid) {
+    try {
+      const customer = await stripe.customers.create({ email });
+      return customer;
+    } catch (error) {
+      console.error('Error creating Stripe customer:', error);
       throw error;
     }
   }
@@ -114,11 +137,6 @@ class StripeService {
         await stripe.prices.update(price.id, { active: false });
       }
 
-      // Verwijder het product uit lokale opslag
-      const product = await storageService.getProduct(productId);
-      if (product) {
-        await storageService.deleteProduct(productId);
-      }
     } catch (error) {
       console.error('Error deactivating product:', error);
       throw error;

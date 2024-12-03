@@ -2,7 +2,7 @@
   <div class="home">
     <h1>Scoutswinkel</h1>
     
-    <div class="products-grid">
+    <div v-if="products.length > 0" class="products-grid">
       <div v-for="product in products" :key="product.id" class="product-card">
         <img :src="product.imageUrl" :alt="product.name" class="product-image">
         <div class="product-info">
@@ -29,6 +29,14 @@
       </div>
     </div>
 
+    <div v-else class="no-products">
+      <div class="no-products-content">
+        <i class="no-products-icon">📦</i>
+        <h2>Momenteel geen producten in de aanbieding</h2>
+        <p>Kom later terug voor nieuwe artikelen!</p>
+      </div>
+    </div>
+
     <div class="checkout-bar" v-if="hasItems">
       <div class="checkout-info">
         <span>Totaal: €{{ total.toFixed(2) }}</span>
@@ -47,12 +55,11 @@
 
 <script setup>
 import { ref, computed, onMounted } from 'vue';
-import { db } from '@/config/firebase';
-import { collection, getDocs } from 'firebase/firestore';
 import { loadStripe } from '@stripe/stripe-js';
 import { apiClient } from '@/services/api';
+import { useAuthStore } from '@/stores/auth';
 
-
+const auth = useAuthStore();
 const stripePromise = loadStripe('pk_test_51Q2YysK7LyHlGaLs1KaOcD1Gk6A8b8l45LVF3q9URgskNKwgFHBEIPRKtMXGZEu0kFn9Iq0yWGcJ0Aatm5XCMsiK00SWythWSu');
 const products = ref([]);
 const quantities = ref({});
@@ -116,30 +123,36 @@ const totalItems = computed(() => {
 const handleCheckout = async () => {
   try {
     loading.value = true;
-    
-    const cartItems = Object.entries(quantities.value)
-      .filter(([_, quantity]) => quantity > 0)
-      .map(([productId, quantity]) => ({
-        productId,
-        quantity
+
+    // Creëer het items array op basis van geselecteerde producten en hoeveelheden
+    const items = products.value
+      .filter(product => quantities.value[product.id] > 0)
+      .map(product => ({
+        productId: product.id,
+        quantity: quantities.value[product.id],
       }));
 
-    if (cartItems.length === 0) {
-      throw new Error('Cart is empty');
+    if (items.length === 0) {
+      alert('Selecteer ten minste één product om af te rekenen.');
+      return;
     }
 
-    const { id: sessionId } = await apiClient.post('/checkout/create-session', {
-      items: cartItems
-    });
+    // Verstuur checkout verzoek naar de backend
+    const response = await apiClient.post('/checkout', { items }, auth.token);
 
+    const { sessionId } = response;
+
+    // Gebruik Stripe.js om de gebruiker naar de Checkout pagina te sturen
     const stripe = await stripePromise;
     const { error } = await stripe.redirectToCheckout({ sessionId });
-    
-    if (error) throw error;
 
+    if (error) {
+      console.error('Stripe redirect error:', error);
+      alert('Er is een fout opgetreden tijdens het afrekenen.');
+    }
   } catch (error) {
-    console.error('Checkout error:', error);
-    alert(error.message);
+    console.error('Error during checkout:', error);
+    alert(error.message || 'Er is een fout opgetreden tijdens het afrekenen.');
   } finally {
     loading.value = false;
   }
@@ -283,5 +296,37 @@ h1 {
 .checkout-button:disabled {
   background: #cccccc;
   cursor: not-allowed;
+}
+
+.no-products {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 400px;
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  margin: 2rem 0;
+}
+
+.no-products-content {
+  text-align: center;
+  color: #2c3e50;
+}
+
+.no-products-icon {
+  font-size: 4rem;
+  margin-bottom: 1rem;
+  display: block;
+}
+
+.no-products-content h2 {
+  margin-bottom: 0.5rem;
+  font-size: 1.5rem;
+}
+
+.no-products-content p {
+  color: #666;
+  font-size: 1rem;
 }
 </style>

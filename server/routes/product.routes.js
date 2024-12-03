@@ -5,6 +5,8 @@ const multer = require('multer');
 const upload = multer();
 const stripeService = require('../services/stripe.service');
 const storageService = require('../services/storage.service');
+const { authenticate, authorizeAdmin } = require('../middleware/auth');
+
 
 router.get('/', async (req, res) => {
   try {
@@ -16,7 +18,7 @@ router.get('/', async (req, res) => {
   }
 });
 
-router.post('/', upload.single('image'), async (req, res) => {
+router.post('/', authenticate, authorizeAdmin, upload.single('image'), async (req, res) => {
   try {
     const { name, description, price } = req.body;
 
@@ -49,7 +51,7 @@ router.post('/', upload.single('image'), async (req, res) => {
   }
 });
 
-router.delete('/:id', async (req, res) => {
+router.delete('/:id', authenticate, authorizeAdmin, async (req, res) => {
   try {
     // Haal het product lokaal op
     const product = await storageService.getProduct(req.params.id);

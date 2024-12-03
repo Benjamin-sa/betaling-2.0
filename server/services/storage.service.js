@@ -48,7 +48,7 @@ class StorageService {
     
     // Add new product with ID
     const newProduct = {
-      id: Date.now().toString(),
+      id: productData.stripeProductId,
       ...productData,
       createdAt: new Date().toISOString()
     };

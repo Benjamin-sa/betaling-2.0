@@ -15,7 +15,7 @@ dist-ssr
 .env
 
 # Ignore Firebase service account key
-server/services/scoutswinkel-firebase-adminsdk-ucote-106bbcc7d0.json
+server/config/scoutswinkel-firebase-adminsdk-ucote-7f034f7aec.json
 
 
 # Editor directories and files

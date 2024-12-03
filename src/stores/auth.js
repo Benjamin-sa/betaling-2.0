@@ -1,148 +1,149 @@
+// src/stores/auth.js
 import { defineStore } from 'pinia';
-import { auth, db } from '@/config/firebase';
-import {
-  createUserWithEmailAndPassword,
-  signInWithEmailAndPassword,
-  signOut,
-  onAuthStateChanged
-} from 'firebase/auth';
-import { 
-  doc, 
-  getDoc, 
-  setDoc, 
-  collection,
-  getDocs
-} from 'firebase/firestore';
-import { ref } from 'vue';
+import { ref, onMounted } from 'vue';
+import { auth, db } from '@/config/firebase'; // Ensure these are correctly exported from firebase.js
+import { signInWithEmailAndPassword, signOut } from 'firebase/auth';
+import { getDoc, doc } from 'firebase/firestore';
+
 
 export const useAuthStore = defineStore('auth', () => {
   const user = ref(null);
+  const token = ref(null);
   const loading = ref(true);
   const error = ref(null);
   const isAdmin = ref(false);
 
-  // Check if user is admin
-  const checkAdminStatus = async (userId) => {
-    try {
-      const userDoc = await getDoc(doc(db, 'users', userId));
-      if (userDoc.exists()) {
-        isAdmin.value = userDoc.data().isAdmin === true;
-      } else {
-        // Create user document if it doesn't exist
-        await setDoc(doc(db, 'users', userId), {
-          isAdmin: false,
-          email: auth.currentUser.email,
-          createdAt: new Date()
-        });
-        isAdmin.value = false;
-      }
-    } catch (e) {
-      console.error('Error checking admin status:', e);
-      isAdmin.value = false;
-    }
-  };
-
-  // Initialize auth state listener
-  onAuthStateChanged(auth, async (newUser) => {
-    loading.value = true;
-    user.value = newUser;
-    
-    if (newUser) {
-      await checkAdminStatus(newUser.uid);
-    } else {
-      isAdmin.value = false;
-    }
-    
-    loading.value = false;
-  });
-
-  // Register new user
+  // Register a new user
   const register = async (email, password) => {
     try {
       error.value = null;
-      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+      loading.value = true;
       
-      // Create user document in Firestore
-      await setDoc(doc(db, 'users', userCredential.user.uid), {
-        isAdmin: false,
-        email: email,
-        createdAt: new Date()
+      // Call backend to register the user
+      const response = await fetch(`${import.meta.env.VITE_SERVER_URL}/api/auth/register`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ email, password })
       });
+      
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.error || 'Registration failed');
+      }
 
-      return userCredential.user;
+      // After successful registration, log in the user
+      await loginUser(email, password);
     } catch (e) {
       error.value = e.message;
       throw e;
+    } finally {
+      loading.value = false;
     }
   };
 
-  // Login user
-  const login = async (email, password) => {
+  // Log in the user using Firebase Auth SDK
+  const loginUser = async (email, password) => {
     try {
       error.value = null;
+      loading.value = true;
+      
       const userCredential = await signInWithEmailAndPassword(auth, email, password);
-      await checkAdminStatus(userCredential.user.uid);
-      return userCredential.user;
+      user.value = userCredential.user;
+
+      // Get Firebase ID token
+      token.value = await userCredential.user.getIdToken();
+
+      // Fetch user data from Firestore
+      const userDoc = await getDoc(doc(db, 'users', userCredential.user.uid));
+      if (userDoc.exists()) {
+        isAdmin.value = userDoc.data().isAdmin;
+      } else {
+        isAdmin.value = false;
+      }
     } catch (e) {
       error.value = e.message;
       throw e;
+    } finally {
+      loading.value = false;
     }
   };
 
-  // Logout user
+  // Log out the user
   const logout = async () => {
     try {
       error.value = null;
+      loading.value = true;
       await signOut(auth);
+      user.value = null;
+      token.value = null;
       isAdmin.value = false;
     } catch (e) {
       error.value = e.message;
       throw e;
+    } finally {
+      loading.value = false;
     }
   };
 
-  // Make user admin (should only be called by existing admins)
+  // Make a user an admin (Admin only)
   const makeUserAdmin = async (email) => {
     try {
-      if (!isAdmin.value) {
-        throw new Error('Only admins can make other users admin');
-      }
-
-      // Get all users
-      const usersRef = collection(db, 'users');
-      const userDocs = await getDocs(usersRef);
+      error.value = null;
+      loading.value = true;
       
-      // Find user by email
-      let targetUserId = null;
-      userDocs.forEach(doc => {
-        if (doc.data().email === email) {
-          targetUserId = doc.id;
-        }
+      const response = await fetch(`${import.meta.env.VITE_SERVER_URL}/api/auth/make-admin`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token.value}`
+        },
+        body: JSON.stringify({ email })
       });
 
-      if (!targetUserId) {
-        throw new Error('User not found');
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.error || 'Failed to make user admin');
       }
 
-      // Update user to admin
-      await setDoc(doc(db, 'users', targetUserId), {
-        isAdmin: true
-      }, { merge: true });
-
-      return { success: true, message: `${email} is now an admin` };
+      alert(`${email} is now an admin.`);
     } catch (e) {
-      console.error('Error making user admin:', e);
+      error.value = e.message;
       throw e;
+    } finally {
+      loading.value = false;
     }
   };
+
+// Luister naar authenticatiestatus veranderingen
+onMounted(() => {
+  auth.onAuthStateChanged(async (currentUser) => {
+    if (currentUser) {
+      user.value = currentUser;
+      token.value = await currentUser.getIdToken();
+
+      const userDoc = await getDoc(doc(db, 'users', currentUser.uid));
+      if (userDoc.exists()) {
+        isAdmin.value = userDoc.data().isAdmin;
+      }
+    } else {
+      user.value = null;
+      token.value = null;
+      isAdmin.value = false;
+    }
+    loading.value = false;
+  });
+});
 
   return {
     user,
+    token,
     loading,
     error,
     isAdmin,
     register,
-    login,
+    login: loginUser,
     logout,
     makeUserAdmin
   };
