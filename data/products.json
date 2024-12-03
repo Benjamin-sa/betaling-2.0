@@ -1,0 +1,14 @@
+{
+  "products": [
+    {
+      "id": "1733222819533",
+      "name": "STAM",
+      "description": "lekkere wijn",
+      "price": 10,
+      "imageUrl": "/uploads/1733222817819-Schermafdruk van 2024-11-23 18-16-40.png",
+      "stripeProductId": "1733222819532",
+      "stripePriceId": "price_1QRtd8K7LyHlGaLsfjPEajW7",
+      "createdAt": "2024-12-03T10:46:59.533Z"
+    }
+  ]
+}

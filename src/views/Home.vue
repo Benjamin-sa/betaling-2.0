@@ -1,0 +1,287 @@
+<template>
+  <div class="home">
+    <h1>Scoutswinkel</h1>
+    
+    <div class="products-grid">
+      <div v-for="product in products" :key="product.id" class="product-card">
+        <img :src="product.imageUrl" :alt="product.name" class="product-image">
+        <div class="product-info">
+          <h3>{{ product.name }}</h3>
+          <p class="description">{{ product.description }}</p>
+          <p class="price">€{{ product.price.toFixed(2) }}</p>
+          
+          <div class="quantity-control">
+            <button 
+              @click="updateQuantity(product.id, getQuantity(product.id) - 1)"
+              :disabled="getQuantity(product.id) <= 0"
+            >-</button>
+            <input 
+              type="number" 
+              v-model.number="quantities[product.id]" 
+              min="0"
+              @change="validateQuantity(product.id)"
+            >
+            <button 
+              @click="updateQuantity(product.id, getQuantity(product.id) + 1)"
+            >+</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="checkout-bar" v-if="hasItems">
+      <div class="checkout-info">
+        <span>Totaal: €{{ total.toFixed(2) }}</span>
+        <span>Aantal items: {{ totalItems }}</span>
+      </div>
+      <button 
+        @click="handleCheckout"
+        :disabled="loading"
+        class="checkout-button"
+      >
+        {{ loading ? 'Bezig met laden...' : 'Afrekenen' }}
+      </button>
+    </div>
+  </div>
+</template>
+
+<script setup>
+import { ref, computed, onMounted } from 'vue';
+import { db } from '@/config/firebase';
+import { collection, getDocs } from 'firebase/firestore';
+import { loadStripe } from '@stripe/stripe-js';
+import { apiClient } from '@/services/api';
+
+
+const stripePromise = loadStripe('pk_test_51Q2YysK7LyHlGaLs1KaOcD1Gk6A8b8l45LVF3q9URgskNKwgFHBEIPRKtMXGZEu0kFn9Iq0yWGcJ0Aatm5XCMsiK00SWythWSu');
+const products = ref([]);
+const quantities = ref({});
+const loading = ref(false);
+
+// Laad producten vanuit de lokale backend
+const loadProducts = async () => {
+  try {
+    const response = await fetch('/api/products'); // Backend-endpoint om producten op te halen
+    if (!response.ok) {
+      throw new Error('Failed to load products');
+    }
+
+    const data = await response.json();
+    products.value = data.products;
+
+    // Initialiseer hoeveelheden vanuit localStorage
+    const savedQuantities = JSON.parse(localStorage.getItem('quantities')) || {};
+    products.value.forEach((product) => {
+      quantities.value[product.id] = savedQuantities[product.id] || 0;
+    });
+  } catch (error) {
+    console.error('Error loading products:', error);
+    alert('Er is een fout opgetreden bij het laden van de producten.');
+  }
+};
+
+const getQuantity = (productId) => {
+  return quantities.value[productId] || 0;
+};
+
+const updateQuantity = (productId, value) => {
+  quantities.value[productId] = Math.max(0, value);
+};
+
+const validateQuantity = (productId) => {
+  const value = quantities.value[productId];
+  if (isNaN(value) || value < 0) {
+    quantities.value[productId] = 0;
+  } else {
+    quantities.value[productId] = Math.floor(value);
+  }
+};
+
+const hasItems = computed(() => {
+  return Object.values(quantities.value).some(quantity => quantity > 0);
+});
+
+const total = computed(() => {
+  return products.value.reduce((sum, product) => {
+    return sum + (product.price * getQuantity(product.id));
+  }, 0);
+});
+
+const totalItems = computed(() => {
+  return Object.values(quantities.value).reduce((sum, quantity) => sum + quantity, 0);
+});
+
+
+
+const handleCheckout = async () => {
+  try {
+    loading.value = true;
+    
+    const cartItems = Object.entries(quantities.value)
+      .filter(([_, quantity]) => quantity > 0)
+      .map(([productId, quantity]) => ({
+        productId,
+        quantity
+      }));
+
+    if (cartItems.length === 0) {
+      throw new Error('Cart is empty');
+    }
+
+    const { id: sessionId } = await apiClient.post('/checkout/create-session', {
+      items: cartItems
+    });
+
+    const stripe = await stripePromise;
+    const { error } = await stripe.redirectToCheckout({ sessionId });
+    
+    if (error) throw error;
+
+  } catch (error) {
+    console.error('Checkout error:', error);
+    alert(error.message);
+  } finally {
+    loading.value = false;
+  }
+};
+
+onMounted(() => {
+  loadProducts();
+});
+</script>
+
+<style scoped>
+.home {
+  padding: 2rem;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+h1 {
+  text-align: center;
+  margin-bottom: 2rem;
+  color: #2c3e50;
+}
+
+.products-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 2rem;
+  margin-bottom: 80px;
+}
+
+.product-card {
+  background: white;
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  transition: transform 0.2s;
+}
+
+.product-card:hover {
+  transform: translateY(-4px);
+}
+
+.product-image {
+  width: 100%;
+  height: 200px;
+  object-fit: cover;
+}
+
+.product-info {
+  padding: 1rem;
+}
+
+.product-info h3 {
+  margin: 0 0 0.5rem 0;
+  color: #2c3e50;
+}
+
+.description {
+  color: #666;
+  margin-bottom: 1rem;
+  font-size: 0.9rem;
+}
+
+.price {
+  font-size: 1.2rem;
+  font-weight: bold;
+  color: #2c3e50;
+  margin-bottom: 1rem;
+}
+
+.quantity-control {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.quantity-control button {
+  width: 36px;
+  height: 36px;
+  border: 1px solid #ddd;
+  background: #f8f9fa;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 1.2rem;
+}
+
+.quantity-control button:hover:not(:disabled) {
+  background: #e9ecef;
+}
+
+.quantity-control button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.quantity-control input {
+  width: 60px;
+  height: 36px;
+  text-align: center;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 1rem;
+}
+
+.checkout-bar {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: white;
+  padding: 1rem 2rem;
+  box-shadow: 0 -2px 4px rgba(0,0,0,0.1);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.checkout-info {
+  display: flex;
+  gap: 2rem;
+  font-size: 1.1rem;
+  font-weight: bold;
+  color: #2c3e50;
+}
+
+.checkout-button {
+  background: #4CAF50;
+  color: white;
+  border: none;
+  padding: 0.75rem 2rem;
+  border-radius: 4px;
+  font-size: 1.1rem;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.checkout-button:hover:not(:disabled) {
+  background: #45a049;
+}
+
+.checkout-button:disabled {
+  background: #cccccc;
+  cursor: not-allowed;
+}
+</style>
