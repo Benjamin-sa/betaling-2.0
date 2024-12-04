@@ -17,7 +17,7 @@ dist-ssr
 # Ignore Firebase service account key
 server/config/scoutswinkel-firebase-adminsdk-ucote-7f034f7aec.json
 
-
+data/*
 
 # Editor directories and files
 .vscode/*

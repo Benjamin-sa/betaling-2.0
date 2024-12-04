@@ -4,7 +4,7 @@ const path = require('path');
 class StorageService {
   constructor() {
     this.dataFile = path.join(__dirname, '../../data/products.json');
-    this.uploadsDir = path.join(__dirname, '../../public/uploads');
+    this.uploadsDir = path.join(__dirname, '../../client/public/uploads');
     this.ensureDirectories();
   }
 
@@ -30,7 +30,7 @@ class StorageService {
       const filePath = path.join(this.uploadsDir, uniqueFilename);
       
       await fs.writeFile(filePath, file.buffer);
-      return `/uploads/${uniqueFilename}`;
+      return `/public/uploads/${uniqueFilename}`;
     } catch (error) {
       console.error('Error uploading image:', error);
       throw error;

@@ -156,6 +156,9 @@ const handleDeleteProduct = async (productId) => {
     // Delete the product via the API
     const response = await fetch(`/api/products/${productId}`, {
       method: 'DELETE',
+      headers: {
+        'Authorization': `Bearer ${auth.token}`,
+      },
     });
 
     if (!response.ok) {
@@ -186,22 +189,8 @@ const loadProducts = async () => {
   }
 };
 
-const handleMakeAdmin = async () => {
-  try {
-    adminLoading.value = true;
-    // Maak een admin, eventueel via een backend API
-    alert(`${newAdminEmail.value} is nu een beheerder`);
-    newAdminEmail.value = '';
-  } catch (error) {
-    console.error('Error making user admin:', error);
-    alert(error.message);
-  } finally {
-    adminLoading.value = false;
-  }
-};
-
 const formatAmount = (amount) => {
-  return (amount / 100).toFixed(2);
+  return (amount).toFixed(2);
 };
 
 

@@ -32,6 +32,7 @@ router.post('/', authenticate, authorizeAdmin, upload.single('image'), async (re
       name,
       description,
       price,
+      imageUrl, // lokale afbeeldings-URL
     });
 
     // Sla productinformatie lokaal op

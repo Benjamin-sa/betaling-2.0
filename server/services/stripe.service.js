@@ -84,6 +84,7 @@ class StripeService {
       const product = await stripe.products.create({
         name: productData.name,
         description: productData.description,
+        imageUrl: productData.imageUrl,
       });
 
       // Maak prijs aan in centen

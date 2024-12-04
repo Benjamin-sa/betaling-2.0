@@ -29,7 +29,7 @@ const authorizeAdmin = async (req, res, next) => {
     if (userDoc.exists && userDoc.data().isAdmin) {
       next();
     } else {
-      res.status(403).json({ error: 'Forbidden: Admins only' });
+      res.status(403).json({ error: 'Verboden: Admins only' });
     }
   } catch (error) {
     console.error('Authorization error:', error);

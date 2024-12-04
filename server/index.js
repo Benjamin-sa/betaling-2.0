@@ -1,10 +1,12 @@
 // index.js
-if (process.env.NODE_ENV !== 'production') {
-  require('dotenv').config({ path: path.resolve(__dirname, '../.env') });
-}
 const path = require('path');
 const express = require('express');
 const cors = require('cors');
+
+if (process.env.NODE_ENV !== 'production') {
+  require('dotenv').config({ path: path.resolve(__dirname, './.env') });
+}
+
 const productRoutes = require('./routes/product.routes');
 const checkoutRoutes = require('./routes/checkout.routes');
 //const webhookService = require('./services/webhook.service');//
