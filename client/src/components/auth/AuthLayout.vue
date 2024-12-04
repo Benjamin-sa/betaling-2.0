@@ -5,7 +5,7 @@
         <!-- Logo/Brand -->
         <div class="flex items-center">
           <router-link to="/" class="flex items-center">
-            <span class="text-xl font-bold text-primary">Scoutswinkel</span>
+            <span class="text-xl font-bold text-primary">Scouts Lod Lavki</span>
           </router-link>
         </div>
 

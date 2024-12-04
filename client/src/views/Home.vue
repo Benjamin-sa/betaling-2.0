@@ -1,6 +1,6 @@
 <template>
   <div class="py-8">
-    <h1 class="text-4xl font-bold text-center text-text mb-8">Welkom bij Scoutswinkel</h1>
+    <h1 class="text-2xl font-bold text-center text-text mb-8">Welkom bij de online store van Lod lavki !</h1>
     <div v-if="loading" class="text-center text-lg text-text">Bezig met laden...</div>
     <div v-else>
       <div v-if="products.length === 0" class="text-center text-text">
