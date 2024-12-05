@@ -21,14 +21,6 @@ app.use(express.json());
 
 app.use('/uploads', express.static(path.join(__dirname, '../client/public/uploads')));
 
-// Serve static files from the client/dist directory
-app.use(express.static(path.join(__dirname, '../client/dist')));
-
-// Handle SPA (Single Page Application) routing
-app.get('*', (req, res) => {
-  res.sendFile(path.join(__dirname, '../client/dist', 'index.html'));
-});
-
 
 app.use('/api/products', productRoutes);
 app.use('/api/checkout', checkoutRoutes);
@@ -49,6 +41,15 @@ app.post('/api/webhook', express.raw({ type: 'application/json' }), async (req, 
     res.status(400).send(`Webhook Error: ${error.message}`);
   }
 });
+
+// Serve static files from the client/dist directory
+app.use(express.static(path.join(__dirname, '../client/dist')));
+
+// Handle SPA (Single Page Application) routing
+app.get('*', (req, res) => {
+  res.sendFile(path.join(__dirname, '../client/dist', 'index.html'));
+});
+
 
 app.listen(port, () => {
   console.log(`Server running at http://localhost:${port}`);
