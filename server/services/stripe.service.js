@@ -37,6 +37,8 @@ class StripeService {
           throw new Error(`Product not found: ${item.productId}`);
         }
 
+
+
         return {
           price_data: {
             currency: 'eur',
@@ -50,14 +52,17 @@ class StripeService {
         };
       });
 
+      const baseUrl = process.env.APP_URL || process.env.VITE_APP_URL;
+
+
       // Creëer Stripe Checkout sessie
       return stripe.checkout.sessions.create({
         payment_method_types: ['card', 'ideal'],
         line_items: lineItems,
         mode: 'payment',
         customer: user.stripe_customer_id,
-        success_url: `${process.env.VITE_APP_URL}/success`,
-        cancel_url: `${process.env.VITE_APP_URL}/`,
+        success_url: `${baseUrl}/success`,
+        cancel_url: `${baseUrl}/`,
       });
     } catch (error) {
       console.error('Error creating checkout session:', error);
