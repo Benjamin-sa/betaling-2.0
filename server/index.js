@@ -1,47 +1,76 @@
-// index.js
-const path = require('path');
 const express = require('express');
 const cors = require('cors');
+const database = require('./db');
+const backUp = require('./services/backup.service');
+const Migrations = require('./db/migrations');
 
-if (process.env.NODE_ENV !== 'production') {
-  require('dotenv').config({ path: path.resolve(__dirname, './.env') });
+async function startServer() {
+  try {
+    // Connect to database
+    await database.connect();
+
+    // Run migrations
+    const migrations = new Migrations(database.instance);
+    await migrations.runMigrations();
+
+    // Restore data from latest backup if database is empty
+    const isEmpty = await checkIfDatabaseIsEmpty();
+    if (isEmpty) {
+      await BackupService.restoreFromFirestore();
+    }
+
+    const app = express();
+    const port = process.env.PORT || 3000;
+
+    // Middleware
+    app.use(cors());
+    app.use(express.json());
+
+    // Routes
+    app.use('/api/products', require('./routes/product.routes'));
+    app.use('/api/checkout', require('./routes/checkout.routes'));
+    app.use('/api/auth', require('./routes/auth.routes'));
+    app.use('/api/orders', require('./routes/order.routes'));
+
+    // Schedule regular backups (every 4 hours)
+    setInterval(() => {
+      BackupService.backupToFirestore();
+    }, 4 * 60 * 60 * 1000);
+
+    // Start server
+    app.listen(port, () => {
+      console.log(`Server running at http://localhost:${port}`);
+    });
+
+    // Handle shutdown
+    process.on('SIGINT', async () => {
+      try {
+        await backUp.backupToFirestore();
+        await database.close();
+        process.exit(0);
+      } catch (error) {
+        console.error('Error during shutdown:', error);
+        process.exit(1);
+      }
+    });
+
+  } catch (error) {
+    console.error('Failed to start server:', error);
+    process.exit(1);
+  }
 }
 
-const productRoutes = require('./routes/product.routes');
-const checkoutRoutes = require('./routes/checkout.routes');
-//const webhookService = require('./services/webhook.service');//
-const orderRoutes = require('./routes/order.routes');
-const authRoutes = require('./routes/auth.routes');
 
-const app = express();
-const port = process.env.PORT || 3000;
+async function checkIfDatabaseIsEmpty() {
+  return new Promise((resolve, reject) => {
+    database.instance.get(
+      'SELECT COUNT(*) as count FROM users',
+      (err, row) => {
+        if (err) reject(err);
+        else resolve(row.count === 0);
+      }
+    );
+  });
+}
 
-app.use(cors());
-app.use(express.json());
-
-app.use('/uploads', express.static(path.join(__dirname, '../client/public/uploads')));
-
-
-app.use('/api/products', productRoutes);
-app.use('/api/checkout', checkoutRoutes);
-app.use('/api/auth', authRoutes);
-app.use('/api/orders', orderRoutes);
-
-
-app.post('/api/webhook', express.raw({ type: 'application/json' }), async (req, res) => {
-  try {
-    const event = webhookService.constructEvent(req.body, req.headers['stripe-signature']);
-    
-    if (event.type === 'checkout.session.completed') {
-      await webhookService.handleCheckoutSession(event.data.object);
-    }
-    
-    res.json({ received: true });
-  } catch (error) {
-    res.status(400).send(`Webhook Error: ${error.message}`);
-  }
-});
-
-app.listen(port, () => {
-  console.log(`Server running at http://localhost:${port}`);
-});
+startServer();

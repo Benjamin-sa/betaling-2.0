@@ -1,23 +1,23 @@
-const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
+require('dotenv').config();
+const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY_TEST);
 const storageService = require('./storage.service');
-const admin = require('../config/firebaseAdmin');
-
+const userService = require('./user.service');
 class StripeService {
+
   /**
-   * Creëer een checkout sessie met lokaal opgeslagen productdata
+   * Creates a Stripe Checkout session for the given items and user.
+   *
+   * @param {Array} items - The items to be purchased. Each item should have a productId and quantity.
+   * @param {string} userId - The ID of the user making the purchase.
+   * @returns {Promise<Object>} - The created Stripe Checkout session.
+   * @throws {Error} - Throws an error if the user is not found or if any product is not found.
    */
   async createCheckoutSession(items, userId) {
     try {
-
-      // Retrieve user from Firestore
-      const userDoc = await admin.firestore().collection('users').doc(userId).get();
-      if (!userDoc.exists) {
+      // Get user from SQLite database 
+      const user = await userService.getUserByFirebaseId(userId);
+      if (!user) {
         throw new Error('User not found');
-      }
-
-      const { stripeCustomerId } = userDoc.data();
-      if (!stripeCustomerId) {
-        throw new Error('Stripe customer ID not found for user');
       }
 
 
@@ -55,7 +55,7 @@ class StripeService {
         payment_method_types: ['card', 'ideal'],
         line_items: lineItems,
         mode: 'payment',
-        customer: stripeCustomerId,
+        customer: user.stripe_customer_id,
         success_url: `${process.env.VITE_APP_URL}/success`,
         cancel_url: `${process.env.VITE_APP_URL}/`,
       });
@@ -77,6 +77,17 @@ class StripeService {
 
   /**
    * Maak een Stripe product en prijs aan
+   */
+  /**
+   * Creates a new product in Stripe along with its price.
+   *
+   * @param {Object} productData - The data for the product to be created.
+   * @param {string} productData.name - The name of the product.
+   * @param {string} productData.description - The description of the product.
+   * @param {string} productData.imageUrl - The URL of the product's image.
+   * @param {number|string} productData.price - The price of the product in euros.
+   * @returns {Promise<Object>} The created product and price objects.
+   * @throws Will throw an error if the product creation fails.
    */
   async createProduct(productData) {
     try {
@@ -176,6 +187,12 @@ class StripeService {
 
   /**
    * Deactiveer een Stripe-product en update lokale opslag
+   */
+  /**
+   * Deactivates a product and all associated prices in Stripe.
+   *
+   * @param {string} productId - The ID of the product to deactivate.
+   * @throws Will throw an error if deactivation fails.
    */
   async deactivateProduct(productId) {
     try {

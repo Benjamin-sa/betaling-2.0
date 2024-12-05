@@ -42,7 +42,7 @@
                     Bestelling #{{ order.id }}
                   </h3>
                   <p class="mt-1 text-sm text-gray-500">
-                    {{ formatDate(order.createdAt) }}
+                    {{ formatDate(order.created) }}
                   </p>
                 </div>
                 <span 
@@ -63,11 +63,6 @@
                   :key="item.id"
                   class="py-4 flex"
                 >
-                  <img 
-                    :src="item.imageUrl" 
-                    :alt="item.description"
-                    class="h-20 w-20 rounded-lg object-cover"
-                  />
                   <div class="ml-4 flex-1">
                     <div class="flex items-center justify-between">
                       <h4 class="text-sm font-medium text-gray-900">{{ item.description }}</h4>

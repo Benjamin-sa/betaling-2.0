@@ -1,5 +1,6 @@
 // server/middleware/auth.js
 const admin = require('../config/firebaseAdmin');
+const userService = require('../services/user.service');
 
 const authenticate = async (req, res, next) => {
   const authHeader = req.headers.authorization;
@@ -22,15 +23,14 @@ const authenticate = async (req, res, next) => {
 };
 
 const authorizeAdmin = async (req, res, next) => {
-  const userId = req.user.uid;
-
   try {
-    const userDoc = await admin.firestore().collection('users').doc(userId).get();
-    if (userDoc.exists && userDoc.data().isAdmin) {
-      next();
-    } else {
-      res.status(403).json({ error: 'Verboden: Admins only' });
+    const user = await userService.getUserByFirebaseId(req.user.uid);
+    
+    if (!user || !user.is_admin) {
+      return res.status(403).json({ error: 'Forbidden: Admins only' });
     }
+    
+    next();
   } catch (error) {
     console.error('Authorization error:', error);
     res.status(500).json({ error: 'Internal Server Error' });
