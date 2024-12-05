@@ -1,9 +1,8 @@
 // src/stores/auth.js
 import { defineStore } from 'pinia';
 import { ref, onMounted } from 'vue';
-import { auth, db } from '@/config/firebase';
+import { auth } from '@/config/firebase';
 import { signInWithEmailAndPassword, signOut, GoogleAuthProvider, signInWithPopup, sendPasswordResetEmail, sendEmailVerification} from 'firebase/auth';
-import { getDoc, doc } from 'firebase/firestore';
 
 export const useAuthStore = defineStore('auth', () => {
   const user = ref(null);
@@ -57,12 +56,7 @@ export const useAuthStore = defineStore('auth', () => {
       user.value = userCredential.user;
       token.value = await userCredential.user.getIdToken();
 
-      const userDoc = await getDoc(doc(db, 'users', userCredential.user.uid));
-      if (userDoc.exists()) {
-        isAdmin.value = userDoc.data().isAdmin;
-      } else {
-        isAdmin.value = false;
-      }
+
     } catch (e) {
       error.value = e.message;
       throw e;
@@ -82,12 +76,31 @@ export const useAuthStore = defineStore('auth', () => {
       user.value = userCredential.user;
       token.value = await userCredential.user.getIdToken();
 
-      const userDoc = await getDoc(doc(db, 'users', userCredential.user.uid));
-      if (userDoc.exists()) {
-        isAdmin.value = userDoc.data().isAdmin;
-      } else {
-        isAdmin.value = false;
+      // Check if email is verified
+      if (!userCredential.user.emailVerified) {
+        // Send new verification email if not verified yet
+        await sendEmailVerification(userCredential.user);
+        await signOut(auth);
+        throw new Error('E-mailadres nog niet geverifieerd. Nieuwe verificatie e-mail verzonden.');
       }
+
+      // Check if user is already in the database
+      const response = await fetch(`${import.meta.env.VITE_SERVER_URL}/api/auth/ensure-user`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token.value}`
+        }
+      });
+
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.error || 'Failed to ensure user exists in backend.');
+      }
+
+      await fetchAdminStatus();
+
+
     } catch (e) {
       error.value = e.message;
       throw e;
@@ -128,6 +141,32 @@ export const useAuthStore = defineStore('auth', () => {
     }
   };
 
+
+  /**
+   * Fetch admin status from the backend
+   */
+  const fetchAdminStatus = async () => {
+    if (!token.value) return;
+    try {
+      const response = await fetch(`${import.meta.env.VITE_SERVER_URL}/api/auth/admin-status`, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${token.value}`,
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch admin status');
+      }
+
+      const data = await response.json();
+      isAdmin.value = data.isAdmin;
+    } catch (e) {
+      console.error('Error fetching admin status:', e.message);
+      isAdmin.value = false;
+    }
+  };
+
   // Make a user an admin (Admin only)
   const makeUserAdmin = async (email) => {
     try {
@@ -159,15 +198,12 @@ export const useAuthStore = defineStore('auth', () => {
 
   // Listen to auth state changes
   onMounted(() => {
-    auth.onAuthStateChanged(async (currentUser) => {
+    auth.onIdTokenChanged(async (currentUser) => {
       if (currentUser) {
         user.value = currentUser;
         token.value = await currentUser.getIdToken();
+        await fetchAdminStatus();
 
-        const userDoc = await getDoc(doc(db, 'users', currentUser.uid));
-        if (userDoc.exists()) {
-          isAdmin.value = userDoc.data().isAdmin;
-        }
       } else {
         user.value = null;
         token.value = null;
@@ -188,6 +224,7 @@ export const useAuthStore = defineStore('auth', () => {
     loginWithGoogle,
     resetPassword,
     logout,
-    makeUserAdmin
+    makeUserAdmin,
+    fetchAdminStatus
   };
 });

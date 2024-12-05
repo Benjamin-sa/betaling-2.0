@@ -88,8 +88,7 @@ import { useAuthStore } from '@/stores/auth';
 const auth = useAuthStore();
 const loading = ref(false);
 const products = ref([]);
-const newAdminEmail = ref('');
-const adminLoading = ref(false);
+
 
 const newProduct = ref({
   name: '',
@@ -120,7 +119,6 @@ const handleAddProduct = async () => {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${auth.token}`, // Voeg het ID-token toe
-        // 'Content-Type' wordt automatisch ingesteld door de browser voor FormData
       },
       body: formData,
     });
@@ -132,7 +130,7 @@ const handleAddProduct = async () => {
     const addedProduct = await response.json();
 
     // Voeg het nieuwe product toe aan de lijst
-    products.value.push(addedProduct);
+    products.value.push(addedProduct.product);
 
     // Reset het formulier
     newProduct.value = {

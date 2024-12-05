@@ -42,7 +42,7 @@
                     Bestelling #{{ order.id }}
                   </h3>
                   <p class="mt-1 text-sm text-gray-500">
-                    {{ formatDate(order.createdAt) }}
+                    {{ formatDate(order.created) }}
                   </p>
                 </div>
                 <span 
