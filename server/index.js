@@ -2,13 +2,14 @@ const express = require('express');
 const cors = require('cors');
 const database = require('./db');
 const path = require('path');
-const backUp = require('./services/backup.service');
 const Migrations = require('./db/migrations');
 
 async function startServer() {
   try {
     // Connect to database
     await database.connect();
+
+    const backUp = require('./services/backup.service');
 
     // Run migrations
     const migrations = new Migrations(database.instance);
