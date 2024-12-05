@@ -35,7 +35,7 @@ router.post('/', authenticate, authorizeAdmin, upload.single('image'), async (re
       imageUrl, // lokale afbeeldings-URL
     });
 
-    // Sla productinformatie lokaal op
+    // ²la productinformatie lokaal op
     const savedProduct = await storageService.saveProduct({
       name,
       description,

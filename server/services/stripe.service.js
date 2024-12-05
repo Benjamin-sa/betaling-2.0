@@ -1,4 +1,4 @@
-const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
+const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY_TEST);
 const storageService = require('./storage.service');
 const admin = require('../config/firebaseAdmin');
 

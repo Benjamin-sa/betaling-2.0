@@ -276,6 +276,9 @@ const handleCheckout = async () => {
 
     // Gebruik Stripe.js om de gebruiker naar de Checkout pagina te sturen
     const stripe = await stripePromise;
+    if (!stripe) {
+      throw new Error('Failed to load Stripe');
+    }
     const { error } = await stripe.redirectToCheckout({ sessionId });
 
     if (error) {
