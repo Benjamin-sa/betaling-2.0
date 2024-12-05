@@ -1,6 +1,7 @@
 const express = require('express');
 const cors = require('cors');
 const database = require('./db');
+const path = require('path');
 const backUp = require('./services/backup.service');
 const Migrations = require('./db/migrations');
 
@@ -32,16 +33,6 @@ async function startServer() {
     app.use('/api/auth', require('./routes/auth.routes'));
     app.use('/api/orders', require('./routes/order.routes'));
 
-    // Schedule regular backups (every 4 hours)
-    setInterval(() => {
-      BackupService.backupToFirestore();
-    }, 4 * 60 * 60 * 1000);
-
-    // Start server
-    app.listen(port, () => {
-      console.log(`Server running at http://localhost:${port}`);
-    });
-
 
     // Serve static files from the client/dist directory
     app.use(express.static(path.join(__dirname, '../client/dist')));
@@ -50,6 +41,20 @@ async function startServer() {
     app.get('*', (req, res) => {
       res.sendFile(path.join(__dirname, '../client/dist', 'index.html'));
     });
+
+    // Schedule regular backups (every 4 hours)
+    setInterval(() => {
+      BackupService.backupToFirestore();
+    }, 4 * 60 * 60 * 1000);
+
+
+    // Start server
+    app.listen(port, () => {
+      console.log(`Server running at http://localhost:${port}`);
+    });
+
+
+
 
     // Handle shutdown
     process.on('SIGINT', async () => {
