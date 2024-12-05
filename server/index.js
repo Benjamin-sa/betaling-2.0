@@ -3,7 +3,6 @@ const cors = require('cors');
 const database = require('./db');
 const path = require('path');
 const Migrations = require('./db/migrations');
-const backUp = require('./services/backup.service');
 
 
 async function startServer() {
@@ -63,7 +62,7 @@ async function startServer() {
     // Handle shutdown
     process.on('SIGINT', async () => {
       try {
-        await backUp.backupToFirestore();
+        await BackupService.backupToFirestore();
         await database.close();
         process.exit(0);
       } catch (error) {
