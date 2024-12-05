@@ -5,7 +5,7 @@
       "name": "benjamin",
       "description": "Kaas",
       "price": 10,
-      "imageUrl": "/public/uploads/1733329334403-download.webp",
+      "imageUrl": "/uploads/1733329334403-download.webp",
       "stripeProductId": "prod_RL1NreBrPVmPOC",
       "stripePriceId": "price_1QSLL8K7LyHlGaLsTR7MYdw5",
       "createdAt": "2024-12-04T16:22:15.498Z"

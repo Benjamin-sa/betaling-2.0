@@ -1,10 +1,9 @@
 // src/stores/auth.js
 import { defineStore } from 'pinia';
 import { ref, onMounted } from 'vue';
-import { auth, db } from '@/config/firebase'; // Ensure these are correctly exported from firebase.js
-import { signInWithEmailAndPassword, signOut } from 'firebase/auth';
+import { auth, db } from '@/config/firebase';
+import { signInWithEmailAndPassword, signOut, GoogleAuthProvider, signInWithPopup, sendPasswordResetEmail, sendEmailVerification} from 'firebase/auth';
 import { getDoc, doc } from 'firebase/firestore';
-
 
 export const useAuthStore = defineStore('auth', () => {
   const user = ref(null);
@@ -19,7 +18,6 @@ export const useAuthStore = defineStore('auth', () => {
       error.value = null;
       loading.value = true;
       
-      // Call backend to register the user
       const response = await fetch(`${import.meta.env.VITE_SERVER_URL}/api/auth/register`, {
         method: 'POST',
         headers: {
@@ -33,7 +31,6 @@ export const useAuthStore = defineStore('auth', () => {
         throw new Error(data.error || 'Registration failed');
       }
 
-      // After successful registration, log in the user
       await loginUser(email, password);
     } catch (e) {
       error.value = e.message;
@@ -50,18 +47,62 @@ export const useAuthStore = defineStore('auth', () => {
       loading.value = true;
       
       const userCredential = await signInWithEmailAndPassword(auth, email, password);
+      // Controleer of e-mail geverifieerd is
+      if (!userCredential.user.emailVerified) {
+        // Stuur nieuwe verificatie e-mail als die nog niet geverifieerd is
+        await sendEmailVerification(userCredential.user);
+        await signOut(auth);
+        throw new Error('E-mailadres nog niet geverifieerd. Nieuwe verificatie e-mail verzonden.');
+      }
       user.value = userCredential.user;
-
-      // Get Firebase ID token
       token.value = await userCredential.user.getIdToken();
 
-      // Fetch user data from Firestore
       const userDoc = await getDoc(doc(db, 'users', userCredential.user.uid));
       if (userDoc.exists()) {
         isAdmin.value = userDoc.data().isAdmin;
       } else {
         isAdmin.value = false;
       }
+    } catch (e) {
+      error.value = e.message;
+      throw e;
+    } finally {
+      loading.value = false;
+    }
+  };
+
+  // Log in the user using Google
+  const loginWithGoogle = async () => {
+    try {
+      error.value = null;
+      loading.value = true;
+      
+      const provider = new GoogleAuthProvider();
+      const userCredential = await signInWithPopup(auth, provider);
+      user.value = userCredential.user;
+      token.value = await userCredential.user.getIdToken();
+
+      const userDoc = await getDoc(doc(db, 'users', userCredential.user.uid));
+      if (userDoc.exists()) {
+        isAdmin.value = userDoc.data().isAdmin;
+      } else {
+        isAdmin.value = false;
+      }
+    } catch (e) {
+      error.value = e.message;
+      throw e;
+    } finally {
+      loading.value = false;
+    }
+  };
+
+  // Reset password
+  const resetPassword = async (email) => {
+    try {
+      error.value = null;
+      loading.value = true;
+      await sendPasswordResetEmail(auth, email);
+      alert('Password reset email sent');
     } catch (e) {
       error.value = e.message;
       throw e;
@@ -116,25 +157,25 @@ export const useAuthStore = defineStore('auth', () => {
     }
   };
 
-// Luister naar authenticatiestatus veranderingen
-onMounted(() => {
-  auth.onAuthStateChanged(async (currentUser) => {
-    if (currentUser) {
-      user.value = currentUser;
-      token.value = await currentUser.getIdToken();
+  // Listen to auth state changes
+  onMounted(() => {
+    auth.onAuthStateChanged(async (currentUser) => {
+      if (currentUser) {
+        user.value = currentUser;
+        token.value = await currentUser.getIdToken();
 
-      const userDoc = await getDoc(doc(db, 'users', currentUser.uid));
-      if (userDoc.exists()) {
-        isAdmin.value = userDoc.data().isAdmin;
+        const userDoc = await getDoc(doc(db, 'users', currentUser.uid));
+        if (userDoc.exists()) {
+          isAdmin.value = userDoc.data().isAdmin;
+        }
+      } else {
+        user.value = null;
+        token.value = null;
+        isAdmin.value = false;
       }
-    } else {
-      user.value = null;
-      token.value = null;
-      isAdmin.value = false;
-    }
-    loading.value = false;
+      loading.value = false;
+    });
   });
-});
 
   return {
     user,
@@ -144,6 +185,8 @@ onMounted(() => {
     isAdmin,
     register,
     login: loginUser,
+    loginWithGoogle,
+    resetPassword,
     logout,
     makeUserAdmin
   };

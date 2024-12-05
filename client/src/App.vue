@@ -43,7 +43,7 @@
             >
               Admin Dashboard
             </router-link>
-            <template v-else>
+            <template v-if="!auth.token">
               <router-link to="/login" class="text-gray-600 hover:text-primary transition-colors">
                 Inloggen
               </router-link>
