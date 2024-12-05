@@ -1,14 +1,14 @@
 {
   "products": [
     {
-      "id": "prod_RL1NreBrPVmPOC",
-      "name": "benjamin",
-      "description": "Kaas",
-      "price": 10,
-      "imageUrl": "/uploads/1733329334403-download.webp",
-      "stripeProductId": "prod_RL1NreBrPVmPOC",
-      "stripePriceId": "price_1QSLL8K7LyHlGaLsTR7MYdw5",
-      "createdAt": "2024-12-04T16:22:15.498Z"
+      "id": "prod_RLLM3aMUGWs5eO",
+      "name": "lekkere kaas",
+      "description": "kaas",
+      "price": 12.25,
+      "imageUrl": "/public/uploads/1733403679740-download (1).webp",
+      "stripeProductId": "prod_RLLM3aMUGWs5eO",
+      "stripePriceId": "price_1QSegGK7LyHlGaLsNCROH1pO",
+      "createdAt": "2024-12-05T13:01:20.966Z"
     }
   ]
 }

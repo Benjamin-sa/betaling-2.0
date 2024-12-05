@@ -97,7 +97,7 @@
             >
               Admin Dashboard
             </router-link>
-          <template v-else>
+          <template v-if="!auth.token">
             <router-link 
               to="/login" 
               class="block px-4 py-2 text-gray-600 hover:bg-gray-50 hover:text-primary"
