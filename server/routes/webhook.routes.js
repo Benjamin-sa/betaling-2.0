@@ -3,6 +3,7 @@ const express = require('express');
 const router = express.Router();
 const stripeService = require('../services/stripe.service');
 const webhookService = require('../services/webhook.service');
+const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
 
 router.post('/stripe',
   express.raw({ type: 'application/json' }),
