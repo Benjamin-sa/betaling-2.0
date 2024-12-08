@@ -3,6 +3,7 @@ const express = require('express');
 const cors = require('cors');
 const database = require('./db');
 const Migrations = require('./db/migrations');
+const path = require('path');
 
 
 async function startServer() {
@@ -35,6 +36,9 @@ async function startServer() {
     // Parse JSON bodies for all other routes
     app.use(express.json());
 
+    app.use(express.static(path.join(__dirname, '../client/dist')));
+
+
     // Routes
     app.use('/api/products', require('./routes/product.routes'));
     app.use('/api/checkout', require('./routes/checkout.routes'));
@@ -42,10 +46,15 @@ async function startServer() {
     app.use('/api/orders', require('./routes/order.routes'));
     app.use('/webhook', require('./routes/webhook.routes'));
 
-    // Schedule regular backups (every 4 hours)
+    // Handle SPA routing - must be after API routes
+    app.get('*', (req, res) => {
+      res.sendFile(path.join(__dirname, '../client/dist/index.html'));
+    });
+
+    // Schedule regular backups (every 8 hours)
     setInterval(() => {
       backUp.backupToFirestore();
-    }, 4 * 60 * 60 * 1000);
+    }, 8 * 60 * 60 * 1000);
 
 
     // Start server
