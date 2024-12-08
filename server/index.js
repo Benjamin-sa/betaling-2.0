@@ -1,7 +1,7 @@
+require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const database = require('./db');
-const path = require('path');
 const Migrations = require('./db/migrations');
 
 
@@ -17,17 +17,22 @@ async function startServer() {
     const migrations = new Migrations(database.instance);
     await migrations.runMigrations();
 
+    const backUp = require('./services/backup.service');
+
     // Restore data from latest backup if database is empty
     const isEmpty = await checkIfDatabaseIsEmpty();
     if (isEmpty) {
-      await BackupService.restoreFromFirestore();
+      await backUp.restoreFromFirestore();
     }
 
     const app = express();
     const port = process.env.PORT || 3000;
 
-    // Middleware
+    // Middleware setup
     app.use(cors());
+    // Important: Use raw body parser for webhook route
+    app.use('/webhook/stripe', express.raw({type: 'application/json'}));
+    // Parse JSON bodies for all other routes
     app.use(express.json());
 
     // Routes
@@ -35,19 +40,11 @@ async function startServer() {
     app.use('/api/checkout', require('./routes/checkout.routes'));
     app.use('/api/auth', require('./routes/auth.routes'));
     app.use('/api/orders', require('./routes/order.routes'));
-
-
-    // Serve static files from the client/dist directory
-    app.use(express.static(path.join(__dirname, '../client/dist')));
-
-    // Handle SPA (Single Page Application) routing
-    app.get('*', (req, res) => {
-      res.sendFile(path.join(__dirname, '../client/dist', 'index.html'));
-    });
+    app.use('/webhook', require('./routes/webhook.routes'));
 
     // Schedule regular backups (every 4 hours)
     setInterval(() => {
-      BackupService.backupToFirestore();
+      backUp.backupToFirestore();
     }, 4 * 60 * 60 * 1000);
 
 
@@ -55,10 +52,8 @@ async function startServer() {
     app.listen(port, () => {
       console.log(`Server running at http://localhost:${port}`);
     });
-
-
-
-
+    
+    if (process.env.NODE_ENV === 'production') {
     // Handle shutdown
     process.on('SIGINT', async () => {
       try {
@@ -69,7 +64,7 @@ async function startServer() {
         console.error('Error during shutdown:', error);
         process.exit(1);
       }
-    });
+    });}
 
   } catch (error) {
     console.error('Failed to start server:', error);

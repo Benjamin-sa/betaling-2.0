@@ -1,18 +1,23 @@
 // services/webhook.service.js
-const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
+const mailService = require('./mail.service');
+const userService = require('./user.service');
 
 class WebhookService {
-  constructEvent(payload, signature) {
-    return stripe.webhooks.constructEvent(
-      payload,
-      signature,
-      process.env.STRIPE_WEBHOOK_SECRET
-    );
-  }
+
 
   async handleCheckoutSession(session) {
-    console.log('Payment successful:', session);
-    // Add additional payment success handling logic here
+    try {
+      // Get customer details
+      const customer = await userService.getUserByStripeId(session.customer);
+      
+      // Send order confirmation
+      await mailService.sendOrderConfirmation(session, customer);
+      
+      console.log('Order confirmation sent:', session.id);
+    } catch (error) {
+      console.error('Error handling checkout session:', error);
+      throw error;
+    }
   }
 }
 

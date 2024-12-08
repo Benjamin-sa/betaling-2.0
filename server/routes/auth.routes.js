@@ -17,7 +17,7 @@ router.post('/register', async (req, res) => {
         email,
         password
       });
-  
+
       // Maak een Stripe klant aan
       const customer = await stripeService.createCustomer(email, userRecord.uid);
   
