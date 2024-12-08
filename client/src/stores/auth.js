@@ -30,7 +30,6 @@ export const useAuthStore = defineStore('auth', () => {
         throw new Error(data.error || 'Registration failed');
       }
 
-      await loginUser(email, password);
     } catch (e) {
       error.value = e.message;
       throw e;
@@ -49,8 +48,13 @@ export const useAuthStore = defineStore('auth', () => {
       // Controleer of e-mail geverifieerd is
       if (!userCredential.user.emailVerified) {
         // Stuur nieuwe verificatie e-mail als die nog niet geverifieerd is
-        await sendEmailVerification(userCredential.user);
-        await signOut(auth);
+        await fetch(`${import.meta.env.VITE_SERVER_URL}/api/auth/send-verification-email`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token.value}`
+          }
+        });        await signOut(auth);
         throw new Error('E-mailadres nog niet geverifieerd. Nieuwe verificatie e-mail verzonden.');
       }
       user.value = userCredential.user;

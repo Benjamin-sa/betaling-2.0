@@ -180,20 +180,31 @@
     </div>
   </div>
 </div>
+<Modal
+  type="auth"
+  :show="showAuthModal"
+  @login="handleLogin"
+  @register="handleRegister"
+  @close="showAuthModal = false"
+/>
 </template>
 
 <script setup>
 import { ref, computed, onMounted } from 'vue';
+import {useRouter} from 'vue-router';
 import { loadStripe } from '@stripe/stripe-js';
 import { apiClient } from '@/services/api';
 import { useAuthStore } from '@/stores/auth';
+import Modal from '@/components/Modal.vue'; // Add this
 
+const router = useRouter(); // Add this
 const auth = useAuthStore();
 const stripePromise = loadStripe('pk_test_51Q2YysK7LyHlGaLs1KaOcD1Gk6A8b8l45LVF3q9URgskNKwgFHBEIPRKtMXGZEu0kFn9Iq0yWGcJ0Aatm5XCMsiK00SWythWSu');
 const products = ref([]);
 const quantities = ref({});
 const loading = ref(false);
 const isCartOpen = ref(false)
+const showAuthModal = ref(false); // Add this
 
 
 // Laad producten vanuit de lokale backend
@@ -250,11 +261,28 @@ const totalItems = computed(() => {
   return Object.values(quantities.value).reduce((sum, quantity) => sum + quantity, 0);
 });
 
+// Add these handlers
+const handleLogin = () => {
+  router.push('/login');
+  showAuthModal.value = false;
+};
+
+const handleRegister = () => {
+  router.push('/register');
+  showAuthModal.value = false;
+};
+
 
 
 const handleCheckout = async () => {
+  loading.value = true;
+
   try {
-    loading.value = true;
+
+    if (!auth.token) {
+    showAuthModal.value = true;
+    return;
+  }
 
     // Creëer het items array op basis van geselecteerde producten en hoeveelheden
     const items = products.value

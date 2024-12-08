@@ -39,28 +39,34 @@
       {{ loading ? 'Bezig met registreren...' : 'Registreren' }}
     </button>
   </form>
+
+  <Modal 
+  type="verification"
+  :show="showVerificationMessage"
+  :email="email"
+  @close="showVerificationMessage = false"
+/>
 </template>
 
 <script setup>
 import { ref } from 'vue';
 import { useAuthStore } from '@/stores/auth';
-import { useRouter } from 'vue-router';
+import Modal from '@/components/Modal.vue';
 
 const auth = useAuthStore();
-const router = useRouter();
 
 const email = ref('');
 const password = ref('');
 const loading = ref(false);
 const error = ref('');
+const showVerificationMessage = ref(false);
 
 const handleSubmit = async () => {
   try {
     loading.value = true;
     error.value = '';
     await auth.register(email.value, password.value);
-    await auth.login(email.value, password.value);
-    router.push('/'); // Redirect to home page after successful registration
+    showVerificationMessage.value = true;
   } catch (e) {
     error.value = e.message;
   } finally {

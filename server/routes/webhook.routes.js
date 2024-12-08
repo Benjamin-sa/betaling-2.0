@@ -4,26 +4,36 @@ const router = express.Router();
 const stripeService = require('../services/stripe.service');
 const webhookService = require('../services/webhook.service');
 
-// Important: Use raw body parser for webhook route
-router.post('/stripe', 
-  express.raw({type: 'application/json'}),
+router.post('/stripe',
+  express.raw({ type: 'application/json' }),
   async (req, res) => {
     const signature = req.headers['stripe-signature'];
-    
+
     try {
-      // Pass raw body buffer to constructEvent
       const event = await stripeService.constructWebhookEvent(req.body, signature);
-      
+
       switch (event.type) {
+        // Successful checkout
         case 'checkout.session.completed':
-          console.log('checkout.session.completed');
-          await webhookService.handleCheckoutSession(event.data.object);
-        case 'payment_intent.succeeded':
-          console.log('payment_intent.succeeded');
+          try {
+            const session = await stripe.checkout.sessions.retrieve(
+              event.data.object.id,
+              { expand: ['line_items'] }
+            );
+            await webhookService.handleCheckoutSession(session);
+            console.log(`Checkout completed: ${session.id}`);
+          } catch (error) {
+            console.error('Checkout session handling error:', error);
+            throw error;
+          }
           break;
+
+        // Default case for unhandled events
+        default:
+          console.log(`Unhandled event type: ${event.type}`);
       }
 
-      res.json({received: true});
+      res.json({ received: true });
     } catch (err) {
       console.error('Webhook Error:', err.message);
       res.status(400).send(`Webhook Error: ${err.message}`);

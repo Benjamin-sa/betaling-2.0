@@ -5,6 +5,7 @@ const admin = require('../config/firebaseAdmin');
 const stripeService = require('../services/stripe.service');
 const { authenticate, authorizeAdmin } = require('../middleware/auth');
 const userService = require('../services/user.service');
+const authService = require('../services/auth.service');
 
 
 // registreer een nieuwe gebruiker
@@ -28,6 +29,14 @@ router.post('/register', async (req, res) => {
       stripeCustomerId: customer.id
     });
 
+    // Send verification email
+    try {
+      await sendVerificationEmailToUser(email);
+    } catch (emailError) {
+      console.error('Verification email error:', emailError);
+      // Continue execution - user is created but email failed
+    }
+
     res.status(201).json({ message: 'User registered successfully', user });
 
   
@@ -36,6 +45,17 @@ router.post('/register', async (req, res) => {
       res.status(400).json({ error: error.message });
     }
   });
+
+  // Keep existing send-verification-email endpoint for manual resends
+router.post('/send-verification-email', authenticate, async (req, res) => {
+  try {
+    await sendVerificationEmailToUser(req.user.email);
+    res.status(200).json({ message: 'Verificatie-email verstuurd' });
+  } catch (error) {
+    console.error('Error sending verification email:', error);
+    res.status(500).json({ error: 'Interne serverfout' });
+  }
+});
 
 
   // Nieuwe route om ervoor te zorgen dat de gebruiker in de database bestaat
@@ -94,5 +114,12 @@ router.get('/admin-status', authenticate, async (req, res) => {
     res.status(500).json({ error: 'Internal Server Error' });
   }
 });
+
+
+// Helper function to send verification email
+const sendVerificationEmailToUser = async (email) => {
+  const verificationLink = await admin.auth().generateEmailVerificationLink(email);
+  await authService.sendVerificationEmail({ email }, verificationLink);
+};
 
 module.exports = router;

@@ -8,6 +8,8 @@ class MailService {
       }
       sgMail.setApiKey(process.env.SENDGRID_API_KEY);
 
+      this.from = process.env.SENDGRID_FROM_EMAIL;
+
   }
 
   async sendOrderConfirmation(order, customer) {
@@ -32,6 +34,7 @@ class MailService {
       from: this.from,
       templateId: process.env.SENDGRID_VERIFY_TEMPLATE_ID,
       dynamicTemplateData: {
+        customerName: user.name || user.email, // Fallback to email if name is not set
         verificationLink
       }
     };
