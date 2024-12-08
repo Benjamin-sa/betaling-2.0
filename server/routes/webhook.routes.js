@@ -3,7 +3,6 @@ const express = require('express');
 const router = express.Router();
 const stripeService = require('../services/stripe.service');
 const webhookService = require('../services/webhook.service');
-const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
 
 router.post('/stripe',
   express.raw({ type: 'application/json' }),
@@ -11,16 +10,19 @@ router.post('/stripe',
     const signature = req.headers['stripe-signature'];
 
     try {
+      // Use stripeService to construct event
       const event = await stripeService.constructWebhookEvent(req.body, signature);
 
       switch (event.type) {
-        // Successful checkout
         case 'checkout.session.completed':
           try {
-            const session = await stripe.checkout.sessions.retrieve(
-              event.data.object.id,
-              { expand: ['line_items'] }
-            );
+            // Use stripeService to retrieve session with line items
+            const session = await stripeService.getCheckoutSession(event.data.object.id);
+            const lineItems = await stripeService.getSessionLineItems(session.id);
+            
+            // Add line items to session object
+            session.line_items = lineItems;
+            
             await webhookService.handleCheckoutSession(session);
             console.log(`Checkout completed: ${session.id}`);
           } catch (error) {
@@ -29,7 +31,16 @@ router.post('/stripe',
           }
           break;
 
-        // Default case for unhandled events
+        case 'payment_intent.succeeded':
+          try {
+            await webhookService.handlePaymentSuccess(event.data.object);
+            console.log(`Payment succeeded: ${event.data.object.id}`);
+          } catch (error) {
+            console.error('Payment success handling error:', error);
+            throw error;
+          }
+          break;
+
         default:
           console.log(`Unhandled event type: ${event.type}`);
       }
