@@ -155,6 +155,22 @@ class StripeService {
     }
   }
 
+  async constructWebhookEvent(rawBody, signature) {
+    try {
+      // Construct event from raw body
+      const event = stripe.webhooks.constructEvent(
+        rawBody,
+        signature,
+        process.env.STRIPE_WEBHOOK_SECRET
+      );
+      return event;
+    } catch (err) {
+      console.error('Webhook construction failed:', err.message);
+      throw err;
+    }
+  }
+
+
   /**
    * Haal line items op voor een specifieke Checkout Session
    * @param {string} sessionId - De Stripe Checkout Session ID
