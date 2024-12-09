@@ -37,6 +37,33 @@ const migrations = [{
     CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
     CREATE INDEX IF NOT EXISTS idx_users_stripe ON users(stripe_customer_id);
     CREATE INDEX IF NOT EXISTS idx_products_stripe ON products(stripe_product_id);
+  `,
+  name: '002_create_orders_tables',
+  up: `
+    -- Create orders table
+    CREATE TABLE IF NOT EXISTS orders (
+      id TEXT PRIMARY KEY,
+      user_id TEXT NOT NULL,
+      amount_total REAL NOT NULL,
+      currency TEXT NOT NULL,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY(user_id) REFERENCES users(firebase_uid)
+    );
+
+    -- Create order_items table
+    CREATE TABLE IF NOT EXISTS order_items (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      order_id TEXT NOT NULL,
+      product_name TEXT NOT NULL,
+      quantity INTEGER NOT NULL,
+      amount_total REAL NOT NULL,
+      unit_price REAL NOT NULL,
+      FOREIGN KEY(order_id) REFERENCES orders(id)
+    );
+
+    -- Indexes
+    CREATE INDEX IF NOT EXISTS idx_orders_user_id ON orders(user_id);
+    CREATE INDEX IF NOT EXISTS idx_order_items_order_id ON order_items(order_id);
   `
 }];
 

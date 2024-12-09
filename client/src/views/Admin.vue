@@ -79,6 +79,56 @@
       </div>
     </div>
   </div>
+
+  <div class="bg-cardBackground rounded-lg shadow-lg p-6 mt-8">
+    <h2 class="text-2xl font-semibold text-primary mb-4">Verkochte Producten Overzicht</h2>
+    <table class="min-w-full divide-y divide-gray-200">
+      <thead>
+        <tr>
+          <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Bestelling ID</th>
+          <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Gebruiker</th>
+          <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Product</th>
+          <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Aantal</th>
+          <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Totaal</th>
+        </tr>
+      </thead>
+      <tbody class="bg-white divide-y divide-gray-200">
+        <tr v-for="order in orders" :key="order.order_id">
+          <td class="px-6 py-4">{{ order.order_id }}</td>
+          <td class="px-6 py-4">{{ order.email }}</td>
+          <td class="px-6 py-4">{{ order.product_name }}</td>
+          <td class="px-6 py-4">{{ order.quantity }}</td>
+          <td class="px-6 py-4">€{{ formatAmount(order.amount_total) }}</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Users Overview -->
+  <div class="bg-cardBackground rounded-lg shadow-lg p-6 mt-8">
+    <h2 class="text-2xl font-semibold text-primary mb-4">Gebruikers Overzicht</h2>
+    <table class="min-w-full divide-y divide-gray-200">
+      <thead>
+        <tr>
+          <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Email</th>
+          <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Acties</th>
+        </tr>
+      </thead>
+      <tbody class="bg-white divide-y divide-gray-200">
+        <tr v-for="user in users" :key="user.firebase_uid">
+          <td class="px-6 py-4">{{ user.email }}</td>
+          <td class="px-6 py-4">
+            <button
+              @click="deleteUser(user.firebase_uid)"
+              class="bg-secondary text-white px-3 py-1 rounded hover:bg-red-700 transition duration-300"
+            >
+              Verwijderen
+            </button>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
 </template>
 
 <script setup>
@@ -88,6 +138,9 @@ import { useAuthStore } from '@/stores/auth';
 const auth = useAuthStore();
 const loading = ref(false);
 const products = ref([]);
+const orders = ref([]);
+const users = ref([]);
+
 
 
 const newProduct = ref({
@@ -191,8 +244,52 @@ const formatAmount = (amount) => {
   return (amount).toFixed(2);
 };
 
+const loadOrders = async () => {
+  try {
+    const response = await fetch('/api/admin/orders', {
+      headers: { 'Authorization': `Bearer ${auth.token}` },
+    });
+    const data = await response.json();
+    orders.value = data.orders;
+  } catch (error) {
+    console.error('Error loading orders:', error);
+    alert('Er is een fout opgetreden bij het laden van de bestellingen.');
+  }
+};
+
+const loadUsers = async () => {
+  try {
+    const response = await fetch('/api/admin/users', {
+      headers: { 'Authorization': `Bearer ${auth.token}` },
+    });
+    const data = await response.json();
+    users.value = data.users;
+  } catch (error) {
+    console.error('Error loading users:', error);
+    alert('Er is een fout opgetreden bij het laden van de gebruikers.');
+  }
+};
+
+const deleteUser = async (firebaseUid) => {
+  if (confirm('Weet je zeker dat je deze gebruiker wilt verwijderen?')) {
+    try {
+      await fetch(`/api/admin/users/${firebaseUid}`, {
+        method: 'DELETE',
+        headers: { 'Authorization': `Bearer ${auth.token}` },
+      });
+      users.value = users.value.filter((user) => user.firebase_uid !== firebaseUid);
+      alert('Gebruiker succesvol verwijderd.');
+    } catch (error) {
+      console.error('Error deleting user:', error);
+      alert('Er is een fout opgetreden bij het verwijderen van de gebruiker.');
+    }
+  }
+};
+
 
 onMounted(() => {
   loadProducts();
+  loadOrders();
+  loadUsers();
 });
 </script>

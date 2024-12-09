@@ -54,6 +54,22 @@ class UserService {
     });
   }
 
+  async getUserByEmail(email) {
+    return new Promise((resolve, reject) => {
+      this.db.get(
+        `SELECT * FROM users WHERE email = ?`,
+        [email],
+        (err, row) => {
+          if (err) {
+            reject(err);
+          } else {
+            resolve(row || null);
+          }
+        }
+      );
+    });
+  }
+
   /**
    * Retrieves a user from the database by their Stripe customer ID.
    *
@@ -61,6 +77,7 @@ class UserService {
    * @returns {Promise<Object>} A promise that resolves to the user object if found, or rejects with an error.
    */
   async getUserByStripeId(stripeCustomerId) {
+    console.log(stripeCustomerId);
     return new Promise((resolve, reject) => {
       this.db.get(
         `SELECT * FROM users WHERE stripe_customer_id = ?`,
@@ -122,29 +139,25 @@ class UserService {
       });
     }
 
-
-  /**
-   * Deactivates a user by setting their active status to 0.
-   *
-   * @param {number} userId - The ID of the user to deactivate.
-   * @returns {Promise<Object>} A promise that resolves to an object indicating success.
-   * @throws {Error} If there is an error during the database operation.
-   */
-  async deactivateUser(userId) {
-    return new Promise((resolve, reject) => {
-      this.db.run(
-        `UPDATE users SET active = 0 WHERE id = ?`,
-        [userId],
-        function(err) {
-          if (err) {
-            reject(err);
-            return;
-          }
-          resolve({ success: true });
-        }
-      );
+ // Get all users
+ async getAllUsers() {
+  return new Promise((resolve, reject) => {
+    this.db.all('SELECT firebase_uid, email FROM users', [], (err, rows) => {
+      if (err) reject(err);
+      else resolve(rows);
     });
-  }
+  });
+}
+
+// Delete a user
+async deleteUser(firebaseUid) {
+  return new Promise((resolve, reject) => {
+    this.db.run('DELETE FROM users WHERE firebase_uid = ?', [firebaseUid], function (err) {
+      if (err) reject(err);
+      else resolve();
+    });
+  });
+}
 }
 
 module.exports = new UserService();

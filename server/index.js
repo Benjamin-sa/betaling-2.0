@@ -45,6 +45,7 @@ async function startServer() {
     app.use('/api/auth', require('./routes/auth.routes'));
     app.use('/api/orders', require('./routes/order.routes'));
     app.use('/webhook', require('./routes/webhook.routes'));
+    app.use('/api/admin', require('./routes/admin.routes'));
 
     // Handle SPA routing - must be after API routes
     app.get('*', (req, res) => {
