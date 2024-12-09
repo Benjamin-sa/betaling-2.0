@@ -1,0 +1,99 @@
+{
+    "_meta": {
+      "template_version": 0,
+      "exclude_metadata": false
+    },
+    "fixtures": [
+      {
+        "name": "product",
+        "expected_error_type": "",
+        "path": "/v1/products",
+        "method": "post",
+        "params": {
+          "description": "(created by Stripe CLI)",
+          "name": "myproduct"
+        }
+      },
+      {
+        "name": "price",
+        "expected_error_type": "",
+        "path": "/v1/prices",
+        "method": "post",
+        "params": {
+          "currency": "usd",
+          "product": "${product:id}",
+          "unit_amount": "1500"
+        }
+      },
+      {
+        "name": "checkout_session",
+        "expected_error_type": "",
+        "path": "/v1/checkout/sessions",
+        "method": "post",
+        "params": {
+          "cancel_url": "https://httpbin.org/post",
+          "line_items": [
+            {
+              "price": "${price:id}",
+              "quantity": 2
+            }
+          ],
+          "mode": "payment",
+          "payment_intent_data": {
+            "shipping": {
+              "address": {
+                "city": "San Francisco",
+                "country": "US",
+                "line1": "510 Townsend St",
+                "postal_code": "94103",
+                "state": "CA"
+              },
+              "name": "Jenny Rosen"
+            }
+          },
+          "success_url": "https://httpbin.org/post"
+        }
+      },
+      {
+        "name": "payment_page",
+        "expected_error_type": "",
+        "path": "/v1/payment_pages/${checkout_session:id}",
+        "method": "get",
+        "params": null
+      },
+      {
+        "name": "payment_method",
+        "expected_error_type": "",
+        "path": "/v1/payment_methods",
+        "method": "post",
+        "params": {
+          "billing_details": {
+            "address": {
+              "city": "South San Francisco",
+              "country": "US",
+              "line1": "354 Oyster Point Blvd",
+              "postal_code": "94080",
+              "state": "CA"
+            },
+            "email": "benkee.sauter@gmail.com",
+            "name": "Jenny Rosen"
+          },
+          "card": {
+            "token": "tok_visa"
+          },
+          "type": "card"
+        }
+      },
+      {
+        "name": "payment_page_confirm",
+        "expected_error_type": "",
+        "path": "/v1/payment_pages/${checkout_session:id}/confirm",
+        "method": "post",
+        "params": {
+          "expected_amount": 3000,
+          "payment_method": "${payment_method:id}"
+        }
+      }
+    ],
+    "env": null
+  }

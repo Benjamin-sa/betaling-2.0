@@ -2,6 +2,7 @@ require('dotenv').config();
 const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY_TEST);
 const storageService = require('./storage.service');
 const userService = require('./user.service');
+const webhookService = require('./webhook.service');
 class StripeService {
 
   /**
@@ -176,6 +177,34 @@ class StripeService {
   }
 
 
+
+  async handleWebhookEvent(rawBody, signature) {
+    let event;
+    try {
+      event = stripe.webhooks.constructEvent(rawBody, signature, process.env.STRIPE_WEBHOOK_SECRET);
+    } catch (err) {
+      console.error('Webhook signature verification failed:', err.message);
+      throw err;
+    }
+  
+    try {
+      switch (event.type) {
+        case 'checkout.session.completed':
+          const session = await this.getCheckoutSession(event.data.object.id);
+          await webhookService.handleCheckoutSession(session);
+          break;
+  
+        default:
+          console.log(`Unhandled event type: ${event.type}`);
+          break;
+      }
+    } catch (error) {
+      console.error(`Error handling event ${event.type}:`, error);
+      throw error;
+    }
+  }
+
+
   /**
    * Haal line items op voor een specifieke Checkout Session
    * @param {string} sessionId - De Stripe Checkout Session ID
@@ -198,7 +227,9 @@ class StripeService {
    */
   async getCheckoutSession(sessionId) {
     try {
-      const session = await stripe.checkout.sessions.retrieve(sessionId);
+      const session = await stripe.checkout.sessions.retrieve(sessionId, {
+        expand: ['line_items.data.price.product']
+      });
       return session;
     } catch (error) {
       console.error('Error retrieving checkout session:', error);

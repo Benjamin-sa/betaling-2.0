@@ -7,7 +7,6 @@ class MailService {
         throw new Error('SENDGRID_API_KEY environment variable is required');
       }
       sgMail.setApiKey(process.env.SENDGRID_API_KEY);
-
       this.from = process.env.SENDGRID_FROM_EMAIL;
 
   }
@@ -25,7 +24,12 @@ class MailService {
       }
     };
     
-    return sgMail.send(msg);
+    try {
+      await sgMail.send(msg);
+    } catch (error) {
+      console.error('Error sending order confirmation email:', error.response?.body || error);
+      throw error;
+    }
   }
 
   async sendVerificationEmail(user, verificationLink) {
@@ -39,8 +43,14 @@ class MailService {
       }
     };
 
-    return sgMail.send(msg);
+    try {
+      await sgMail.send(msg);
+    } catch (error) {
+      console.error('Error sending verification email:', error.response?.body || error);
+      throw error;
+    }
   }
+
 
 }
 
