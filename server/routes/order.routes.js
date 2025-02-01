@@ -3,7 +3,6 @@ const express = require('express');
 const router = express.Router();
 const stripeService = require('../services/stripe.service');
 const userService = require('../services/user.service');
-const admin = require('../config/firebaseAdmin');
 const { authenticate } = require('../middleware/auth');
 
 // Haal bestellingen (Checkout Sessions) van de huidige gebruiker op

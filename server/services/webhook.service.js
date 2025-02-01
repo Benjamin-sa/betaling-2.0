@@ -4,6 +4,8 @@ const orderService = require('./order.service');
 const userService = require('./user.service');
 // webhook.service.js
 class WebhookService {
+  
+  // Handle incoming Stripe webhook events for successful checkout sessions
   async handleCheckoutSession(session) {
     try {
       console.log('Processing checkout session:', session.id);

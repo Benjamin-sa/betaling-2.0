@@ -21,7 +21,7 @@ if (base64ServiceAccount) {
   });
 } else {
   // Fallback voor lokaal testen met JSON-bestand
-  const serviceAccount = require('./scoutswinkel-firebase-adminsdk-ucote-7f034f7aec.json');
+  const serviceAccount = require('./scoutswinkel-firebase-adminsdk-ucote-20a5438186');
 
   admin.initializeApp({
     credential: admin.credential.cert(serviceAccount),
