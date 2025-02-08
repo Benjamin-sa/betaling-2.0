@@ -76,7 +76,8 @@ router.post('/ensure-user', authenticate, async (req, res) => {
       user = await userService.createUser({
         firebaseUid,
         email,
-        stripeCustomerId: customer.id
+        stripeCustomerId: customer.id,
+        is_admin: false
       });
 
       res.status(201).json({ message: 'User created successfully', user });
