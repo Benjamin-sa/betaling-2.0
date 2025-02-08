@@ -5,22 +5,25 @@ const database = require('./db');
 const Migrations = require('./db/migrations');
 const path = require('path');
 
+
 async function startServer() {
   try {
     // Connect to database
     await database.connect();
 
+    const BackupService = require('./services/backup.service');
+
+
     // Run migrations
     const migrations = new Migrations(database.instance);
     await migrations.runMigrations();
 
-    const BackupService = require('./services/backup.service'); // Import here
-    const backupService = new BackupService();
+    const backUp = require('./services/backup.service');
 
     // Restore data from latest backup if database is empty
     const isEmpty = await checkIfDatabaseIsEmpty();
     if (isEmpty) {
-      await backupService.restoreFromFirestore();
+      await backUp.restoreFromFirestore();
     }
 
     const app = express();
@@ -34,6 +37,7 @@ async function startServer() {
     app.use(express.json());
 
     app.use(express.static(path.join(__dirname, '../client/dist')));
+
 
     // Routes
     app.use('/api/products', require('./routes/product.routes'));
@@ -50,32 +54,34 @@ async function startServer() {
 
     // Schedule regular backups (every 8 hours)
     setInterval(() => {
-      backupService.backupToFirestore(); // Use the instance
+      backUp.backupToFirestore();
     }, 8 * 60 * 60 * 1000);
+
 
     // Start server
     app.listen(port, () => {
       console.log(`Server running at http://localhost:${port}`);
     });
-
+    
     if (process.env.NODE_ENV === 'production') {
-      // Handle shutdown
-      process.on('SIGINT', async () => {
-        try {
-          await backupService.backupToFirestore(); // Use the instance
-          await database.close();
-          process.exit(0);
-        } catch (error) {
-          console.error('Error during shutdown:', error);
-          process.exit(1);
-        }
-      });
-    }
+    // Handle shutdown
+    process.on('SIGINT', async () => {
+      try {
+        await BackupService.backupToFirestore();
+        await database.close();
+        process.exit(0);
+      } catch (error) {
+        console.error('Error during shutdown:', error);
+        process.exit(1);
+      }
+    });}
+
   } catch (error) {
     console.error('Failed to start server:', error);
     process.exit(1);
   }
 }
+
 
 async function checkIfDatabaseIsEmpty() {
   return new Promise((resolve, reject) => {
