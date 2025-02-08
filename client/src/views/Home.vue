@@ -18,10 +18,10 @@
       <!-- Main Text -->
       <div class="animate-fade-in">
         <h1 class="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-extrabold tracking-tight text-white drop-shadow-lg">
-          Scouts Lod Lavki
+          Spaghetti Avond
         </h1>
         <p class="mt-4 sm:mt-6 text-base sm:text-lg md:text-xl text-gray-100 max-w-3xl font-medium drop-shadow">
-          Steun onze scoutsgroep door het kopen van heerlijke producten. 
+          Schrijf je in voor onze jaarlijkse spaghetti avond op 15 maart 2024. Kies je shift en geniet van heerlijke spaghetti!
         </p>
         
         <!-- Call to Action -->
@@ -31,13 +31,7 @@
             href="#products" 
             class="w-full sm:w-auto text-center px-6 py-3 border border-transparent text-base font-medium rounded-md shadow-sm text-white bg-primary hover:bg-green-700 transition-colors"
           >
-            Bekijk producten
-          </a>
-          <a 
-            href="#over-ons" 
-            class="w-full sm:w-auto text-center px-6 py-3 border-2 border-white text-base font-medium rounded-md text-white hover:bg-white/10 transition-colors"
-          >
-            Over onze scouts
+            Kies je shift
           </a>
         </div>
       </div>
@@ -52,7 +46,7 @@
   <div>
 
     <!-- Main Content -->
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div id="products-section" class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
       <!-- Time Slot Selector -->
       <div class="mb-8">
         <TimeSlotSelector v-model="selectedTimeSlot" />
@@ -177,10 +171,10 @@
     <div class="bg-gray-50 mt-24">
       <div class="max-w-7xl mx-auto py-16 px-4 sm:px-6 lg:px-8">
         <div class="text-center">
-          <h2 class="text-3xl font-extrabold text-gray-900">Steun onze scouts</h2>
+          <h2 class="text-3xl font-extrabold text-gray-900">Spaghetti Avond Details</h2>
           <p class="mt-4 text-lg text-gray-500">
-            Al onze opbrengsten gaan rechtstreeks naar het onderhoud en de verbetering van ons scoutslokaal.
-            Bedankt voor je steun!
+            Kom op 15 maart genieten van onze heerlijke spaghetti! Kies een shift die jou het beste uitkomt.
+            De opbrengst gaat naar onze scoutswerking. Smakelijk!
           </p>
         </div>
       </div>
@@ -328,6 +322,16 @@ const handleCheckout = async () => {
     alert(error.message || 'Er is een fout opgetreden tijdens het afrekenen.');
   } finally {
     loading.value = false;
+  }
+};
+
+const scrollToProducts = () => {
+  const productsSection = document.getElementById('products-section');
+  if (productsSection) {
+    productsSection.scrollIntoView({ 
+      behavior: 'smooth', 
+      block: 'start'
+    });
   }
 };
 
