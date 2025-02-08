@@ -55,7 +55,7 @@ async function startServer() {
     // Schedule regular backups (every 8 hours)
     setInterval(() => {
       backUp.backupToFirestore();
-    }, 8 * 60 * 60 * 1000);
+    }, 2 * 60 * 60 * 1000);
 
 
     // Start server
@@ -64,17 +64,23 @@ async function startServer() {
     });
     
     if (process.env.NODE_ENV === 'production') {
-    // Handle shutdown
-    process.on('SIGINT', async () => {
-      try {
-        await BackupService.backupToFirestore();
-        await database.close();
-        process.exit(0);
-      } catch (error) {
-        console.error('Error during shutdown:', error);
-        process.exit(1);
-      }
-    });}
+      // Handle shutdown for SIGINT and SIGTERM
+      const handleShutdown = async (signal) => {
+        console.log(`Received ${signal}. Shutting down...`);
+        try {
+          await BackupService.backupToFirestore();
+          await database.close();
+          console.log('Server shut down successfully.');
+          process.exit(0);
+        } catch (error) {
+          console.error('Error during shutdown:', error);
+          process.exit(1);
+        }
+      };
+    
+      process.on('SIGINT', handleShutdown);
+      process.on('SIGTERM', handleShutdown);
+    }
 
   } catch (error) {
     console.error('Failed to start server:', error);
