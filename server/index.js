@@ -4,7 +4,6 @@ const cors = require('cors');
 const database = require('./db');
 const Migrations = require('./db/migrations');
 const path = require('path');
-const BackupService = require('./services/backup.service'); // Import the class
 
 async function startServer() {
   try {
@@ -15,7 +14,7 @@ async function startServer() {
     const migrations = new Migrations(database.instance);
     await migrations.runMigrations();
 
-    // Instantiate BackupService
+    const BackupService = require('./services/backup.service'); // Import here
     const backupService = new BackupService();
 
     // Restore data from latest backup if database is empty
