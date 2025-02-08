@@ -88,10 +88,8 @@
 
 <script setup>
 import { ref, onMounted } from 'vue';
-import { useAuthStore } from '@/stores/auth';
 import { apiClient } from '@/services/api';
 
-const auth = useAuthStore();
 const orders = ref([]);
 const loading = ref(false);
 
@@ -99,32 +97,29 @@ const loading = ref(false);
  * Haal bestellingen op en laad de bijbehorende line items
  */
 const loadOrders = async () => {
-    try {
-        loading.value = true;
-        // Haal bestellingen op
-        const response = await apiClient.get('/orders', auth.token);
-        orders.value = response.orders;
+  try {
+    loading.value = true;
+    const response = await apiClient.getOrders();
+    const completeOrders = response.orders.filter(order => order.status === 'complete');
 
-        // Filter bestellingen met status 'complete'
-        const completeOrders = response.orders.filter(order => order.status === 'complete');
-        orders.value = completeOrders;
+    // For each order, get line items
+    await Promise.all(completeOrders.map(async (order) => {
+      try {
+        const itemsResponse = await apiClient.getOrderLineItems(order.id);
+        order.items = itemsResponse.data;
+      } catch (error) {
+        console.error(`Error fetching line items for order ${order.id}:`, error);
+        order.items = [];
+      }
+    }));
 
-        // Voor elke bestelling, haal de line items op
-        await Promise.all(orders.value.map(async (order) => {
-            try {
-                const itemsResponse = await apiClient.get(`/orders/session/${order.id}/line-items`, auth.token);
-                order.items = itemsResponse.data;
-            } catch (error) {
-                console.error(`Error fetching line items voor bestelling ${order.id}:`, error);
-                order.items = []; // Fallback indien fout
-            }
-        }));
-    } catch (error) {
-        console.error('Error loading orders:', error);
-        alert('Er is een fout opgetreden bij het laden van je bestellingen.');
-    } finally {
-        loading.value = false;
-    }
+    orders.value = completeOrders;
+  } catch (error) {
+    console.error('Error loading orders:', error);
+    alert('Er is een fout opgetreden bij het laden van je bestellingen.');
+  } finally {
+    loading.value = false;
+  }
 };
 
 /**

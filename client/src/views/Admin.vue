@@ -134,14 +134,13 @@
 <script setup>
 import { ref, onMounted } from 'vue';
 import { useAuthStore } from '@/stores/auth';
+import { apiClient } from '@/services/api';
 
 const auth = useAuthStore();
 const loading = ref(false);
 const products = ref([]);
 const orders = ref([]);
 const users = ref([]);
-
-
 
 const newProduct = ref({
   name: '',
@@ -157,8 +156,6 @@ const handleImageChange = (event) => {
 const handleAddProduct = async () => {
   try {
     loading.value = true;
-
-    // Create FormData to include the image file
     const formData = new FormData();
     formData.append('name', newProduct.value.name);
     formData.append('description', newProduct.value.description);
@@ -167,25 +164,10 @@ const handleAddProduct = async () => {
       formData.append('image', newProduct.value.image);
     }
 
-    // Send POST request with form data
-    const response = await fetch(`${import.meta.env.VITE_SERVER_URL}/api/products`, {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${auth.token}`, // Voeg het ID-token toe
-      },
-      body: formData,
-    });
+    const response = await apiClient.addProduct(formData);
+    products.value.push(response.product);
 
-    if (!response.ok) {
-      throw new Error('Failed to add product.');
-    }
-
-    const addedProduct = await response.json();
-
-    // Voeg het nieuwe product toe aan de lijst
-    products.value.push(addedProduct.product);
-
-    // Reset het formulier
+    // Reset form
     newProduct.value = {
       name: '',
       description: '',
@@ -202,21 +184,8 @@ const handleAddProduct = async () => {
 
 const handleDeleteProduct = async (productId) => {
   if (!confirm('Weet u zeker dat u dit product wilt verwijderen?')) return;
-
   try {
-    // Delete the product via the API
-    const response = await fetch(`/api/products/${productId}`, {
-      method: 'DELETE',
-      headers: {
-        'Authorization': `Bearer ${auth.token}`,
-      },
-    });
-
-    if (!response.ok) {
-      throw new Error('Failed to delete product.');
-    }
-
-    // Verwijder het product uit de lijst
+    await apiClient.deleteProduct(productId);
     products.value = products.value.filter((product) => product.id !== productId);
   } catch (error) {
     console.error('Error deleting product:', error);
@@ -226,13 +195,7 @@ const handleDeleteProduct = async (productId) => {
 
 const loadProducts = async () => {
   try {
-    // Haal producten op via de backend API
-    const response = await fetch('/api/products');
-    if (!response.ok) {
-      throw new Error('Failed to load products.');
-    }
-
-    const data = await response.json();
+    const data = await apiClient.getProducts();
     products.value = data.products;
   } catch (error) {
     console.error('Error loading products:', error);
@@ -246,10 +209,7 @@ const formatAmount = (amount) => {
 
 const loadOrders = async () => {
   try {
-    const response = await fetch('/api/admin/orders', {
-      headers: { 'Authorization': `Bearer ${auth.token}` },
-    });
-    const data = await response.json();
+    const data = await apiClient.getAdminOrders();
     orders.value = data.orders;
   } catch (error) {
     console.error('Error loading orders:', error);
@@ -259,10 +219,7 @@ const loadOrders = async () => {
 
 const loadUsers = async () => {
   try {
-    const response = await fetch('/api/admin/users', {
-      headers: { 'Authorization': `Bearer ${auth.token}` },
-    });
-    const data = await response.json();
+    const data = await apiClient.getAdminUsers();
     users.value = data.users;
   } catch (error) {
     console.error('Error loading users:', error);
@@ -273,10 +230,7 @@ const loadUsers = async () => {
 const deleteUser = async (firebaseUid) => {
   if (confirm('Weet je zeker dat je deze gebruiker wilt verwijderen?')) {
     try {
-      await fetch(`/api/admin/users/${firebaseUid}`, {
-        method: 'DELETE',
-        headers: { 'Authorization': `Bearer ${auth.token}` },
-      });
+      await apiClient.deleteUser(firebaseUid);
       users.value = users.value.filter((user) => user.firebase_uid !== firebaseUid);
       alert('Gebruiker succesvol verwijderd.');
     } catch (error) {
@@ -285,7 +239,6 @@ const deleteUser = async (firebaseUid) => {
     }
   }
 };
-
 
 onMounted(() => {
   loadProducts();

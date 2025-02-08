@@ -1,7 +1,7 @@
 // services/webhook.service.js
 const mailService = require('./mail.service');
-const orderService = require('./order.service');
 const userService = require('./user.service');
+const db = require('../db').instance;
 // webhook.service.js
 class WebhookService {
   
@@ -17,19 +17,57 @@ class WebhookService {
       if (!session.line_items?.data?.length) {
         throw new Error('No line items found in session');
       }
+
       const order = await this.createOrderFromSession(session);
 
+      // Save order with transaction to ensure atomicity
+      await new Promise((resolve, reject) => {
+        db.serialize(() => {
+          db.run('BEGIN TRANSACTION');
+  
+          db.run(
+            'INSERT INTO orders (id, user_id, amount_total, currency, time_slot) VALUES (?, ?, ?, ?, ?)',
+            [order.id, order.user_id, order.amount_total, order.currency, order.time_slot],
+            (err) => {
+              if (err) {
+                db.run('ROLLBACK');
+                return reject(err);
+              }
+  
+              // Insert order items
+              const itemStmt = db.prepare(
+                'INSERT INTO order_items (order_id, product_name, quantity, amount_total, unit_price) VALUES (?, ?, ?, ?, ?)'
+              );
+  
+              order.items.forEach(item => {
+                itemStmt.run([order.id, item.description, item.quantity, item.amount, item.unit_price]);
+              });
+  
+              itemStmt.finalize();
+  
+              db.run('COMMIT', (err) => {
+                if (err) {
+                  db.run('ROLLBACK');
+                  return reject(err);
+                }
+                resolve();
+              });
+            }
+          );
+        });
+      });
 
-       // Save order to the database
-       await orderService.createOrder(order);
-      // Send order confirmation email
-      await this.sendOrderConfirmationEmail(order, session.customer_details);
-      console.log(`Order confirmation email sent to ${session.customer_details.email}`);
+      // Send order confirmation email only from webhook
+      if (session.status === 'complete') {
+        await this.sendOrderConfirmationEmail(order, session.customer_details);
+        console.log(`Order confirmation email sent to ${session.customer_details.email}`);
+      }
     } catch (error) {
       console.error('Error processing checkout session:', error);
       throw error;
     }
   }
+
   async createOrderFromSession(session) {
     // Get user by Stripe customer ID
     let user;
@@ -57,17 +95,45 @@ class WebhookService {
       unit_price: (item.price.unit_amount / 100).toFixed(2)
     }));
 
+    // Check if timeslot is not full (max 10 orders per slot)
+    const timeSlot = session.metadata.timeSlot;
+    const orderCount = await new Promise((resolve, reject) => {
+      db.get(
+        'SELECT COUNT(*) as count FROM orders WHERE time_slot = ?',
+        [timeSlot],
+        (err, row) => {
+          if (err) reject(err);
+          resolve(row.count);
+        }
+      );
+    });
+
+    if (orderCount >= 120) {
+      throw new Error('Timeslot is full');
+    }
+
+    // Create order object
     return {
       id: session.id,
       user_id: user.firebase_uid,
       items: orderItems,
       amount_total: (session.amount_total / 100).toFixed(2),
-      currency: session.currency.toUpperCase()
+      currency: session.currency.toUpperCase(),
+      time_slot: session.metadata.timeSlot  // Make sure this exists
     };
   }
 
   async sendOrderConfirmationEmail(order, customerDetails) {
-    await mailService.sendOrderConfirmation(order, {
+    console.log('Sending confirmation email for order:', order);
+    const emailData = {
+      id: order.id,
+      items: order.items,
+      amount_total: order.amount_total,
+      time_slot: order.time_slot,  // Changed to match template variable name
+      currency: order.currency
+    };
+
+    await mailService.sendOrderConfirmation(emailData, {
       email: customerDetails.email,
       name: customerDetails.name || customerDetails.email,
       address: customerDetails.address

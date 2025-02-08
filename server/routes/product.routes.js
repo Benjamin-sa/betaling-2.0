@@ -7,7 +7,7 @@ const StripeService = require('../services/stripe.service');
 
 // Configureer multer om bestanden in het geheugen op te slaan
 const storage = multer.memoryStorage();
-const upload = multer({ 
+const upload = multer({
   storage: storage,
   limits: { fileSize: 5 * 1024 * 1024 }, // Limiteer tot 5MB
   fileFilter: (req, file, cb) => {
@@ -50,17 +50,29 @@ router.post('/', authenticate, authorizeAdmin, upload.single('image'), async (re
       imageType = image.mimetype; // MIME-type van de afbeelding
     }
 
+    // Create product in Stripe first
+    const { product: stripeProduct, price: stripePrice } = await StripeService.createProduct({
+      name,
+      description,
+      price
+    });
+
+    // Save product to local storage with Stripe IDs
     const product = await StorageService.saveProduct({
       name,
       description,
       price: parseFloat(price),
       image: imageData,
       imageType,
-      stripeProductId: null, // Voeg indien nodig toe
-      stripePriceId: null,   // Voeg indien nodig toe
+      stripeProductId: stripeProduct.id,
+      stripePriceId: stripePrice.id,
     });
 
-    res.status(201).json({ product });
+    res.status(201).json({
+      product,
+      stripeProductId: stripeProduct.id,
+      stripePriceId: stripePrice.id
+    });
   } catch (error) {
     console.error('Error adding product:', error);
     res.status(500).json({ error: 'Er is een fout opgetreden bij het toevoegen van het product.' });
@@ -98,8 +110,22 @@ router.delete('/:id', authenticate, authorizeAdmin, async (req, res) => {
   const productId = req.params.id;
 
   try {
+    // First get the product to get Stripe ID
+    const product = await StorageService.getProduct(productId);
+    if (!product) {
+      return res.status(404).json({ error: 'Product niet gevonden.' });
+    }
+
+    console.log('Deleting product:', product);
+
+    // Deactivate in Stripe first if Stripe ID exists
+    if (product.stripe_product_id) {
+      await StripeService.deactivateProduct(product.stripe_product_id);
+    }
+
+    // Then delete from local storage
     const result = await StorageService.deleteProduct(productId);
-    res.json({ message: 'Product succesvol verwijderd.', product: result });
+    res.json({ message: 'Product succesvol verwijderd uit lokale opslag en Stripe.', product: result });
   } catch (error) {
     console.error('Error deleting product:', error);
     res.status(500).json({ error: 'Er is een fout opgetreden bij het verwijderen van het product.' });

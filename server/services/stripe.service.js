@@ -10,17 +10,17 @@ class StripeService {
    *
    * @param {Array} items - The items to be purchased. Each item should have a productId and quantity.
    * @param {string} userId - The ID of the user making the purchase.
+   * @param {string} timeSlot - The selected time slot for the purchase.
    * @returns {Promise<Object>} - The created Stripe Checkout session.
    * @throws {Error} - Throws an error if the user is not found or if any product is not found.
    */
-  async createCheckoutSession(items, userId) {
+  async createCheckoutSession(items, userId, timeSlot) {
     try {
       // Get user from SQLite database 
       const user = await userService.getUserByFirebaseId(userId);
       if (!user) {
         throw new Error('User not found');
       }
-
 
       // Haal alle producten op uit de lokale opslag
       const products = await storageService.getAllProducts();
@@ -38,8 +38,6 @@ class StripeService {
           throw new Error(`Product not found: ${item.productId}`);
         }
 
-
-
         return {
           price_data: {
             currency: 'eur',
@@ -55,7 +53,6 @@ class StripeService {
 
       const baseUrl = process.env.APP_URL || process.env.VITE_APP_URL;
 
-
       // Creëer Stripe Checkout sessie
       return stripe.checkout.sessions.create({
         payment_method_types: ['card', 'ideal'],
@@ -64,6 +61,11 @@ class StripeService {
         customer: user.stripe_customer_id,
         success_url: `${baseUrl}/success`,
         cancel_url: `${baseUrl}/`,
+        metadata: {
+          userId,
+          timeSlot,
+          items: JSON.stringify(items)
+        },
       });
     } catch (error) {
       console.error('Error creating checkout session:', error);
@@ -100,8 +102,7 @@ class StripeService {
       // Creëer Stripe-product
       const product = await stripe.products.create({
         name: productData.name,
-        description: productData.description,
-        imageUrl: productData.imageUrl,
+        description: productData.description
       });
 
       // Maak prijs aan in centen
@@ -116,7 +117,6 @@ class StripeService {
       await stripe.products.update(product.id, {
         default_price: price.id,
       });
-
 
       return { product, price };
     } catch (error) {
@@ -141,7 +141,6 @@ class StripeService {
     }
   }
 
-
   /**
    * Haal alle Checkout Sessions op voor een specifieke klant
    * @param {string} customerId - De Stripe klant ID
@@ -161,7 +160,6 @@ class StripeService {
     }
   }
 
-
   async handleWebhookEvent(rawBody, signature) {
     let event;
     try {
@@ -170,14 +168,14 @@ class StripeService {
       console.error('Webhook signature verification failed:', err.message);
       throw err;
     }
-  
+
     try {
       switch (event.type) {
         case 'checkout.session.completed':
           const session = await this.getCheckoutSession(event.data.object.id);
           await webhookService.handleCheckoutSession(session);
           break;
-  
+
         default:
           console.log(`Unhandled event type: ${event.type}`);
           break;
@@ -187,7 +185,6 @@ class StripeService {
       throw error;
     }
   }
-  
 
   /**
    * Haal line items op voor een specifieke Checkout Session

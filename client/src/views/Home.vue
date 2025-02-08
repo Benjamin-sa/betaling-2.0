@@ -53,6 +53,11 @@
 
     <!-- Main Content -->
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <!-- Time Slot Selector -->
+      <div class="mb-8">
+        <TimeSlotSelector v-model="selectedTimeSlot" />
+      </div>
+
       <!-- Loading State -->
       <div v-if="loading" class="flex justify-center py-12">
         <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
@@ -129,17 +134,19 @@
           Totaal: €{{ total.toFixed(2) }}
         </span>
       </div>
-      
+
       <button @click="handleCheckout"
-              :disabled="loading"
-              class="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-md shadow-sm text-white bg-primary hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary transition-colors disabled:bg-gray-400">
+              :disabled="loading || !selectedTimeSlot"
+              class="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-md shadow-sm text-white bg-primary hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed">
         <span v-if="loading" class="mr-2">
           <svg class="animate-spin h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
             <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
             <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
           </svg>
         </span>
-        {{ loading ? 'Bezig met afrekenen...' : 'Afrekenen' }}
+        {{ loading ? 'Bezig met afrekenen...' : 
+           !selectedTimeSlot ? 'Selecteer eerst een tijdslot' : 
+           'Afrekenen' }}
       </button>
     </div>
 
@@ -191,11 +198,12 @@
 
 <script setup>
 import { ref, computed, onMounted } from 'vue';
-import {useRouter} from 'vue-router';
+import { useRouter } from 'vue-router';
 import { loadStripe } from '@stripe/stripe-js';
 import { apiClient } from '@/services/api';
 import { useAuthStore } from '@/stores/auth';
 import Modal from '@/components/Modal.vue'; // Add this
+import TimeSlotSelector from '@/components/TimeSlotSelector.vue'; // Add this
 
 const router = useRouter(); // Add this
 const auth = useAuthStore();
@@ -205,17 +213,12 @@ const quantities = ref({});
 const loading = ref(false);
 const isCartOpen = ref(false)
 const showAuthModal = ref(false); // Add this
-
+const selectedTimeSlot = ref(null);
 
 // Laad producten vanuit de lokale backend
 const loadProducts = async () => {
   try {
-    const response = await fetch('/api/products'); // Backend-endpoint om producten op te halen
-    if (!response.ok) {
-      throw new Error('Failed to load products');
-    }
-
-    const data = await response.json();
+    const data = await apiClient.getProducts();
     products.value = data.products;
 
     // Initialiseer hoeveelheden vanuit localStorage
@@ -272,7 +275,10 @@ const handleRegister = () => {
   showAuthModal.value = false;
 };
 
-
+// Add helper function for formatting time slots
+const formatTimeSlot = (timeSlot) => {
+  return timeSlot.replace('-', ' - ');
+};
 
 const handleCheckout = async () => {
   loading.value = true;
@@ -283,6 +289,11 @@ const handleCheckout = async () => {
     showAuthModal.value = true;
     return;
   }
+
+    if (!selectedTimeSlot.value) {
+      alert('Selecteer een tijdslot voor afhaling.');
+      return;
+    }
 
     // Creëer het items array op basis van geselecteerde producten en hoeveelheden
     const items = products.value
@@ -298,20 +309,19 @@ const handleCheckout = async () => {
     }
 
     // Verstuur checkout verzoek naar de backend
-    const response = await apiClient.post('/checkout', { items }, auth.token);
-
-    const { sessionId } = response;
-
-    // Gebruik Stripe.js om de gebruiker naar de Checkout pagina te sturen
+    const response = await apiClient.createCheckoutSession(items, selectedTimeSlot.value);
     const stripe = await stripePromise;
+    
     if (!stripe) {
       throw new Error('Failed to load Stripe');
     }
-    const { error } = await stripe.redirectToCheckout({ sessionId });
+    
+    const { error } = await stripe.redirectToCheckout({ 
+      sessionId: response.sessionId 
+    });
 
     if (error) {
-      console.error('Stripe redirect error:', error);
-      alert('Er is een fout opgetreden tijdens het afrekenen.');
+      throw error;
     }
   } catch (error) {
     console.error('Error during checkout:', error);

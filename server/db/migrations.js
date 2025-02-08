@@ -37,7 +37,8 @@ const migrations = [{
     CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
     CREATE INDEX IF NOT EXISTS idx_users_stripe ON users(stripe_customer_id);
     CREATE INDEX IF NOT EXISTS idx_products_stripe ON products(stripe_product_id);
-  `,
+  `
+}, {
   name: '002_create_orders_tables',
   up: `
     -- Create orders table
@@ -46,6 +47,7 @@ const migrations = [{
       user_id TEXT NOT NULL,
       amount_total REAL NOT NULL,
       currency TEXT NOT NULL,
+      time_slot TEXT NOT NULL,
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
       FOREIGN KEY(user_id) REFERENCES users(firebase_uid)
     );

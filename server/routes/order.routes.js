@@ -3,6 +3,7 @@ const express = require('express');
 const router = express.Router();
 const stripeService = require('../services/stripe.service');
 const userService = require('../services/user.service');
+const db = require('../db').instance;
 const { authenticate } = require('../middleware/auth');
 
 // Haal bestellingen (Checkout Sessions) van de huidige gebruiker op
@@ -57,6 +58,38 @@ router.get('/session/:sessionId/line-items', authenticate, async (req, res) => {
   } catch (error) {
     console.error('Error fetching line items:', error);
     res.status(500).json({ error: 'Internal Server Error' });
+  }
+});
+
+// Get timeslot availability
+router.get('/timeslots/availability', async (req, res) => {
+  try {
+    const FIXED_TIME_SLOTS = ['18:00-19:30', '19:30-21:00'];
+    const MAX_ORDERS_PER_SLOT = 120;
+
+    // Get counts for both time slots
+    const availability = {};
+    
+    for (const slot of FIXED_TIME_SLOTS) {
+      const result = await new Promise((resolve, reject) => {
+        db.get(
+          'SELECT COUNT(*) as count FROM orders WHERE time_slot = ?',
+          [slot],
+          (err, row) => {
+            if (err) reject(err);
+            else resolve(row);
+          }
+        );
+      });
+      
+      availability[slot] = MAX_ORDERS_PER_SLOT - (result.count || 0);
+    }
+
+    res.json({ availability });
+
+  } catch (error) {
+    console.error('Error checking timeslot availability:', error);
+    res.status(500).json({ error: 'Error checking timeslot availability' });
   }
 });
 

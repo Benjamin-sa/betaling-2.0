@@ -6,10 +6,10 @@ const { authenticate } = require('../middleware/auth');
 
 router.post('/', authenticate, async (req, res) => {
   try {
-    const { items } = req.body;
+    const { items, timeSlot } = req.body;
     const userId = req.user.uid;
 
-    const session = await stripeService.createCheckoutSession(items, userId);
+    const session = await stripeService.createCheckoutSession(items, userId, timeSlot);
     
     res.json({ sessionId: session.id });
   } catch (error) {
