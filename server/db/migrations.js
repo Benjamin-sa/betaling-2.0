@@ -79,57 +79,84 @@ class Migrations {
       this.db.serialize(() => {
         // Start transaction
         this.db.run('BEGIN TRANSACTION');
-
-        console.log('Checking migrations...');
-        
-        // Get executed migrations
-        this.db.all('SELECT name FROM migrations', [], (err, executedMigrations) => {
-          if (err && !err.message.includes('no such table')) {
+  
+        // First create migrations table explicitly
+        this.db.run(`
+          CREATE TABLE IF NOT EXISTS migrations (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name TEXT NOT NULL UNIQUE,
+            executed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+          );
+        `, (err) => {
+          if (err) {
             this.db.run('ROLLBACK');
-            reject(new DatabaseError('Failed to check migrations', err));
+            reject(new DatabaseError('Failed to create migrations table', err));
             return;
           }
-
-          const executed = new Set(executedMigrations?.map(m => m.name) || []);
-
-          // Run pending migrations
-          migrations.forEach(migration => {
-            if (!executed.has(migration.name)) {
-              console.log(`Running migration: ${migration.name}`);
-              
-              this.db.exec(migration.up, (err) => {
-                if (err) {
-                  this.db.run('ROLLBACK');
-                  reject(new DatabaseError(`Failed to run migration ${migration.name}`, err));
-                  return;
-                }
-
-                // Track executed migration
-                this.db.run(
-                  'INSERT INTO migrations (name) VALUES (?)',
-                  [migration.name],
-                  (err) => {
-                    if (err) {
-                      this.db.run('ROLLBACK');
-                      reject(new DatabaseError(`Failed to track migration ${migration.name}`, err));
-                      return;
-                    }
-                    console.log(`Completed migration: ${migration.name}`);
-                  }
-                );
-              });
-            }
-          });
-
-          // Commit transaction
-          this.db.run('COMMIT', (err) => {
+  
+          console.log('Checking migrations...');
+          
+          // Get executed migrations
+          this.db.all('SELECT name FROM migrations', [], (err, executedMigrations) => {
             if (err) {
               this.db.run('ROLLBACK');
-              reject(new DatabaseError('Failed to commit migrations', err));
+              reject(new DatabaseError('Failed to check migrations', err));
               return;
             }
-            console.log('All migrations completed successfully');
-            resolve();
+  
+            const executed = new Set(executedMigrations?.map(m => m.name) || []);
+  
+            // Run pending migrations in sequence
+            let chain = Promise.resolve();
+            
+            migrations.forEach(migration => {
+              if (!executed.has(migration.name)) {
+                chain = chain.then(() => {
+                  return new Promise((resolveExec, rejectExec) => {
+                    console.log(`Running migration: ${migration.name}`);
+                    
+                    this.db.exec(migration.up, (err) => {
+                      if (err) {
+                        rejectExec(new DatabaseError(`Failed to run migration ${migration.name}`, err));
+                        return;
+                      }
+  
+                      // Track executed migration
+                      this.db.run(
+                        'INSERT INTO migrations (name) VALUES (?)',
+                        [migration.name],
+                        (err) => {
+                          if (err) {
+                            rejectExec(new DatabaseError(`Failed to track migration ${migration.name}`, err));
+                            return;
+                          }
+                          console.log(`Completed migration: ${migration.name}`);
+                          resolveExec();
+                        }
+                      );
+                    });
+                  });
+                });
+              }
+            });
+  
+            // After all migrations complete
+            chain
+              .then(() => {
+                this.db.run('COMMIT', (err) => {
+                  if (err) {
+                    this.db.run('ROLLBACK');
+                    reject(new DatabaseError('Failed to commit migrations', err));
+                    return;
+                  }
+                  console.log('All migrations completed successfully');
+                  resolve();
+                });
+              })
+              .catch(err => {
+                this.db.run('ROLLBACK');
+                reject(err);
+              });
           });
         });
       });
