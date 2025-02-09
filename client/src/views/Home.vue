@@ -217,9 +217,16 @@
            :key="product.id" 
            class="flex items-center justify-between text-sm text-gray-600">
         <div class="flex items-center space-x-2">
-          <img :src="product.imageUrl" 
-               :alt="product.name" 
-               class="w-8 h-8 object-cover rounded">
+          <div v-if="product.imageUrl" 
+               class="w-8 h-8">
+            <img :src="product.imageUrl" 
+                 :alt="product.name" 
+                 class="w-full h-full object-cover rounded">
+          </div>
+          <div v-else 
+               class="w-8 h-8 bg-gradient-to-br from-primary/10 to-primary/5 rounded flex items-center justify-center">
+            <span class="text-xs font-medium text-primary/80">{{ product.name.charAt(0) }}</span>
+          </div>
           <span>{{ product.name }}</span>
         </div>
         <div class="flex items-center space-x-4">
@@ -255,8 +262,8 @@
 />
 </template>
 
-<script setup>
-import { ref, computed, onMounted } from 'vue';
+<script setup> 
+import {ref, computed, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { loadStripe } from '@stripe/stripe-js';
 import { apiClient } from '@/services/api';

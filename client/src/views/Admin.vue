@@ -60,32 +60,61 @@
       </div>
     </div>
 
-    <!-- Verkochte Producten Overzicht - improved table responsiveness -->
+    <!-- Verkochte Producten Overzicht -->
     <div class="bg-cardBackground rounded-lg shadow-lg p-4 sm:p-6 mt-4 sm:mt-8">
       <h2 class="text-xl sm:text-2xl font-semibold text-primary mb-4">Verkochte Producten Overzicht</h2>
-      <div class="overflow-x-auto">
-        <table class="min-w-full divide-y divide-gray-200">
-          <thead>
-            <tr>
-              <th class="px-2 sm:px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ID</th>
-              <th class="px-2 sm:px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Gebruiker</th>
-              <th class="px-2 sm:px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Product</th>
-              <th class="px-2 sm:px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Aantal</th>
-              <th class="px-2 sm:px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Totaal</th>
-              <th class="px-2 sm:px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tijdslot</th>
-            </tr>
-          </thead>
-          <tbody class="bg-white divide-y divide-gray-200">
-            <tr v-for="order in orders" :key="order.order_id">
-              <td class="px-2 sm:px-4 py-2 text-xs sm:text-sm truncate max-w-[100px]">{{ order.order_id }}</td>
-              <td class="px-2 sm:px-4 py-2 text-xs sm:text-sm truncate max-w-[150px]">{{ order.email }}</td>
-              <td class="px-2 sm:px-4 py-2 text-xs sm:text-sm truncate max-w-[150px]">{{ order.product_name }}</td>
-              <td class="px-2 sm:px-4 py-2 text-xs sm:text-sm">{{ order.quantity }}</td>
-              <td class="px-2 sm:px-4 py-2 text-xs sm:text-sm">€{{ formatAmount(order.amount_total) }}</td>
-              <td class="px-2 sm:px-4 py-2 text-xs sm:text-sm truncate max-w-[150px]">{{ order.time_slot || 'Geen tijdslot' }}</td>
-            </tr>
-          </tbody>
-        </table>
+      <div class="space-y-6"> <!-- Changed from table to card-based layout -->
+        <div v-for="(userOrders, email) in groupedOrders" :key="email" 
+             class="bg-white rounded-lg shadow overflow-hidden">
+          <!-- User Header -->
+          <div class="bg-gray-50 px-4 py-3 border-b border-gray-200">
+            <div class="flex items-center justify-between">
+              <div>
+                <h3 class="text-lg font-medium text-gray-900">{{ email }}</h3>
+                <p class="text-sm text-gray-500">{{ userOrders.length }} producten</p>
+              </div>
+              <div class="text-right">
+                <p class="text-lg font-semibold text-primary">
+                  €{{ formatAmount(getTotalAmount(userOrders)) }}
+                </p>
+                <p class="text-sm text-gray-500">
+                  Totaal {{ getTotalQuantity(userOrders) }} items
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Orders List -->
+          <div class="divide-y divide-gray-200">
+            <div v-for="order in userOrders" :key="order.order_id" 
+                 class="px-4 py-3 hover:bg-gray-50 transition-colors">
+              <div class="flex justify-between items-center">
+                <div class="flex-1">
+                  <p class="font-medium text-gray-900">{{ order.product_name }}</p>
+                  <p class="text-sm text-gray-500">{{ order.time_slot || 'Geen tijdslot' }}</p>
+                </div>
+                <div class="flex items-center space-x-4">
+                  <div class="text-sm text-gray-500">
+                    {{ order.quantity }}x
+                  </div>
+                  <div class="text-right">
+                    <p class="font-medium text-gray-900">
+                      €{{ formatAmount(order.amount_total) }}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- User Summary Footer -->
+          <div class="bg-gray-50 px-4 py-3 border-t border-gray-200">
+            <div class="flex justify-between items-center text-sm text-gray-500">
+              <span>Besteld op {{ formatDate(userOrders[0].created_at) }}</span>
+              <span>{{ userOrders[0].time_slot ? 'Met tijdslot' : 'Zonder tijdslot' }}</span>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -135,7 +164,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue';
+import { ref, onMounted, computed } from 'vue';
 import { useAuthStore } from '@/stores/auth';
 import { apiClient } from '@/services/api';
 
@@ -281,6 +310,35 @@ const makeAdmin = async (firebaseUid) => {
       alert('Er is een fout opgetreden bij het maken van de gebruiker tot admin.');
     }
   }
+};
+
+const groupedOrders = computed(() => {
+  const grouped = {};
+  orders.value.forEach(order => {
+    if (!grouped[order.email]) {
+      grouped[order.email] = [];
+    }
+    grouped[order.email].push(order);
+  });
+  return grouped;
+});
+
+const getTotalQuantity = (orders) => {
+  return orders.reduce((sum, order) => sum + order.quantity, 0);
+};
+
+const getTotalAmount = (orders) => {
+  return orders.reduce((sum, order) => sum + order.amount_total, 0);
+};
+
+const formatDate = (dateString) => {
+  return new Date(dateString).toLocaleDateString('nl-BE', {
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit'
+  });
 };
 
 onMounted(() => {
