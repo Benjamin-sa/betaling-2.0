@@ -1,70 +1,40 @@
 <template>
-  <div class="py-8">
-    <h1 class="text-3xl font-bold text-center text-text">Admin Dashboard</h1>
-    <div class="grid grid-cols-1 gap-6 mt-8 md:grid-cols-2">
-      <!-- Product Beheer Sectie -->
+  <div class="py-4 px-4 sm:py-8">
+    <h1 class="text-2xl sm:text-3xl font-bold text-center text-text">Admin Dashboard</h1>
+    
+    <!-- Product management grid - made more responsive -->
+    <div class="grid grid-cols-1 gap-4 sm:gap-6 mt-4 sm:mt-8 lg:grid-cols-2">
       <div class="bg-cardBackground rounded-lg shadow-lg p-6">
         <h2 class="text-2xl font-semibold text-primary mb-4">Producten Beheren</h2>
         <!-- Product Toevoegen Formulier -->
         <form @submit.prevent="handleAddProduct" class="space-y-4">
           <div class="form-group">
             <label for="name" class="block text-sm font-medium text-text">Naam</label>
-            <input
-              id="name"
-              v-model="newProduct.name"
-              type="text"
-              required
-              placeholder="Productnaam"
-              class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary focus:border-primary"
-            />
+            <input id="name" v-model="newProduct.name" type="text" required placeholder="Productnaam"
+              class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary focus:border-primary" />
           </div>
           <div class="form-group">
             <label for="description" class="block text-sm font-medium text-text">Beschrijving</label>
-            <textarea
-              id="description"
-              v-model="newProduct.description"
-              required
-              placeholder="Productbeschrijving"
-              class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary focus:border-primary"
-            ></textarea>
+            <textarea id="description" v-model="newProduct.description" required placeholder="Productbeschrijving"
+              class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary focus:border-primary"></textarea>
           </div>
           <div class="form-group">
             <label for="price" class="block text-sm font-medium text-text">Prijs (€)</label>
-            <input
-              id="price"
-              v-model="newProduct.price"
-              type="number"
-              required
-              min="0"
-              step="0.01"
+            <input id="price" v-model="newProduct.price" type="number" required min="0" step="0.01"
               placeholder="Prijs in euro's"
-              class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary focus:border-primary"
-            />
+              class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary focus:border-primary" />
           </div>
           <div class="form-group">
             <label for="image" class="block text-sm font-medium text-text">Afbeelding</label>
-            <input
-              id="image"
-              type="file"
-              @change="handleImageChange"
-              accept="image/*"
-              class="mt-1 block w-full"
-            />
+            <input id="image" type="file" @change="handleImageChange" accept="image/*" class="mt-1 block w-full" />
           </div>
           <div class="form-group">
-  <label for="requiresTimeslot" class="block text-sm font-medium text-text">Vereist tijdslot</label>
-  <input
-    id="requiresTimeslot"
-    v-model="newProduct.requiresTimeslot"
-    type="checkbox"
-    class="mt-1 h-4 w-4 text-primary focus:ring-primary border-gray-300 rounded"
-  />
-</div>
-          <button
-            type="submit"
-            :disabled="loading"
-            class="w-full bg-primary text-white px-4 py-2 rounded hover:bg-green-700 disabled:bg-gray-400 transition duration-300"
-          >
+            <label for="requiresTimeslot" class="block text-sm font-medium text-text">Vereist tijdslot</label>
+            <input id="requiresTimeslot" v-model="newProduct.requiresTimeslot" type="checkbox"
+              class="mt-1 h-4 w-4 text-primary focus:ring-primary border-gray-300 rounded" />
+          </div>
+          <button type="submit" :disabled="loading"
+            class="w-full bg-primary text-white px-4 py-2 rounded hover:bg-green-700 disabled:bg-gray-400 transition duration-300">
             {{ loading ? 'Bezig met toevoegen...' : 'Product Toevoegen' }}
           </button>
         </form>
@@ -74,69 +44,93 @@
       <div class="bg-cardBackground rounded-lg shadow-lg p-6">
         <h2 class="text-2xl font-semibold text-primary mb-4">Producten Lijst</h2>
         <div class="grid grid-cols-1 gap-4">
-          <div v-for="product in products" :key="product.id" class="flex items-center justify-between p-4 bg-gray-100 rounded">
+          <div v-for="product in products" :key="product.id"
+            class="flex items-center justify-between p-4 bg-gray-100 rounded">
             <div>
               <h3 class="text-lg font-semibold text-primary">{{ product.name }}</h3>
               <p class="text-sm text-text">{{ product.description }}</p>
               <p class="text-sm font-bold text-text">€{{ formatAmount(product.price) }}</p>
             </div>
-            <button @click="handleDeleteProduct(product.id)" class="bg-secondary text-white px-3 py-1 rounded hover:bg-red-700 transition duration-300">
+            <button @click="handleDeleteProduct(product.id)"
+              class="bg-secondary text-white px-3 py-1 rounded hover:bg-red-700 transition duration-300">
               Verwijderen
             </button>
           </div>
         </div>
       </div>
     </div>
-  </div>
 
-  <div class="bg-cardBackground rounded-lg shadow-lg p-6 mt-8">
-    <h2 class="text-2xl font-semibold text-primary mb-4">Verkochte Producten Overzicht</h2>
-    <table class="min-w-full divide-y divide-gray-200">
-      <thead>
-        <tr>
-          <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Bestelling ID</th>
-          <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Gebruiker</th>
-          <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Product</th>
-          <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Aantal</th>
-          <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Totaal</th>
-        </tr>
-      </thead>
-      <tbody class="bg-white divide-y divide-gray-200">
-        <tr v-for="order in orders" :key="order.order_id">
-          <td class="px-6 py-4">{{ order.order_id }}</td>
-          <td class="px-6 py-4">{{ order.email }}</td>
-          <td class="px-6 py-4">{{ order.product_name }}</td>
-          <td class="px-6 py-4">{{ order.quantity }}</td>
-          <td class="px-6 py-4">€{{ formatAmount(order.amount_total) }}</td>
-        </tr>
-      </tbody>
-    </table>
-  </div>
+    <!-- Verkochte Producten Overzicht - improved table responsiveness -->
+    <div class="bg-cardBackground rounded-lg shadow-lg p-4 sm:p-6 mt-4 sm:mt-8">
+      <h2 class="text-xl sm:text-2xl font-semibold text-primary mb-4">Verkochte Producten Overzicht</h2>
+      <div class="overflow-x-auto">
+        <table class="min-w-full divide-y divide-gray-200">
+          <thead>
+            <tr>
+              <th class="px-2 sm:px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ID</th>
+              <th class="px-2 sm:px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Gebruiker</th>
+              <th class="px-2 sm:px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Product</th>
+              <th class="px-2 sm:px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Aantal</th>
+              <th class="px-2 sm:px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Totaal</th>
+              <th class="px-2 sm:px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tijdslot</th>
+            </tr>
+          </thead>
+          <tbody class="bg-white divide-y divide-gray-200">
+            <tr v-for="order in orders" :key="order.order_id">
+              <td class="px-2 sm:px-4 py-2 text-xs sm:text-sm truncate max-w-[100px]">{{ order.order_id }}</td>
+              <td class="px-2 sm:px-4 py-2 text-xs sm:text-sm truncate max-w-[150px]">{{ order.email }}</td>
+              <td class="px-2 sm:px-4 py-2 text-xs sm:text-sm truncate max-w-[150px]">{{ order.product_name }}</td>
+              <td class="px-2 sm:px-4 py-2 text-xs sm:text-sm">{{ order.quantity }}</td>
+              <td class="px-2 sm:px-4 py-2 text-xs sm:text-sm">€{{ formatAmount(order.amount_total) }}</td>
+              <td class="px-2 sm:px-4 py-2 text-xs sm:text-sm truncate max-w-[150px]">{{ order.time_slot || 'Geen tijdslot' }}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
 
-  <!-- Users Overview -->
-  <div class="bg-cardBackground rounded-lg shadow-lg p-6 mt-8">
-    <h2 class="text-2xl font-semibold text-primary mb-4">Gebruikers Overzicht</h2>
-    <table class="min-w-full divide-y divide-gray-200">
-      <thead>
-        <tr>
-          <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Email</th>
-          <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Acties</th>
-        </tr>
-      </thead>
-      <tbody class="bg-white divide-y divide-gray-200">
-        <tr v-for="user in users" :key="user.firebase_uid">
-          <td class="px-6 py-4">{{ user.email }}</td>
-          <td class="px-6 py-4">
-            <button
-              @click="deleteUser(user.firebase_uid)"
-              class="bg-secondary text-white px-3 py-1 rounded hover:bg-red-700 transition duration-300"
-            >
-              Verwijderen
-            </button>
-          </td>
-        </tr>
-      </tbody>
-    </table>
+    <!-- Users Overview - improved responsiveness -->
+    <div class="bg-cardBackground rounded-lg shadow-lg p-4 sm:p-6 mt-4 sm:mt-8">
+      <h2 class="text-xl sm:text-2xl font-semibold text-primary mb-4">Gebruikers Overzicht</h2>
+      <div class="overflow-x-auto">
+        <table class="min-w-full divide-y divide-gray-200">
+          <thead>
+            <tr>
+              <th class="px-2 sm:px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Email</th>
+              <th class="px-2 sm:px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+              <th class="px-2 sm:px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Acties</th>
+            </tr>
+          </thead>
+          <tbody class="bg-white divide-y divide-gray-200">
+            <tr v-for="user in users" :key="user.firebase_uid">
+              <td class="px-2 sm:px-4 py-2 text-xs sm:text-sm truncate max-w-[200px]">{{ user.email }}</td>
+              <td class="px-2 sm:px-4 py-2">
+                <span :class="user.is_admin ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'"
+                  class="px-2 py-1 rounded-full text-xs font-medium">
+                  {{ user.is_admin ? 'Admin' : 'Gebruiker' }}
+                </span>
+              </td>
+              <td class="px-2 sm:px-4 py-2">
+                <div class="flex flex-col sm:flex-row gap-2">
+                  <button v-if="!user.is_admin" @click="makeAdmin(user.firebase_uid)"
+                    class="text-xs sm:text-sm bg-primary text-white px-2 py-1 rounded hover:bg-green-700 transition duration-300">
+                    Maak Admin
+                  </button>
+                  <button v-if="user.is_admin && user.firebase_uid !== auth.user.uid" @click="removeAdmin(user.firebase_uid)"
+                    class="text-xs sm:text-sm bg-yellow-500 text-white px-2 py-1 rounded hover:bg-yellow-600 transition duration-300">
+                    Verwijder Admin
+                  </button>
+                  <button @click="deleteUser(user.firebase_uid)"
+                    class="text-xs sm:text-sm bg-secondary text-white px-2 py-1 rounded hover:bg-red-700 transition duration-300">
+                    Verwijderen
+                  </button>
+                </div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -250,6 +244,41 @@ const deleteUser = async (firebaseUid) => {
     } catch (error) {
       console.error('Error deleting user:', error);
       alert('Er is een fout opgetreden bij het verwijderen van de gebruiker.');
+    }
+  }
+};
+
+const removeAdmin = async (firebaseUid) => {
+  if (confirm('Weet je zeker dat je de admin rechten wilt verwijderen van deze gebruiker?')) {
+    try {
+      await apiClient.removeAdmin(firebaseUid);
+      // Update the local users array
+      const userIndex = users.value.findIndex(u => u.firebase_uid === firebaseUid);
+      if (userIndex !== -1) {
+        users.value[userIndex].is_admin = false;
+      }
+      alert('Admin rechten zijn verwijderd.');
+    } catch (error) {
+      console.error('Error removing admin:', error);
+      alert('Er is een fout opgetreden bij het verwijderen van admin rechten.');
+    }
+  }
+};
+
+
+const makeAdmin = async (firebaseUid) => {
+  if (confirm('Weet je zeker dat je deze gebruiker admin rechten wilt geven?')) {
+    try {
+      await apiClient.makeUserAdmin(firebaseUid);
+      // Update the local users array
+      const userIndex = users.value.findIndex(u => u.firebase_uid === firebaseUid);
+      if (userIndex !== -1) {
+        users.value[userIndex].is_admin = true;
+      }
+      alert('Gebruiker is nu een admin.');
+    } catch (error) {
+      console.error('Error making user admin:', error);
+      alert('Er is een fout opgetreden bij het maken van de gebruiker tot admin.');
     }
   }
 };
