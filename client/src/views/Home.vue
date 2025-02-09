@@ -68,52 +68,111 @@
 
       <!-- Products Grid -->
       <div v-else>
-        <div class="grid grid-cols-1 gap-8 md:grid-cols-2 lg:grid-cols-3">
-          <div v-for="product in products" :key="product.id" 
-               class="group bg-white rounded-lg shadow-lg overflow-hidden transform transition-all duration-300 hover:-translate-y-1 hover:shadow-xl">
-            <div class="relative aspect-w-4 aspect-h-3">
-              <img v-if="product.imageUrl"
-                   :src="product.imageUrl" 
-                   :alt="product.name" 
-                   @error="handleImageError(product)"
-                   class="w-full h-full object-cover transform transition-transform group-hover:scale-105" />
-              <div v-else
-                   class="w-full h-full bg-gradient-to-br from-primary/10 to-primary/5 flex flex-col items-center justify-center p-4">
-                <span class="text-2xl font-bold text-primary/80 text-center">{{ product.name }}</span>
-                <span class="mt-2 text-sm text-gray-600 text-center">€{{ product.price.toFixed(2) }}</span>
+        <!-- Products that require time slots -->
+        <div v-if="productsWithTimeSlot.length > 0">
+          <div class="grid grid-cols-1 gap-8 md:grid-cols-2 lg:grid-cols-3 mb-12">
+            <div v-for="product in productsWithTimeSlot" :key="product.id" 
+                 class="group bg-white rounded-lg shadow-lg overflow-hidden transform transition-all duration-300 hover:-translate-y-1 hover:shadow-xl">
+              <div class="relative aspect-w-4 aspect-h-3">
+                <img v-if="product.imageUrl"
+                     :src="product.imageUrl" 
+                     :alt="product.name" 
+                     @error="handleImageError(product)"
+                     class="w-full h-full object-cover transform transition-transform group-hover:scale-105" />
+                <div v-else
+                     class="w-full h-full bg-gradient-to-br from-primary/10 to-primary/5 flex flex-col items-center justify-center p-4">
+                  <span class="text-2xl font-bold text-primary/80 text-center">{{ product.name }}</span>
+                  <span class="mt-2 text-sm text-gray-600 text-center">€{{ product.price.toFixed(2) }}</span>
+                </div>
               </div>
-            </div>
-            
-            <div class="p-6">
-              <h3 class="text-xl font-bold text-gray-900 mb-2">{{ product.name }}</h3>
-              <p class="text-gray-600 text-sm mb-4">{{ product.description }}</p>
               
-              <div class="flex items-center justify-between">
-                <span class="text-2xl font-bold text-primary">€{{ product.price.toFixed(2) }}</span>
-                <div class="flex items-center space-x-2">
-                  <button @click="decreaseQuantity(product.id)" 
-                          class="p-1 rounded-full hover:bg-gray-100">
-                    <svg class="w-6 h-6 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 12H4"/>
-                    </svg>
-                  </button>
-                  
-                  <input type="number"
-                         v-model.number="quantities[product.id]"
-                         min="0"
-                         class="w-16 text-center border-gray-200 rounded-md focus:ring-primary focus:border-primary" />
-                  
-                  <button @click="increaseQuantity(product.id)"
-                          class="p-1 rounded-full hover:bg-gray-100">
-                    <svg class="w-6 h-6 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
-                    </svg>
-                  </button>
+              <div class="p-6">
+                <h3 class="text-xl font-bold text-gray-900 mb-2">{{ product.name }}</h3>
+                <p class="text-gray-600 text-sm mb-4">{{ product.description }}</p>
+                
+                <div class="flex items-center justify-between">
+                  <span class="text-2xl font-bold text-primary">€{{ product.price.toFixed(2) }}</span>
+                  <div class="flex items-center space-x-2">
+                    <button @click="decreaseQuantity(product.id)" 
+                            class="p-1 rounded-full hover:bg-gray-100">
+                      <svg class="w-6 h-6 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 12H4"/>
+                      </svg>
+                    </button>
+                    
+                    <input type="number"
+                           v-model.number="quantities[product.id]"
+                           min="0"
+                           class="w-16 text-center border-gray-200 rounded-md focus:ring-primary focus:border-primary" />
+                    
+                    <button @click="increaseQuantity(product.id)"
+                            class="p-1 rounded-full hover:bg-gray-100">
+                      <svg class="w-6 h-6 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
+                      </svg>
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>
           </div>
         </div>
+
+        <!-- Divider if both types exist -->
+        <div v-if="productsWithTimeSlot.length > 0 && productsWithoutTimeSlot.length > 0" 
+             class="border-t border-gray-200 my-12"></div>
+
+        <!-- Products without time slots -->
+        <div v-if="productsWithoutTimeSlot.length > 0">
+          <h2 class="text-xl font-bold text-gray-900 mb-6">Extra's</h2>
+          <div class="grid grid-cols-1 gap-8 md:grid-cols-2 lg:grid-cols-3">
+            <div v-for="product in productsWithoutTimeSlot" :key="product.id" 
+                 class="group bg-white rounded-lg shadow-lg overflow-hidden transform transition-all duration-300 hover:-translate-y-1 hover:shadow-xl">
+              <div class="relative aspect-w-4 aspect-h-3">
+                <img v-if="product.imageUrl"
+                     :src="product.imageUrl" 
+                     :alt="product.name" 
+                     @error="handleImageError(product)"
+                     class="w-full h-full object-cover transform transition-transform group-hover:scale-105" />
+                <div v-else
+                     class="w-full h-full bg-gradient-to-br from-primary/10 to-primary/5 flex flex-col items-center justify-center p-4">
+                  <span class="text-2xl font-bold text-primary/80 text-center">{{ product.name }}</span>
+                  <span class="mt-2 text-sm text-gray-600 text-center">€{{ product.price.toFixed(2) }}</span>
+                </div>
+              </div>
+              
+              <div class="p-6">
+                <h3 class="text-xl font-bold text-gray-900 mb-2">{{ product.name }}</h3>
+                <p class="text-gray-600 text-sm mb-4">{{ product.description }}</p>
+                
+                <div class="flex items-center justify-between">
+                  <span class="text-2xl font-bold text-primary">€{{ product.price.toFixed(2) }}</span>
+                  <div class="flex items-center space-x-2">
+                    <button @click="decreaseQuantity(product.id)" 
+                            class="p-1 rounded-full hover:bg-gray-100">
+                      <svg class="w-6 h-6 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 12H4"/>
+                      </svg>
+                    </button>
+                    
+                    <input type="number"
+                           v-model.number="quantities[product.id]"
+                           min="0"
+                           class="w-16 text-center border-gray-200 rounded-md focus:ring-primary focus:border-primary" />
+                    
+                    <button @click="increaseQuantity(product.id)"
+                            class="p-1 rounded-full hover:bg-gray-100">
+                      <svg class="w-6 h-6 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
+                      </svg>
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
 
     <!-- Checkout Bar -->
 <div v-if="hasItems" 
@@ -187,7 +246,6 @@
       </div>
     </div>
   </div>
-</div>
 <Modal
   type="auth"
   :show="showAuthModal"
@@ -242,6 +300,14 @@ const requiresTimeSlot = computed(() => {
   return selectedProducts.value.some(product => product.requires_timeslot === 1);
 });
 
+// Add these computed properties
+const productsWithTimeSlot = computed(() => {
+  return products.value.filter(product => product.requires_timeslot === 1);
+});
+
+const productsWithoutTimeSlot = computed(() => {
+  return products.value.filter(product => product.requires_timeslot === 0);
+});
 
 const getQuantity = (productId) => {
   return quantities.value[productId] || 0;
