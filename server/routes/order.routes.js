@@ -67,13 +67,16 @@ router.get('/timeslots/availability', async (req, res) => {
     const FIXED_TIME_SLOTS = ['18:00-19:30', '19:30-21:00'];
     const MAX_ORDERS_PER_SLOT = 120;
 
-    // Get counts for both time slots
     const availability = {};
     
     for (const slot of FIXED_TIME_SLOTS) {
       const result = await new Promise((resolve, reject) => {
         db.get(
-          'SELECT COUNT(*) as count FROM orders WHERE time_slot = ?',
+          `SELECT COALESCE(SUM(oi.quantity), 0) as total_menus
+           FROM orders o
+           JOIN order_items oi ON o.id = oi.order_id
+           WHERE o.time_slot = ?
+           AND oi.product_name LIKE '%spaghetti%'`,  
           [slot],
           (err, row) => {
             if (err) reject(err);
@@ -82,7 +85,7 @@ router.get('/timeslots/availability', async (req, res) => {
         );
       });
       
-      availability[slot] = MAX_ORDERS_PER_SLOT - (result.count || 0);
+      availability[slot] = MAX_ORDERS_PER_SLOT - (result.total_menus || 0);
     }
 
     res.json({ availability });
