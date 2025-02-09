@@ -1,6 +1,6 @@
 <template>
   <div class="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
-    <h3 class="text-lg font-medium text-gray-900 mb-4">Kies een afhaalmoment</h3>
+    <h3 class="text-lg font-medium text-gray-900 mb-4">Kies een shift</h3>
     
     <!-- Loading State -->
     <div v-if="loading" class="flex items-center justify-center py-4">
