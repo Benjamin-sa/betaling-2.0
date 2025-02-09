@@ -11,19 +11,18 @@ async function startServer() {
     // Connect to database
     await database.connect();
 
-    const BackupService = require('./services/backup.service');
+    const backupService = require('./services/backup.service');
 
 
     // Run migrations
     const migrations = new Migrations(database.instance);
     await migrations.runMigrations();
 
-    const backUp = require('./services/backup.service');
 
     // Restore data from latest backup if database is empty
     const isEmpty = await checkIfDatabaseIsEmpty();
     if (isEmpty) {
-      await backUp.restoreFromFirestore();
+      await backupService.restoreFromFirestore();
     }
 
     const app = express();
@@ -63,12 +62,12 @@ async function startServer() {
       console.log(`Server running at http://localhost:${port}`);
     });
     
-    if (process.env.NODE_ENV === 'production') {
+    if (process.env.NODE_ENV === 'production' || process.env.NODE_ENV === 'test') {
       // Handle shutdown for SIGINT and SIGTERM
       const handleShutdown = async (signal) => {
         console.log(`Received ${signal}. Shutting down...`);
         try {
-          await BackupService.backupToFirestore();
+          await backupService.backupToFirestore(); // Use the instance
           await database.close();
           console.log('Server shut down successfully.');
           process.exit(0);
@@ -78,8 +77,8 @@ async function startServer() {
         }
       };
     
-      process.on('SIGINT', handleShutdown);
-      process.on('SIGTERM', handleShutdown);
+      process.on('SIGINT', () => handleShutdown('SIGINT'));
+      process.on('SIGTERM', () => handleShutdown('SIGTERM'));
     }
 
   } catch (error) {
