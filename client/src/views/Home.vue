@@ -201,7 +201,7 @@ import TimeSlotSelector from '@/components/TimeSlotSelector.vue'; // Add this
 
 const router = useRouter(); // Add this
 const auth = useAuthStore();
-const stripePromise = loadStripe('pk_test_51Q2YysK7LyHlGaLs1KaOcD1Gk6A8b8l45LVF3q9URgskNKwgFHBEIPRKtMXGZEu0kFn9Iq0yWGcJ0Aatm5XCMsiK00SWythWSu');
+const stripePromise = loadStripe('pk_live_51Q2YysK7LyHlGaLskm9jgeFHZ8r7ZeCHxNzEvEO1553OeCAcXzAYQIXGvWgggcp6aZQCV61IgF5gJqwTJY4YK6d1009Gq55TcX');
 const products = ref([]);
 const quantities = ref({});
 const loading = ref(false);
