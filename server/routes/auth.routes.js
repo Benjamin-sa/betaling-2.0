@@ -104,6 +104,19 @@ router.post('/make-admin', authenticate, authorizeAdmin, async (req, res) => {
   }
 });
 
+
+router.post('/remove-admin', authenticate, authorizeAdmin, async (req, res) => {
+  const { userId } = req.body;
+
+  try {
+    await userService.removeUserAdmin(userId);
+    res.json({ message: 'Admin privileges removed successfully' });
+  } catch (error) {
+    console.error('Remove Admin error:', error);
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
+});
+
 router.get('/admin-status', authenticate, async (req, res) => {
   const firebase_uid = req.user.uid;
   const email = req.user.email;

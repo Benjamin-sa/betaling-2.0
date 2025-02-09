@@ -92,6 +92,20 @@ export const apiClient = {
     return this.request('/admin/users');
   },
 
+  async makeUserAdmin(userId) {
+    return this.request('/auth/make-admin', {
+      method: 'POST',
+      data: { userId }
+    });
+  },
+
+    async removeAdmin(userId) {
+    return this.request('/auth/remove-admin', {
+      method: 'POST',
+      data: { userId }
+    });
+  },
+
   async deleteUser(firebaseUid) {
     return this.request(`/admin/users/${firebaseUid}`, {
       method: 'DELETE'

@@ -21,10 +21,16 @@ router.get('/orders', authenticate, authorizeAdmin, async (req, res) => {
 router.get('/users', authenticate, authorizeAdmin, async (req, res) => {
   try {
     const users = await userService.getAllUsers();
-    res.json({ users });
+    res.json({ 
+      users: users.map(user => ({
+        firebase_uid: user.firebase_uid,
+        email: user.email,
+        is_admin: user.is_admin === 1
+      }))
+    });
   } catch (error) {
     console.error('Error fetching users:', error);
-    res.status(500).json({ error: 'Internal Server Error' });
+    res.status(500).json({ error: 'Failed to fetch users' });
   }
 });
 

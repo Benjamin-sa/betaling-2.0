@@ -6,8 +6,14 @@ class OrderService {
     return new Promise((resolve, reject) => {
       db.all(
         `
-        SELECT orders.id AS order_id, orders.created_at, users.email, 
-               order_items.product_name, order_items.quantity, order_items.amount_total
+        SELECT 
+          orders.id AS order_id, 
+          orders.created_at, 
+          orders.time_slot,
+          users.email, 
+          order_items.product_name, 
+          order_items.quantity, 
+          order_items.amount_total
         FROM orders
         JOIN users ON orders.user_id = users.firebase_uid
         JOIN order_items ON orders.id = order_items.order_id

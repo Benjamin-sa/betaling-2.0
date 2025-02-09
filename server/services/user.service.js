@@ -142,7 +142,7 @@ class UserService {
  // Get all users
  async getAllUsers() {
   return new Promise((resolve, reject) => {
-    this.db.all('SELECT firebase_uid, email FROM users', [], (err, rows) => {
+    this.db.all('SELECT firebase_uid, email, is_admin FROM users', [], (err, rows) => {
       if (err) reject(err);
       else resolve(rows);
     });
@@ -158,6 +158,19 @@ async deleteUser(firebaseUid) {
     });
   });
 }
-}
 
+
+async removeUserAdmin(firebaseUid) {
+  return new Promise((resolve, reject) => {
+    db.run(
+      'UPDATE users SET is_admin = 0 WHERE firebase_uid = ?',
+      [firebaseUid],
+      (err) => {
+        if (err) reject(err);
+        else resolve();
+      }
+    );
+  });
+}
+}
 module.exports = new UserService();
