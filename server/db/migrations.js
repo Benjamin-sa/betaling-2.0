@@ -30,6 +30,7 @@ const migrations = [{
       image_type TEXT,
       stripe_product_id TEXT UNIQUE,
       stripe_price_id TEXT UNIQUE,
+      requires_timeslot INTEGER DEFAULT 1,
       created_at TEXT DEFAULT CURRENT_TIMESTAMP
     );
 
@@ -47,7 +48,7 @@ const migrations = [{
       user_id TEXT NOT NULL,
       amount_total REAL NOT NULL,
       currency TEXT NOT NULL,
-      time_slot TEXT NOT NULL,
+      time_slot TEXT,
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
       FOREIGN KEY(user_id) REFERENCES users(firebase_uid)
     );

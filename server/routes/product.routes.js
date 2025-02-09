@@ -34,6 +34,8 @@ router.get('/', async (req, res) => {
  * Voeg een nieuw product toe
  */
 router.post('/', authenticate, authorizeAdmin, upload.single('image'), async (req, res) => {
+
+  const requiresTimeslot = req.body.requiresTimeslot === 'true' || req.body.requiresTimeslot === '1' ? 1 : 0;
   const { name, description, price } = req.body;
   const image = req.file;
 
@@ -66,6 +68,7 @@ router.post('/', authenticate, authorizeAdmin, upload.single('image'), async (re
       imageType,
       stripeProductId: stripeProduct.id,
       stripePriceId: stripePrice.id,
+      requiresTimeslot
     });
 
     res.status(201).json({
@@ -116,7 +119,6 @@ router.delete('/:id', authenticate, authorizeAdmin, async (req, res) => {
       return res.status(404).json({ error: 'Product niet gevonden.' });
     }
 
-    console.log('Deleting product:', product);
 
     // Deactivate in Stripe first if Stripe ID exists
     if (product.stripe_product_id) {

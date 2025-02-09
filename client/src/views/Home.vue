@@ -130,18 +130,18 @@
       </div>
 
       <button @click="handleCheckout"
-              :disabled="loading || !selectedTimeSlot"
-              class="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-md shadow-sm text-white bg-primary hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed">
-        <span v-if="loading" class="mr-2">
-          <svg class="animate-spin h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
-            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
-          </svg>
-        </span>
-        {{ loading ? 'Bezig met afrekenen...' : 
-           !selectedTimeSlot ? 'Selecteer eerst een tijdslot' : 
-           'Afrekenen' }}
-      </button>
+        :disabled="loading || (requiresTimeSlot && !selectedTimeSlot)"
+        class="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-md shadow-sm text-white bg-primary hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed">
+  <span v-if="loading" class="mr-2">
+    <svg class="animate-spin h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+      <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
+      <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
+    </svg>
+  </span>
+  {{ loading ? 'Bezig met afrekenen...' : 
+     (requiresTimeSlot && !selectedTimeSlot) ? 'Selecteer eerst een tijdslot' : 
+     'Afrekenen' }}
+</button>
     </div>
 
     <!-- Expanded Product List -->
@@ -201,7 +201,7 @@ import TimeSlotSelector from '@/components/TimeSlotSelector.vue'; // Add this
 
 const router = useRouter(); // Add this
 const auth = useAuthStore();
-const stripePromise = loadStripe('pk_live_51Q2YysK7LyHlGaLskm9jgeFHZ8r7ZeCHxNzEvEO1553OeCAcXzAYQIXGvWgggcp6aZQCV61IgF5gJqwTJY4YK6d1009Gq55TcXu');
+const stripePromise = loadStripe('pk_test_51Q2YysK7LyHlGaLs1KaOcD1Gk6A8b8l45LVF3q9URgskNKwgFHBEIPRKtMXGZEu0kFn9Iq0yWGcJ0Aatm5XCMsiK00SWythWSu');
 const products = ref([]);
 const quantities = ref({});
 const loading = ref(false);
@@ -229,6 +229,12 @@ const loadProducts = async () => {
 const selectedProducts = computed(() => {
   return products.value.filter(product => quantities.value[product.id] > 0)
 })
+
+// Add this computed property in the <script setup> section
+const requiresTimeSlot = computed(() => {
+  return selectedProducts.value.some(product => product.requires_timeslot === 1);
+});
+
 
 const getQuantity = (productId) => {
   return quantities.value[productId] || 0;
@@ -269,10 +275,6 @@ const handleRegister = () => {
   showAuthModal.value = false;
 };
 
-// Add helper function for formatting time slots
-const formatTimeSlot = (timeSlot) => {
-  return timeSlot.replace('-', ' - ');
-};
 
 const handleCheckout = async () => {
   loading.value = true;
@@ -284,8 +286,11 @@ const handleCheckout = async () => {
     return;
   }
 
-    if (!selectedTimeSlot.value) {
-      alert('Selecteer een tijdslot voor afhaling.');
+    // Check if any product requires a time slot
+    const requiresTimeSlot = selectedProducts.value.some(product => product.requires_timeslot);
+
+    if (requiresTimeSlot && !selectedTimeSlot.value) {
+      alert('Selecteer een tijdslot.');
       return;
     }
 
@@ -303,7 +308,11 @@ const handleCheckout = async () => {
     }
 
     // Verstuur checkout verzoek naar de backend
-    const response = await apiClient.createCheckoutSession(items, selectedTimeSlot.value);
+    const response = await apiClient.createCheckoutSession(
+      items, 
+      requiresTimeSlot ? selectedTimeSlot.value : null
+    );
+
     const stripe = await stripePromise;
     
     if (!stripe) {

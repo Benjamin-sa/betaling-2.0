@@ -27,7 +27,7 @@ class WebhookService {
   
           db.run(
             'INSERT INTO orders (id, user_id, amount_total, currency, time_slot) VALUES (?, ?, ?, ?, ?)',
-            [order.id, order.user_id, order.amount_total, order.currency, order.time_slot],
+            [order.id, order.user_id, order.amount_total, order.currency, order.time_slot || null],
             (err) => {
               if (err) {
                 db.run('ROLLBACK');
@@ -71,47 +71,47 @@ class WebhookService {
   async createOrderFromSession(session) {
     // Get user by Stripe customer ID
     let user;
-
- 
+  
     if (session.customer) {
-      // Fetch user by Stripe customer ID
       console.log('Getting user by Stripe ID:', session.customer);
       user = await userService.getUserByStripeId(session.customer);
     }
-
+  
     if (!user && session.customer_details?.email) {
-      // Fallback to fetching user by email
       console.log('Getting user by email:', session.customer_details.email);
       user = await userService.getUserByEmail(session.customer_details.email);
     }
-
+  
     if (!user) {
       throw new Error('User not found for the given customer information');
     }
+  
     const orderItems = session.line_items.data.map(item => ({
       description: item.description,
       quantity: item.quantity,
       amount: (item.amount_total / 100).toFixed(2),
       unit_price: (item.price.unit_amount / 100).toFixed(2)
     }));
-
-    // Check if timeslot is not full (max 10 orders per slot)
-    const timeSlot = session.metadata.timeSlot;
-    const orderCount = await new Promise((resolve, reject) => {
-      db.get(
-        'SELECT COUNT(*) as count FROM orders WHERE time_slot = ?',
-        [timeSlot],
-        (err, row) => {
-          if (err) reject(err);
-          resolve(row.count);
-        }
-      );
-    });
-
-    if (orderCount >= 120) {
-      throw new Error('Timeslot is full');
+  
+    // Only check time slot capacity if the order has a time slot
+    const timeSlot = session.metadata?.timeSlot;
+    if (timeSlot) {
+      const orderCount = await new Promise((resolve, reject) => {
+        db.get(
+          'SELECT COUNT(*) as count FROM orders WHERE time_slot = ?',
+          [timeSlot],
+          (err, row) => {
+            if (err) reject(err);
+            resolve(row.count);
+          }
+        );
+      });
+  
+      if (orderCount >= 120) {
+        throw new Error('Timeslot is full');
+      }
     }
-
+  
     // Create order object
     return {
       id: session.id,
@@ -119,7 +119,7 @@ class WebhookService {
       items: orderItems,
       amount_total: (session.amount_total / 100).toFixed(2),
       currency: session.currency.toUpperCase(),
-      time_slot: session.metadata.timeSlot  // Make sure this exists
+      time_slot: timeSlot || null  // Allow null for orders without time slot
     };
   }
 
@@ -129,10 +129,10 @@ class WebhookService {
       id: order.id,
       items: order.items,
       amount_total: order.amount_total,
-      time_slot: order.time_slot,  // Changed to match template variable name
+      time_slot: order.time_slot || 'Geen tijdslot vereist',  // Provide default text for orders without time slot
       currency: order.currency
     };
-
+  
     await mailService.sendOrderConfirmation(emailData, {
       email: customerDetails.email,
       name: customerDetails.name || customerDetails.email,

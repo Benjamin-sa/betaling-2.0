@@ -106,16 +106,44 @@ router.post('/make-admin', authenticate, authorizeAdmin, async (req, res) => {
 
 router.get('/admin-status', authenticate, async (req, res) => {
   const firebase_uid = req.user.uid;
+  const email = req.user.email;
 
   try {
-    const user = await userService.getUserByFirebaseId(firebase_uid);
-    res.json({ isAdmin: user.is_admin });
+    let user = await userService.getUserByFirebaseId(firebase_uid);
+    
+    if (!user) {
+      // User exists in Firebase but not in our database
+      // Create Stripe customer and add user to database
+      try {
+        const customer = await stripeService.createCustomer(email, firebase_uid);
+        console.log(`Stripe customer created for user ${firebase_uid}: ${customer.id}`);
+
+        user = await userService.createUser({
+          firebaseUid: firebase_uid,
+          email,
+          stripeCustomerId: customer.id,
+          is_admin: false
+        });
+
+        console.log('User automatically created during admin status check');
+      } catch (createError) {
+        console.error('Error creating user during admin status check:', createError);
+        return res.status(500).json({ 
+          error: 'Failed to create user',
+          isAdmin: false 
+        });
+      }
+    }
+
+    res.json({ isAdmin: !!user.is_admin }); // Convert to boolean
   } catch (error) {
     console.error('Admin status error:', error);
-    res.status(500).json({ error: 'Internal Server Error' });
+    res.status(500).json({ 
+      error: 'Internal Server Error',
+      isAdmin: false 
+    });
   }
 });
-
 
 // Helper function to send verification email
 const sendVerificationEmailToUser = async (email) => {

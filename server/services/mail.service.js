@@ -17,7 +17,6 @@ class MailService {
   }
 
   async sendOrderConfirmation(order, customer) {
-    console.log('Sending email with data:', { order, customer });
     const msg = {
       to: customer.email,
       from: this.from,

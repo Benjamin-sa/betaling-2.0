@@ -51,6 +51,15 @@
               class="mt-1 block w-full"
             />
           </div>
+          <div class="form-group">
+  <label for="requiresTimeslot" class="block text-sm font-medium text-text">Vereist tijdslot</label>
+  <input
+    id="requiresTimeslot"
+    v-model="newProduct.requiresTimeslot"
+    type="checkbox"
+    class="mt-1 h-4 w-4 text-primary focus:ring-primary border-gray-300 rounded"
+  />
+</div>
           <button
             type="submit"
             :disabled="loading"
@@ -147,6 +156,7 @@ const newProduct = ref({
   description: '',
   price: '',
   image: null,
+  requiresTimeslot: true,
 });
 
 const handleImageChange = (event) => {
@@ -160,9 +170,12 @@ const handleAddProduct = async () => {
     formData.append('name', newProduct.value.name);
     formData.append('description', newProduct.value.description);
     formData.append('price', newProduct.value.price);
+    formData.append('requiresTimeslot', newProduct.value.requiresTimeslot ? 1 : 0); // Convert boolean to integer
     if (newProduct.value.image) {
       formData.append('image', newProduct.value.image);
     }
+
+    console.log('Adding product:', formData);
 
     const response = await apiClient.addProduct(formData);
     products.value.push(response.product);
@@ -173,6 +186,7 @@ const handleAddProduct = async () => {
       description: '',
       price: '',
       image: null,
+      requiresTimeslot: true,
     };
   } catch (error) {
     console.error('Error adding product:', error);

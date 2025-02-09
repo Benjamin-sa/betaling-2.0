@@ -21,27 +21,34 @@ class StripeService {
       if (!user) {
         throw new Error('User not found');
       }
-
-      // Haal alle producten op uit de lokale opslag
+  
+      // Get products from storage
       const products = await storageService.getAllProducts();
-
-      // Map producten op basis van hun ID
       const productMap = products.reduce((map, product) => {
         map[product.id] = product;
         return map;
       }, {});
-
-      // Maak line items aan
+  
+      // Check if any selected product requires a time slot
+      const requiresTimeSlot = items.some(item => 
+        productMap[item.productId]?.requires_timeslot
+      );
+  
+      if (requiresTimeSlot && !timeSlot) {
+        throw new Error('Time slot required for some items in cart');
+      }
+  
+      // Create line items
       const lineItems = items.map(item => {
         const product = productMap[item.productId];
         if (!product) {
           throw new Error(`Product not found: ${item.productId}`);
         }
-
+  
         return {
           price_data: {
             currency: 'eur',
-            unit_amount: Math.round(product.price * 100), // Prijs naar centen
+            unit_amount: Math.round(product.price * 100),
             product_data: {
               name: product.name,
               description: product.description,
@@ -50,10 +57,18 @@ class StripeService {
           quantity: item.quantity,
         };
       });
-
+  
       const baseUrl = process.env.APP_URL || process.env.VITE_APP_URL;
-
-      // Creëer Stripe Checkout sessie
+  
+      // Only include timeSlot in metadata if required
+      const metadata = {
+        userId,
+        items: JSON.stringify(items)
+      };
+      if (requiresTimeSlot) {
+        metadata.timeSlot = timeSlot;
+      }
+  
       return stripe.checkout.sessions.create({
         payment_method_types: ['card', 'ideal'],
         line_items: lineItems,
@@ -61,11 +76,7 @@ class StripeService {
         customer: user.stripe_customer_id,
         success_url: `${baseUrl}/success`,
         cancel_url: `${baseUrl}/`,
-        metadata: {
-          userId,
-          timeSlot,
-          items: JSON.stringify(items)
-        },
+        metadata
       });
     } catch (error) {
       console.error('Error creating checkout session:', error);

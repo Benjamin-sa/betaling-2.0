@@ -28,7 +28,7 @@ class StorageService {
   async getAllProducts() {
     return new Promise((resolve, reject) => {
       this.db.all(
-        `SELECT id, name, description, price, stripe_product_id, stripe_price_id, created_at 
+        `SELECT id, name, description, price, stripe_product_id, stripe_price_id, created_at, requires_timeslot
          FROM products`,
         [],
         (err, rows) => {
@@ -84,16 +84,19 @@ class StorageService {
     });
   }
 
-  async saveProduct({ name, description, price, image, imageType, stripeProductId, stripePriceId }) {
+  async saveProduct({ name, description, price, image, imageType, stripeProductId, stripePriceId, requiresTimeslot }) {
     return new Promise((resolve, reject) => {
       const id = uuidv4();
-
+      
+      // Ensure requiresTimeslot is a number (0 or 1)
+      const timeslotValue = requiresTimeslot ? 1 : 0;
+  
       this.db.run(
         `INSERT INTO products (
           id, name, description, price, image, image_type,
-          stripe_product_id, stripe_price_id
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-        [id, name, description, price, image, imageType, stripeProductId, stripePriceId],
+          stripe_product_id, stripe_price_id, requires_timeslot
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        [id, name, description, price, image, imageType, stripeProductId, stripePriceId, timeslotValue],
         function (err) {
           if (err) {
             reject(err);
@@ -106,7 +109,8 @@ class StorageService {
             price,
             imageUrl: `/api/products/${id}/image`,
             stripeProductId,
-            stripePriceId
+            stripePriceId,
+            requiresTimeslot: timeslotValue === 1  // Return as boolean for frontend
           });
         }
       );
