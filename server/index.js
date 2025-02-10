@@ -6,6 +6,20 @@ const Migrations = require('./db/migrations');
 const path = require('path');
 
 
+// Add HTTPS enforcement middleware
+const enforceHttps = (req, res, next) => {
+  const shouldForceHttps = process.env.NODE_ENV === 'production' || process.env.FORCE_HTTPS === 'true';
+  
+  if (shouldForceHttps) {
+    if (req.headers['x-forwarded-proto'] !== 'https') {
+      // Handle both social media browsers and regular browsers
+      return res.redirect(301, `https://${req.headers.host}${req.url}`);
+    }
+  }
+  next();
+};
+
+
 async function startServer() {
   try {
     // Connect to database
@@ -27,6 +41,9 @@ async function startServer() {
 
     const app = express();
     const port = process.env.PORT || 3000;
+
+    app.use(enforceHttps);
+
 
     // Middleware setup
     app.use(cors());
