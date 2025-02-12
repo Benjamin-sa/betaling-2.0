@@ -99,7 +99,7 @@ export const apiClient = {
     });
   },
 
-    async removeAdmin(userId) {
+  async removeAdmin(userId) {
     return this.request('/auth/remove-admin', {
       method: 'POST',
       data: { userId }
@@ -109,6 +109,13 @@ export const apiClient = {
   async deleteUser(firebaseUid) {
     return this.request(`/admin/users/${firebaseUid}`, {
       method: 'DELETE'
+    });
+  },
+
+  async createManualUser(userData) {
+    return this.request('/auth/create-manual-user', {
+      method: 'POST',
+      data: userData
     });
   }
 };

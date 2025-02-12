@@ -60,6 +60,56 @@
       </div>
     </div>
 
+    <!-- Manual User Creation -->
+    <div class="bg-cardBackground rounded-lg shadow-lg p-6 mt-8">
+      <h2 class="text-2xl font-semibold text-primary mb-4">Gebruiker Handmatig Toevoegen</h2>
+      <form @submit.prevent="handleManualUserCreation" class="space-y-4">
+        <div class="form-group">
+          <label for="manualEmail" class="block text-sm font-medium text-text">Email</label>
+          <input
+            id="manualEmail"
+            v-model="manualUser.email"
+            type="email"
+            required
+            placeholder="Gebruiker email"
+            class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary focus:border-primary"
+          />
+        </div>
+        
+        <div class="form-group">
+          <label for="firebaseUid" class="block text-sm font-medium text-text">Firebase UID</label>
+          <input
+            id="firebaseUid"
+            v-model="manualUser.firebaseUid"
+            type="text"
+            required
+            placeholder="Firebase UID"
+            class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary focus:border-primary"
+          />
+        </div>
+
+        <div class="form-group">
+          <label for="stripeCustomerId" class="block text-sm font-medium text-text">Stripe Customer ID</label>
+          <input
+            id="stripeCustomerId"
+            v-model="manualUser.stripeCustomerId"
+            type="text"
+            required
+            placeholder="Stripe Customer ID"
+            class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary focus:border-primary"
+          />
+        </div>
+
+        <button
+          type="submit"
+          :disabled="manualUserLoading"
+          class="w-full bg-primary text-white px-4 py-2 rounded hover:bg-green-700 disabled:bg-gray-400 transition duration-300"
+        >
+          {{ manualUserLoading ? 'Bezig met toevoegen...' : 'Gebruiker Toevoegen' }}
+        </button>
+      </form>
+    </div>
+
     <!-- Verkochte Producten Overzicht -->
     <div class="bg-cardBackground rounded-lg shadow-lg p-4 sm:p-6 mt-4 sm:mt-8">
       <h2 class="text-xl sm:text-2xl font-semibold text-primary mb-4">Verkochte Producten Overzicht</h2>
@@ -339,6 +389,40 @@ const formatDate = (dateString) => {
     hour: '2-digit',
     minute: '2-digit'
   });
+};
+
+const manualUser = ref({
+  email: '',
+  firebaseUid: '',
+  stripeCustomerId: ''
+});
+const manualUserLoading = ref(false);
+
+const handleManualUserCreation = async () => {
+  try {
+    manualUserLoading.value = true;
+    await apiClient.createManualUser({
+      email: manualUser.value.email,
+      firebaseUid: manualUser.value.firebaseUid,
+      stripeCustomerId: manualUser.value.stripeCustomerId
+    });
+
+    // Reset form
+    manualUser.value = {
+      email: '',
+      firebaseUid: '',
+      stripeCustomerId: ''
+    };
+
+    // Refresh users list
+    await loadUsers();
+    alert('Gebruiker succesvol toegevoegd');
+  } catch (error) {
+    console.error('Error creating manual user:', error);
+    alert('Er is een fout opgetreden bij het toevoegen van de gebruiker');
+  } finally {
+    manualUserLoading.value = false;
+  }
 };
 
 onMounted(() => {

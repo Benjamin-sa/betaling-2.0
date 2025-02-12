@@ -7,7 +7,6 @@ const { authenticate, authorizeAdmin } = require('../middleware/auth');
 const userService = require('../services/user.service');
 const authService = require('../services/auth.service');
 
-
 // registreer een nieuwe gebruiker
 router.post('/register', async (req, res) => {
     const { email, password } = req.body;
@@ -57,7 +56,6 @@ router.post('/send-verification-email', authenticate, async (req, res) => {
   }
 });
 
-
   // Nieuwe route om ervoor te zorgen dat de gebruiker in de database bestaat
 router.post('/ensure-user', authenticate, async (req, res) => {
   const firebaseUid = req.user.uid;
@@ -91,6 +89,37 @@ router.post('/ensure-user', authenticate, async (req, res) => {
   }
 });
 
+// Add manual user creation route
+router.post('/create-manual-user', authenticate, authorizeAdmin, async (req, res) => {
+  const { email, firebaseUid, stripeCustomerId } = req.body;
+
+  try {
+    // Validate inputs
+    if (!email || !firebaseUid || !stripeCustomerId) {
+      return res.status(400).json({ error: 'All fields are required' });
+    }
+
+    // Check if user already exists
+    const existingUser = await userService.getUserByFirebaseId(firebaseUid);
+    if (existingUser) {
+      return res.status(400).json({ error: 'User already exists' });
+    }
+
+    // Create user in database
+    const user = await userService.createUser({
+      firebaseUid,
+      email,
+      stripeCustomerId,
+      is_admin: 0
+    });
+
+    res.status(201).json({ message: 'User created successfully', user });
+  } catch (error) {
+    console.error('Manual user creation error:', error);
+    res.status(500).json({ error: 'Failed to create user' });
+  }
+});
+
 // Maak een gebruiker admin
 router.post('/make-admin', authenticate, authorizeAdmin, async (req, res) => {
   const { userId } = req.body;
@@ -103,7 +132,6 @@ router.post('/make-admin', authenticate, authorizeAdmin, async (req, res) => {
     res.status(500).json({ error: 'Internal Server Error' });
   }
 });
-
 
 router.post('/remove-admin', authenticate, authorizeAdmin, async (req, res) => {
   const { userId } = req.body;
