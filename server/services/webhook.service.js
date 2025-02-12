@@ -58,10 +58,10 @@ class WebhookService {
       });
 
       // Send order confirmation email only from webhook
-      // if (session.status === 'complete') {
-      //   await this.sendOrderConfirmationEmail(order, session.customer_details);
-      //   console.log(`Order confirmation email sent to ${session.customer_details.email}`);
-      // }
+      if (session.status === 'complete') {
+        await this.sendOrderConfirmationEmail(order, session.customer_details);
+        console.log(`Order confirmation email sent to ${session.customer_details.email}`);
+      }
     } catch (error) {
       console.error('Error processing checkout session:', error);
       throw error;
