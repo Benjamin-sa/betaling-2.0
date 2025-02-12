@@ -70,7 +70,7 @@ async function startServer() {
 
     // Schedule regular backups (every 8 hours)
     setInterval(() => {
-      backUp.backupToFirestore();
+      backupService.backupToFirestore();
     }, 2 * 60 * 60 * 1000);
 
 
