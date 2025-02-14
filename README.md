@@ -86,13 +86,36 @@ betaling-2.0/
 
 ## API Routes
 
+### Products
 - `GET /api/products` - Get all products
 - `POST /api/products` - Add new product (admin)
 - `DELETE /api/products/:id` - Delete product (admin)
-- `POST /api/checkout` - Create checkout session
+- `GET /api/products/:id/image` - Get product image
+
+### Orders
 - `GET /api/orders` - Get user orders
-- `GET /api/admin/orders` - Get all orders (admin)
-- `GET /api/admin/users` - Get all users (admin)
+- `GET /api/orders/session/:sessionId/line-items` - Get line items for order
+- `GET /api/orders/timeslots/availability` - Get time slot availability
+
+### Authentication
+- `POST /api/auth/register` - Register new user
+- `POST /api/auth/ensure-user` - Ensure user exists in database
+- `POST /api/auth/send-verification-email` - Send verification email
+- `POST /api/auth/make-admin` - Make user admin (admin only)
+- `POST /api/auth/remove-admin` - Remove admin rights (admin only)
+- `GET /api/auth/admin-status` - Check admin status
+- `POST /api/auth/create-manual-user` - Create user manually (admin only)
+
+### Checkout
+- `POST /api/checkout` - Create checkout session
+
+### Admin
+- `GET /api/admin/orders` - Get all orders (admin only)
+- `GET /api/admin/users` - Get all users (admin only)
+- `DELETE /api/admin/users/:firebaseUid` - Delete user (admin only)
+
+### Webhooks
+- `POST /webhook/stripe` - Stripe webhook endpoint
 
 ## License
 
