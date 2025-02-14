@@ -25,6 +25,16 @@ router.get('/', authenticate, async (req, res) => {
     // Haal Checkout Sessions van Stripe op
     const sessions = await stripeService.getCustomerCheckoutSessions(stripeCustomerId);
 
+    // Filter down to only the information needed
+    const filteredSessions = sessions.map(session => ({
+      id: session.id,
+      amount_total: session.amount_total,
+      currency: session.currency,
+      status: session.status,
+      created: session.created,
+      // include other properties if needed, e.g. metadata or payment_method_types
+    }));
+
     res.json({ orders: sessions });
   } catch (error) {
     console.error('Error fetching orders:', error);
