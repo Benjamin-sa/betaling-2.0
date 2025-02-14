@@ -7,22 +7,22 @@ const { authenticate, authorizeAdmin } = require('../middleware/auth');
 const userService = require('../services/user.service');
 const authService = require('../services/auth.service');
 
-// registreer een nieuwe gebruiker
+// register user with email and password
 router.post('/register', async (req, res) => {
     const { email, password } = req.body;
     
     try {
-      // Creëer gebruiker met Firebase Admin
+      // create user in Firebase Auth 
       const userRecord = await admin.auth().createUser({
         email,
         password
       });
 
-      // Maak een Stripe klant aan
+      // create stripe customer
       const customer = await stripeService.createCustomer(email, userRecord.uid);
-  
-      // Voeg gebruiker toe aan database
-    const user = await userService.createUser({
+      
+      // Create user in database
+      const user = await userService.createUser({
       firebaseUid: userRecord.uid,
       email: email,
       stripeCustomerId: customer.id

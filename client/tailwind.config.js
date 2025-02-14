@@ -12,7 +12,7 @@ module.exports = {
         background: '#f5f5f5',
         text: '#333',
         navBackground: '#ffffff',
-        navText: '#333333', // Zorg ervoor dat dit correct is
+        navText: '#333333', 
         cardBackground: '#ffffff',
         cardShadow: 'rgba(0, 0, 0, 0.1)',
       },

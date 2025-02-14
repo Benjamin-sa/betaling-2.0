@@ -84,7 +84,7 @@ async function startServer() {
       const handleShutdown = async (signal) => {
         console.log(`Received ${signal}. Shutting down...`);
         try {
-          await backupService.backupToFirestore(); // Use the instance
+          await backupService.backupToFirestore(); 
           await database.close();
           console.log('Server shut down successfully.');
           process.exit(0);
