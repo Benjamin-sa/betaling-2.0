@@ -434,3 +434,30 @@ onMounted(() => {
 });
 </script>
 
+<style>
+/* Prevent double-tap zoom and unwanted text selection on interactive elements */
+button,
+a,
+.home-container input[type="number"] {
+  touch-action: manipulation;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+/* Make sure the entire container prevents unwanted zooming */
+.home-container {
+  touch-action: pan-x pan-y;
+}
+
+/* Prevent number input spinners from causing zoom */
+input[type="number"] {
+  -moz-appearance: textfield;
+}
+
+input[type="number"]::-webkit-outer-spin-button,
+input[type="number"]::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+</style>
+

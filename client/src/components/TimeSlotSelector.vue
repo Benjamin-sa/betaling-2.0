@@ -1,5 +1,5 @@
 <template>
-  <div class="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
+  <div class="bg-white p-6 rounded-lg shadow-sm border border-gray-200 touch-manipulation">
     <h3 class="text-lg font-medium text-gray-900 mb-4">Kies een shift</h3>
     
     <!-- Loading State -->
@@ -29,16 +29,29 @@
         :disabled="slot.isFull"
       >
         <div class="flex justify-between items-start">
-          <div>
+          <div class="w-full">
             <p class="text-sm font-medium text-gray-900">{{ formatTimeSlot(slot.timeSlot) }}</p>
             <p class="mt-1 text-xs text-gray-500">
               {{ slot.available }} plaatsen beschikbaar
+            </p>
+            <!-- Capacity Progress Bar -->
+            <div class="mt-2 w-full bg-gray-200 rounded-full h-2 overflow-hidden">
+              <div
+                :style="{ width: `${getCapacityPercentage(slot.available)}%` }"
+                :class="[
+                  'h-full transition-all duration-300',
+                  getProgressBarColor(slot.available)
+                ]"
+              ></div>
+            </div>
+            <p class="mt-1 text-xs text-gray-400">
+              {{ getCapacityPercentage(slot.available) }}% bezet
             </p>
           </div>
           
           <!-- Availability Indicator -->
           <div :class="[
-            'h-2.5 w-2.5 rounded-full',
+            'h-2.5 w-2.5 rounded-full ml-2',
             getAvailabilityColor(slot.available)
           ]"></div>
         </div>
@@ -85,6 +98,8 @@ const FIXED_TIME_SLOTS = [
   '19:30-21:00'
 ];
 
+const MAX_CAPACITY = 120;
+
 // Watch for v-model changes
 watch(() => props.modelValue, (newValue) => {
   selectedTimeSlot.value = newValue;
@@ -95,10 +110,26 @@ const formatTimeSlot = (timeSlot) => {
   return timeSlot.replace('-', ' - ');
 };
 
+// Get capacity percentage
+const getCapacityPercentage = (available) => {
+  const occupied = MAX_CAPACITY - available;
+  return Math.round((occupied / MAX_CAPACITY) * 100);
+};
+
+// Get progress bar color based on capacity
+const getProgressBarColor = (available) => {
+  const percentage = getCapacityPercentage(available);
+  if (percentage >= 90) return 'bg-red-500';
+  if (percentage >= 75) return 'bg-orange-500';
+  if (percentage >= 50) return 'bg-yellow-500';
+  return 'bg-green-500';
+};
+
 // Get color based on availability
 const getAvailabilityColor = (available) => {
   if (available === 0) return 'bg-red-500';
-  if (available <= 3) return 'bg-yellow-500';
+  if (available <= MAX_CAPACITY * 0.1) return 'bg-orange-500'; // Changed to be more dynamic
+  if (available <= MAX_CAPACITY * 0.25) return 'bg-yellow-500';
   return 'bg-green-500';
 };
 
@@ -120,7 +151,7 @@ const loadTimeSlots = async () => {
     // Merge fixed time slots with availability data
     timeSlots.value = FIXED_TIME_SLOTS.map(slot => ({
       timeSlot: slot,
-      available: availabilityData[slot] || 0,
+      available: Math.min(availabilityData[slot] || 0, MAX_CAPACITY),
       isFull: (availabilityData[slot] || 0) === 0
     }));
   } catch (err) {
@@ -135,3 +166,16 @@ onMounted(() => {
   loadTimeSlots();
 });
 </script>
+
+<style>
+/* Prevent double-tap zoom on mobile devices */
+button {
+  touch-action: manipulation;
+}
+
+/* Disable text selection on buttons */
+button {
+  -webkit-user-select: none;
+  user-select: none;
+}
+</style>
