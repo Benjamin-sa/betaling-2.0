@@ -10,8 +10,12 @@
         type="email"
         required
         placeholder="Uw e-mailadres"
+        @input="checkHotmailDomain"
         class="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-primary focus:border-primary"
       />
+      <div v-if="isHotmail" class="mt-2 text-amber-600 text-sm">
+        Let op: Hotmail-gebruikers ontvangen mogelijk geen bevestigingsmails voor bestellingen. U kunt uw bestellingen wel altijd terugvinden in uw account.
+      </div>
     </div>
 
     <div class="form-group">
@@ -92,6 +96,7 @@ const password = ref('');
 const loading = ref(false);
 const error = ref('');
 const showVerificationMessage = ref(false);
+const isHotmail = ref(false);
 
 const handleSubmit = async () => {
   try {
@@ -121,5 +126,9 @@ const handleGoogleSignUp = async () => {
   } finally {
     loading.value = false;
   }
+};
+
+const checkHotmailDomain = () => {
+  isHotmail.value = email.value.toLowerCase().includes('@hotmail.');
 };
 </script>

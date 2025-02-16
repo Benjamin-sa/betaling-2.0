@@ -2,7 +2,7 @@
 import { defineStore } from 'pinia';
 import { ref, onMounted } from 'vue';
 import { auth } from '@/config/firebase';
-import { signInWithEmailAndPassword, signOut, GoogleAuthProvider, signInWithPopup, sendPasswordResetEmail, sendEmailVerification } from 'firebase/auth';
+import { signInWithEmailAndPassword, signOut, GoogleAuthProvider, signInWithPopup, sendPasswordResetEmail, sendEmailVerification} from 'firebase/auth';
 
 export const useAuthStore = defineStore('auth', () => {
   const user = ref(null);
@@ -17,7 +17,6 @@ export const useAuthStore = defineStore('auth', () => {
       error.value = null;
       loading.value = true;
       
-      // First create user in backend
       const response = await fetch(`${import.meta.env.VITE_SERVER_URL}/api/auth/register`, {
         method: 'POST',
         headers: {
@@ -30,18 +29,7 @@ export const useAuthStore = defineStore('auth', () => {
         const data = await response.json();
         throw new Error(data.error || 'Registration failed');
       }
-  
-      // After successful backend registration, sign in to get the user credential
-      const userCredential = await signInWithEmailAndPassword(auth, email, password);
-      
-      // Now we can send the verification email
-      await sendEmailVerification(userCredential.user);
-      
-      // Sign out until email is verified
-      await signOut(auth);
-      
-      return { success: true, message: 'Verificatie e-mail verzonden. Controleer je inbox.' };
-  
+
     } catch (e) {
       error.value = e.message;
       throw e;
@@ -57,15 +45,22 @@ export const useAuthStore = defineStore('auth', () => {
       loading.value = true;
       
       const userCredential = await signInWithEmailAndPassword(auth, email, password);
-      // Check if email is verified
+      // Controleer of e-mail geverifieerd is
       if (!userCredential.user.emailVerified) {
-        // Send verification email using Firebase
-        await sendEmailVerification(userCredential.user);
+        // Stuur nieuwe verificatie e-mail als die nog niet geverifieerd is
+        await fetch(`${import.meta.env.VITE_SERVER_URL}/api/auth/send-verification-email`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token.value}`
+          }
+        });        await signOut(auth);
         throw new Error('E-mailadres nog niet geverifieerd. Nieuwe verificatie e-mail verzonden.');
       }
       user.value = userCredential.user;
       token.value = await userCredential.user.getIdToken();
-  
+
+
     } catch (e) {
       error.value = e.message;
       throw e;
@@ -89,6 +84,7 @@ export const useAuthStore = defineStore('auth', () => {
       if (!userCredential.user.emailVerified) {
         // Send new verification email if not verified yet
         await sendEmailVerification(userCredential.user);
+        await signOut(auth);
         throw new Error('E-mailadres nog niet geverifieerd. Nieuwe verificatie e-mail verzonden.');
       }
 

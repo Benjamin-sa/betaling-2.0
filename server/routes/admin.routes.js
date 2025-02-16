@@ -39,15 +39,20 @@ router.delete('/users/:firebaseUid', authenticate, authorizeAdmin, async (req, r
   const { firebaseUid } = req.params;
 
   try {
-    // Delete user from Firebase Auth
-    await admin.auth().deleteUser(firebaseUid);
+    try {
+      // Try to delete user from Firebase Auth
+      await admin.auth().deleteUser(firebaseUid);
+    } catch (firebaseError) {
+      // Log the error but continue if user not found in Firebase
+      console.log('Firebase user not found:', firebaseError.message);
+    }
 
-    // Delete user from SQLite database
+    // Delete user from SQLite database regardless of Firebase result
     await userService.deleteUser(firebaseUid);
 
-    res.json({ message: 'User deleted successfully' });
+    res.json({ message: 'User deleted from database successfully' });
   } catch (error) {
-    console.error('Error deleting user:', error);
+    console.error('Error deleting user from database:', error);
     res.status(500).json({ error: 'Internal Server Error' });
   }
 });
