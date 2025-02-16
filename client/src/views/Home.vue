@@ -21,7 +21,7 @@
           Spaghetti Avond
         </h1>
         <p class="mt-4 sm:mt-6 text-base sm:text-lg md:text-xl text-gray-100 max-w-3xl font-medium drop-shadow">
-          Schrijf je in voor onze jaarlijkse spaghetti avond op 15 maart 2024. Kies je shift en geniet van heerlijke spaghetti!
+          Schrijf je in voor onze jaarlijkse spaghetti avond op 15 maart 2025. Kies je shift en geniet van heerlijke spaghetti!
         </p>
         
         <!-- Call to Action -->
