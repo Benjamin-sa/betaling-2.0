@@ -70,7 +70,11 @@ class StripeService {
       }
   
       return stripe.checkout.sessions.create({
-        payment_method_types: ['card', 'ideal'],
+        payment_method_types: [
+          'card',           // Credit/debit cards
+          'ideal',          // iDEAL for Netherlands
+          'bancontact',     // Bancontact for Belgium
+        ],
         line_items: lineItems,
         mode: 'payment',
         customer: user.stripe_customer_id,
