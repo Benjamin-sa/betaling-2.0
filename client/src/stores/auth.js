@@ -48,13 +48,8 @@ export const useAuthStore = defineStore('auth', () => {
       // Controleer of e-mail geverifieerd is
       if (!userCredential.user.emailVerified) {
         // Stuur nieuwe verificatie e-mail als die nog niet geverifieerd is
-        await fetch(`${import.meta.env.VITE_SERVER_URL}/api/auth/send-verification-email`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token.value}`
-          }
-        });        await signOut(auth);
+        await sendEmailVerification(userCredential.user);
+        await signOut(auth);
         throw new Error('E-mailadres nog niet geverifieerd. Nieuwe verificatie e-mail verzonden.');
       }
       user.value = userCredential.user;
