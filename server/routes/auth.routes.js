@@ -28,14 +28,6 @@ router.post('/register', async (req, res) => {
       stripeCustomerId: customer.id
     });
 
-    // Send verification email
-    try {
-      await sendVerificationEmailToUser(email);
-    } catch (emailError) {
-      console.error('Verification email error:', emailError);
-      // Continue execution - user is created but email failed
-    }
-
     res.status(201).json({ message: 'User registered successfully', user });
 
   

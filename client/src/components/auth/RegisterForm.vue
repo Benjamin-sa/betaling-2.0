@@ -110,10 +110,14 @@ const handleGoogleSignUp = async () => {
   try {
     loading.value = true;
     error.value = '';
+    
     await auth.loginWithGoogle();
-    router.push('/'); // Redirect to home after successful signup
+    
+    // After successful Google login and backend user creation
+    router.push('/');
   } catch (e) {
-    error.value = e.message;
+    error.value = e.message || 'Er is een fout opgetreden bij het registreren met Google';
+    console.error('Google signup error:', e);
   } finally {
     loading.value = false;
   }
