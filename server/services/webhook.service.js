@@ -1,5 +1,4 @@
 // services/webhook.service.js
-const mailService = require('./mail.service');
 const userService = require('./user.service');
 const db = require('../db').instance;
 // webhook.service.js
@@ -57,11 +56,6 @@ class WebhookService {
         });
       });
 
-      // Send order confirmation email only from webhook
-      if (session.status === 'complete') {
-        await this.sendOrderConfirmationEmail(order, session.customer_details);
-        console.log(`Order confirmation email sent to ${session.customer_details.email}`);
-      }
     } catch (error) {
       console.error('Error processing checkout session:', error);
       throw error;
@@ -123,22 +117,7 @@ class WebhookService {
     };
   }
 
-  async sendOrderConfirmationEmail(order, customerDetails) {
-    console.log('Sending confirmation email for order:', order);
-    const emailData = {
-      id: order.id,
-      items: order.items,
-      amount_total: order.amount_total,
-      time_slot: order.time_slot || 'Geen tijdslot vereist',  // Provide default text for orders without time slot
-      currency: order.currency
-    };
-  
-    await mailService.sendOrderConfirmation(emailData, {
-      email: customerDetails.email,
-      name: customerDetails.name || customerDetails.email,
-      address: customerDetails.address
-    });
-    }
+ 
 }
 
 module.exports = new WebhookService();

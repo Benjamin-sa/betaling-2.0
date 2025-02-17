@@ -5,7 +5,6 @@ const admin = require('../config/firebaseAdmin');
 const stripeService = require('../services/stripe.service');
 const { authenticate, authorizeAdmin } = require('../middleware/auth');
 const userService = require('../services/user.service');
-const authService = require('../services/auth.service');
 
 // register user with email and password
 router.post('/register', async (req, res) => {
@@ -157,10 +156,5 @@ router.get('/admin-status', authenticate, async (req, res) => {
   }
 });
 
-// Helper function to send verification email
-const sendVerificationEmailToUser = async (email) => {
-  const verificationLink = await admin.auth().generateEmailVerificationLink(email);
-  await authService.sendVerificationEmail({ email }, verificationLink);
-};
 
 module.exports = router;
