@@ -24,11 +24,16 @@ export const useAuthStore = defineStore('auth', () => {
         },
         body: JSON.stringify({ email, password })
       });
-      
+
       if (!response.ok) {
         const data = await response.json();
         throw new Error(data.error || 'Registration failed');
       }
+
+      const userCredential = await signInWithEmailAndPassword(auth, email, password);
+      await sendEmailVerification(userCredential.user);
+      await signOut(auth);
+    
 
     } catch (e) {
       error.value = e.message;
@@ -45,17 +50,26 @@ export const useAuthStore = defineStore('auth', () => {
       loading.value = true;
       
       const userCredential = await signInWithEmailAndPassword(auth, email, password);
-      // Controleer of e-mail geverifieerd is
+      // Check if email is verified
       if (!userCredential.user.emailVerified) {
-        // Stuur nieuwe verificatie e-mail als die nog niet geverifieerd is
-        await sendEmailVerification(userCredential.user);
+        try {
+          await sendEmailVerification(userCredential.user);
+        } catch (verificationError) {
+          // Check if the error code is "auth/too-many-requests" or similar 400 error
+          if (verificationError.code === 'auth/too-many-requests' || String(verificationError.status) === '400') {
+            // Log a warning; you can also set an informational message in your UI if desired.
+            console.warn('Verification email already sent recently. Please check your inbox.');
+          } else {
+            throw verificationError;
+          }
+        }
         await signOut(auth);
+        // Instead of always throwing a verification error, you might conditionally throw it
         throw new Error('E-mailadres nog niet geverifieerd. Nieuwe verificatie e-mail verzonden.');
       }
+      
       user.value = userCredential.user;
       token.value = await userCredential.user.getIdToken();
-
-
     } catch (e) {
       error.value = e.message;
       throw e;
@@ -74,14 +88,6 @@ export const useAuthStore = defineStore('auth', () => {
       const userCredential = await signInWithPopup(auth, provider);
       user.value = userCredential.user;
       token.value = await userCredential.user.getIdToken();
-
-      // Check if email is verified
-      if (!userCredential.user.emailVerified) {
-        // Send new verification email if not verified yet
-        await sendEmailVerification(userCredential.user);
-        await signOut(auth);
-        throw new Error('E-mailadres nog niet geverifieerd. Nieuwe verificatie e-mail verzonden.');
-      }
 
       // Check if user is already in the database
       const response = await fetch(`${import.meta.env.VITE_SERVER_URL}/api/auth/ensure-user`, {
