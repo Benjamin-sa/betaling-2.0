@@ -24,8 +24,9 @@
               <div class="mt-2">
                 <p class="text-sm text-gray-500">
                   <template v-if="type === 'verification'">
-                    We hebben een verificatie e-mail gestuurd naar <strong>{{ email }}</strong>. 
-                    Controleer je inbox en volg de instructies om je account te activeren.
+                    We hebben een verificatie-e-mail gestuurd naar <strong>{{ email }}</strong>.
+                    Controleer je inbox, en kijk ook eens in je spam of ongewenste e-mail folder.
+                    Als je de e-mail niet ziet, klik dan op "Opnieuw verzenden" om nogmaals de verificatie-e-mail te ontvangen.
                   </template>
                   <template v-else-if="type === 'auth'">
                     Je moet ingelogd zijn om af te kunnen rekenen. 

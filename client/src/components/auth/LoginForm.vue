@@ -30,8 +30,19 @@
           />
         </div>
 
-        <div v-if="error" class="p-3 bg-red-50 text-red-500 text-sm rounded">
-          {{ error }}
+        <div v-if="mainError" class="space-y-3 rounded-md overflow-hidden">
+          <div class="p-3 bg-red-50 text-red-500 text-sm rounded">
+            {{ mainError }}
+          </div>
+          <div v-if="showHelpText" class="p-3 bg-blue-50 text-blue-600 text-sm rounded flex items-start space-x-2">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 flex-shrink-0 mt-0.5" viewBox="0 0 20 20" fill="currentColor">
+              <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd" />
+            </svg>
+            <span>
+              Controleer ook je spamfolder. Indien je de verificatie-e-mail nog steeds niet ontvangt, 
+              stuur dan een e-mail naar <a href="mailto:groepsleiding@lodlavki.be" class="underline hover:text-blue-800">groepsleiding@lodlavki.be</a>.
+            </span>
+          </div>
         </div>
 
         <button
@@ -107,16 +118,27 @@ const router = useRouter();
 const email = ref('');
 const password = ref('');
 const loading = ref(false);
-const error = ref('');
+const mainError = ref('');
+const userNotVerifiedCount = ref(0);
+const showHelpText = ref(false);
 
 const handleSubmit = async () => {
   try {
     loading.value = true;
-    error.value = '';
+    mainError.value = '';
+    showHelpText.value = false;
     await auth.login(email.value, password.value);
     router.push('/'); // Redirect to home page after successful login
   } catch (e) {
-    error.value = e.message;
+    mainError.value = e.message;
+    // Check if the error is about unverified email
+    if (e.message.includes('E-mailadres nog niet geverifieerd')) {
+      userNotVerifiedCount.value++;
+      console.log(userNotVerifiedCount.value);
+      if (userNotVerifiedCount.value >= 3) {
+        showHelpText.value = true;
+      }
+    }
   } finally {
     loading.value = false;
   }
@@ -125,11 +147,12 @@ const handleSubmit = async () => {
 const handleGoogleLogin = async () => {
   try {
     loading.value = true;
-    error.value = '';
+    mainError.value = '';
+    showHelpText.value = false;
     await auth.loginWithGoogle();
     router.push('/'); // Redirect to home page after successful login
   } catch (e) {
-    error.value = e.message;
+    mainError.value = e.message;
   } finally {
     loading.value = false;
   }
@@ -138,10 +161,12 @@ const handleGoogleLogin = async () => {
 const handlePasswordReset = async () => {
   try {
     loading.value = true;
-    error.value = '';
+    mainError.value = '';
+    showHelpText.value = false;
     await auth.resetPassword(email.value);
+    mainError.value = 'Er is een e-mail verzonden met instructies om je wachtwoord te resetten.';
   } catch (e) {
-    error.value = e.message;
+    mainError.value = e.message;
   } finally {
     loading.value = false;
   }
