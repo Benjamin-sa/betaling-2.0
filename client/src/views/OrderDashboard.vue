@@ -41,9 +41,12 @@
                   <h3 class="text-lg font-medium text-gray-900">
                     Bestelling #{{ order.id }}
                   </h3>
-                  <p class="mt-1 text-sm text-gray-500">
+                  <div class="mt-1 text-sm text-gray-500">
                     {{ formatDate(order.created) }}
-                  </p>
+                    <span v-if="order.metadata?.timeSlot" class="ml-2 text-primary">
+                      | Tijdslot: {{ order.metadata.timeSlot }}
+                    </span>
+                  </div>
                 </div>
                 <span 
                   :class="[
@@ -100,13 +103,17 @@ const loadOrders = async () => {
   try {
     loading.value = true;
     const response = await apiClient.getOrders();
+    console.log('Response from getOrders:', response); // Print the whole return value
+
     const completeOrders = response.orders.filter(order => order.status === 'complete');
 
-    // For each order, get line items
+    // For each order, get line items and ensure metadata is preserved
     await Promise.all(completeOrders.map(async (order) => {
       try {
         const itemsResponse = await apiClient.getOrderLineItems(order.id);
         order.items = itemsResponse.data;
+        // Ensure metadata from the original order is preserved
+        order.metadata = response.orders.find(o => o.id === order.id)?.metadata || {};
       } catch (error) {
         console.error(`Error fetching line items for order ${order.id}:`, error);
         order.items = [];
