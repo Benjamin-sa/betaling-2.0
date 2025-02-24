@@ -359,26 +359,28 @@ const handleRegister = () => {
 const handleCheckout = async () => {
   loading.value = true;
 
-  try {
-
-    if (!auth.token) {
+  if (!auth.token) {
     showAuthModal.value = true;
+    loading.value = false;
     return;
   }
 
-    // Check if any product requires a time slot
-    const requiresTimeSlot = selectedProducts.value.some(product => product.requires_timeslot);
+  try {
+    // Check if manual payments are enabled
+    const manualPaymentsEnabled = await apiClient.isManualPaymentsEnabled();
 
-    if (requiresTimeSlot && !selectedTimeSlot.value) {
+    if (requiresTimeSlot.value && !selectedTimeSlot.value) {
       alert('Selecteer een tijdslot.');
       return;
     }
 
-    // Creëer het items array op basis van geselecteerde producten en hoeveelheden
+         // Create items array from selected products and quantities
     const items = products.value
       .filter(product => quantities.value[product.id] > 0)
       .map(product => ({
-        productId: product.id,
+        id: product.id,
+        name: product.name,
+        price: product.price,
         quantity: quantities.value[product.id],
       }));
 
@@ -387,10 +389,27 @@ const handleCheckout = async () => {
       return;
     }
 
-    // Verstuur checkout verzoek naar de backend
+    if (manualPaymentsEnabled) {
+
+      console.log('Manual payments enabled');
+      // Redirect to manual payments with cart data
+      router.push({
+        name: 'ManualPayments',
+        query: {
+          items: JSON.stringify(items),
+          timeSlot: selectedTimeSlot.value
+        }
+      });
+      return;
+    }
+
+    // Existing Stripe checkout flow
     const response = await apiClient.createCheckoutSession(
-      items, 
-      requiresTimeSlot ? selectedTimeSlot.value : null
+      items.map(item => ({
+        productId: item.id,
+        quantity: item.quantity,
+      })), 
+      requiresTimeSlot.value ? selectedTimeSlot.value : null
     );
 
     const stripe = await stripePromise;

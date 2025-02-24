@@ -125,15 +125,19 @@ class BackupService {
           await new Promise((resolve, reject) => {
             db.run(
               `INSERT OR REPLACE INTO orders (
-                id, user_id, amount_total, currency, time_slot, created_at
-              ) VALUES (?, ?, ?, ?, ?, ?)`,
+                id, user_id, amount_total, currency, time_slot, created_at,
+                payment_method, manual_payment_confirmed_at, manual_payment_confirmed_by
+              ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
               [
                 order.id,
                 order.user_id,
                 order.amount_total,
                 order.currency,
                 order.time_slot,
-                order.created_at
+                order.created_at,
+                order.payment_method || 'stripe',
+                order.manual_payment_confirmed_at,
+                order.manual_payment_confirmed_by
               ],
               (err) => {
                 if (err) reject(err);

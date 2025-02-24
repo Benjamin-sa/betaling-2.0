@@ -2,6 +2,31 @@
   <div class="py-4 px-4 sm:py-8">
     <h1 class="text-2xl sm:text-3xl font-bold text-center text-text">Admin Dashboard</h1>
     
+    <!-- Settings Section - Add this near the top of your template -->
+    <div class="bg-cardBackground rounded-lg shadow-lg p-6 mt-4">
+      <h2 class="text-2xl font-semibold text-primary mb-4">Instellingen</h2>
+      <div class="flex items-center justify-between">
+        <div>
+          <h3 class="font-medium">Manuele Betalingen</h3>
+          <p class="text-sm text-gray-500">Sta betalingen via overschrijving toe</p>
+        </div>
+        <label class="relative inline-flex items-center cursor-pointer">
+          <input 
+            type="checkbox" 
+            v-model="manualPaymentsEnabled"
+            @change="toggleManualPayments" 
+            class="sr-only peer"
+          >
+          <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer 
+                      peer-checked:after:translate-x-full peer-checked:after:border-white 
+                      after:content-[''] after:absolute after:top-[2px] after:left-[2px] 
+                      after:bg-white after:border-gray-300 after:border after:rounded-full 
+                      after:h-5 after:w-5 after:transition-all peer-checked:bg-primary">
+          </div>
+        </label>
+      </div>
+    </div>
+
     <!-- Product management grid - made more responsive -->
     <div class="grid grid-cols-1 gap-4 sm:gap-6 mt-4 sm:mt-8 lg:grid-cols-2">
       <div class="bg-cardBackground rounded-lg shadow-lg p-6">
@@ -141,9 +166,25 @@
               <div class="flex justify-between items-center">
                 <div class="flex-1">
                   <p class="font-medium text-gray-900">{{ order.product_name }}</p>
-                  <p class="text-sm text-gray-500">{{ order.time_slot || 'Geen tijdslot' }}</p>
+                  <div class="flex flex-col gap-1">
+                    <div class="flex items-center gap-2">
+                      <p class="text-sm text-gray-500">{{ order.time_slot || 'Geen tijdslot' }}</p>
+                      <span :class="{
+                        'px-2 py-0.5 text-xs font-medium rounded-full': true,
+                        'bg-yellow-100 text-yellow-800': order.payment_status === 'manual_pending',
+                        'bg-green-100 text-green-800': order.payment_status === 'paid' || order.payment_status === 'manual_confirmed',
+                      }">
+                        {{ getPaymentStatusText(order) }}
+                      </span>
+                    </div>
+                    <!-- Show confirmation details if available -->
+                    <div v-if="order.confirmation_details" class="text-xs text-gray-500">
+                      Bevestigd door {{ order.confirmation_details.confirmed_by }} op 
+                      {{ formatDate(order.confirmation_details.confirmed_at) }}
+                    </div>
+                  </div>
                 </div>
-                <div class="flex items-center space-x-4">
+                <div class="flex items-center gap-4">
                   <div class="text-sm text-gray-500">
                     {{ order.quantity }}x
                   </div>
@@ -152,6 +193,15 @@
                       €{{ formatAmount(order.amount_total) }}
                     </p>
                   </div>
+                  <!-- Add confirm button for pending manual orders -->
+                  <button
+                    v-if="order.payment_status === 'manual_pending'"
+                    @click="confirmManualPayment(order.order_id)"
+                    :disabled="verifyingOrder === order.order_id"
+                    class="ml-4 px-3 py-1 text-sm bg-primary text-white rounded hover:bg-green-700 disabled:bg-gray-400"
+                  >
+                    {{ verifyingOrder === order.order_id ? 'Bezig...' : 'Bevestig Betaling' }}
+                  </button>
                 </div>
               </div>
             </div>
@@ -425,9 +475,78 @@ const handleManualUserCreation = async () => {
   }
 };
 
+const verifyingOrder = ref(null);
+
+const getPaymentStatusText = (order) => {
+  switch (order.payment_status) {
+    case 'paid':
+      return 'Betaald via Stripe';
+    case 'manual_confirmed':
+      return 'Manuele betaling bevestigd';
+    case 'manual_pending':
+      return 'Wacht op bevestiging';
+    default:
+      return 'Onbekende status';
+  }
+};
+
+const confirmManualPayment = async (orderId) => {
+  if (!confirm('Weet je zeker dat je deze betaling wilt bevestigen?')) return;
+  
+  try {
+    verifyingOrder.value = orderId;
+    await apiClient.confirmManualPayment(orderId);
+    
+    // Refresh orders to update the payment status
+    await loadOrders();
+    
+    alert('Betaling succesvol bevestigd');
+  } catch (error) {
+    console.error('Error confirming payment:', error);
+    alert('Er is een fout opgetreden bij het bevestigen van de betaling');
+  } finally {
+    verifyingOrder.value = null;
+  }
+};
+
+// Add these with your other refs
+const manualPaymentsEnabled = ref(false);
+const loadingSettings = ref(false);
+
+// Add these new functions
+const loadSettings = async () => {
+  try {
+    loadingSettings.value = true;
+    const settings = await apiClient.getSettings();
+    manualPaymentsEnabled.value = settings.manualPaymentsEnabled;
+  } catch (error) {
+    console.error('Error loading settings:', error);
+    alert('Er is een fout opgetreden bij het laden van de instellingen.');
+  } finally {
+    loadingSettings.value = false;
+  }
+};
+
+const toggleManualPayments = async () => {
+  try {
+    loadingSettings.value = true;
+    const result = await apiClient.toggleManualPayments(manualPaymentsEnabled.value);
+    manualPaymentsEnabled.value = result.manualPaymentsEnabled;
+  } catch (error) {
+    console.error('Error updating manual payments setting:', error);
+    alert('Er is een fout opgetreden bij het bijwerken van de instelling.');
+    // Revert the toggle if the API call failed
+    manualPaymentsEnabled.value = !manualPaymentsEnabled.value;
+  } finally {
+    loadingSettings.value = false;
+  }
+};
+
+// Modify your onMounted to include loadSettings
 onMounted(() => {
   loadProducts();
   loadOrders();
   loadUsers();
+  loadSettings();
 });
 </script>

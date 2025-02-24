@@ -10,19 +10,36 @@ class OrderService {
           orders.id AS order_id, 
           orders.created_at, 
           orders.time_slot,
+          orders.payment_method,
+          orders.manual_payment_confirmed_at,
+          orders.manual_payment_confirmed_by,
           users.email, 
           order_items.product_name, 
           order_items.quantity, 
-          order_items.amount_total
+          order_items.amount_total,
+          confirmed_by.email as confirmed_by_email
         FROM orders
         JOIN users ON orders.user_id = users.firebase_uid
         JOIN order_items ON orders.id = order_items.order_id
+        LEFT JOIN users AS confirmed_by ON orders.manual_payment_confirmed_by = confirmed_by.firebase_uid
         ORDER BY orders.created_at DESC
         `,
         [],
         (err, rows) => {
           if (err) reject(err);
-          else resolve(rows);
+          else {
+            // Process rows to include payment status information
+            const processedRows = rows.map(row => ({
+              ...row,
+              payment_status: row.payment_method === 'stripe' ? 'paid' : 
+                            (row.manual_payment_confirmed_at ? 'manual_confirmed' : 'manual_pending'),
+              confirmation_details: row.manual_payment_confirmed_at ? {
+                confirmed_at: row.manual_payment_confirmed_at,
+                confirmed_by: row.confirmed_by_email
+              } : null
+            }));
+            resolve(processedRows);
+          }
         }
       );
     });

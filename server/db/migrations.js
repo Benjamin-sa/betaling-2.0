@@ -68,6 +68,29 @@ const migrations = [{
     CREATE INDEX IF NOT EXISTS idx_orders_user_id ON orders(user_id);
     CREATE INDEX IF NOT EXISTS idx_order_items_order_id ON order_items(order_id);
   `
+}, {
+  name: '003_create_settings_table',
+  up: `
+    CREATE TABLE IF NOT EXISTS settings (
+      key TEXT PRIMARY KEY,
+      value TEXT NOT NULL,
+      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    );
+    
+    -- Insert or update default settings
+    INSERT OR REPLACE INTO settings (key, value) VALUES ('manual_payments_enabled', 'false');
+  `
+}, {
+  name: '004_add_payment_status_to_orders',
+  up: `
+    -- Add payment method and manual payment confirmation columns to orders table
+    ALTER TABLE orders ADD COLUMN payment_method TEXT DEFAULT 'stripe' CHECK(payment_method IN ('stripe', 'manual'));
+    ALTER TABLE orders ADD COLUMN manual_payment_confirmed_at TIMESTAMP;
+    ALTER TABLE orders ADD COLUMN manual_payment_confirmed_by TEXT REFERENCES users(firebase_uid);
+
+    -- Create index for payment method
+    CREATE INDEX IF NOT EXISTS idx_orders_payment_method ON orders(payment_method);
+  `
 }];
 
 class Migrations {

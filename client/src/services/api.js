@@ -117,5 +117,34 @@ export const apiClient = {
       method: 'POST',
       data: userData
     });
+  },
+
+  async getSettings() {
+    return this.request('/admin/settings');
+  },
+
+  async toggleManualPayments(enabled) {
+    return this.request('/admin/manual-payments', {
+      method: 'POST',
+      data: { enabled }
+    });
+  },
+
+  async isManualPaymentsEnabled() {
+    const { manualPaymentsEnabled } = await this.request('/admin/settings');
+    return manualPaymentsEnabled;
+  },
+
+  async createManualOrder(items, timeSlot) {
+    return this.request('/checkout/manual-order', {
+      method: 'POST',
+      data: { items, timeSlot }
+    });
+  },
+
+  async confirmManualPayment(orderId) {
+    return this.request(`/orders/manual-order/${orderId}/confirm`, {
+      method: 'POST'
+    });
   }
 };

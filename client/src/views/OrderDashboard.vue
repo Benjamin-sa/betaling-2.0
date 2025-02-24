@@ -51,10 +51,10 @@
                 <span 
                   :class="[
                     'px-3 py-1 rounded-full text-sm font-medium',
-                    order.status === 'completed' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'
+                    order.status === 'complete' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'
                   ]"
                 >
-                  {{ order.status }}
+                  {{ translateStatus(order.status) }}
                 </span>
               </div>
             </div>
@@ -69,9 +69,10 @@
                   <div class="ml-4 flex-1">
                     <div class="flex items-center justify-between">
                       <h4 class="text-sm font-medium text-gray-900">{{ item.description }}</h4>
-                      <p class="text-sm font-medium text-gray-900">€{{ formatAmount(item.amount_total) }}</p>
+                      <p class="text-sm font-medium text-gray-900">€{{ formatPrice(item.amount_total) }}</p>
                     </div>
                     <p class="mt-1 text-sm text-gray-500">Aantal: {{ item.quantity }}</p>
+                    <p class="text-xs text-gray-400">Prijs per stuk: €{{ formatPrice(item.unit_price) }}</p>
                   </div>
                 </li>
               </ul>
@@ -102,25 +103,15 @@ const loading = ref(false);
 const loadOrders = async () => {
   try {
     loading.value = true;
-    const response = await apiClient.getOrders();
-    console.log('Response from getOrders:', response); // Print the whole return value
-
-    const completeOrders = response.orders.filter(order => order.status === 'complete');
-
-    // For each order, get line items and ensure metadata is preserved
-    await Promise.all(completeOrders.map(async (order) => {
-      try {
-        const itemsResponse = await apiClient.getOrderLineItems(order.id);
-        order.items = itemsResponse.data;
-        // Ensure metadata from the original order is preserved
-        order.metadata = response.orders.find(o => o.id === order.id)?.metadata || {};
-      } catch (error) {
-        console.error(`Error fetching line items for order ${order.id}:`, error);
-        order.items = [];
+    const { orders: fetchedOrders } = await apiClient.getOrders();
+    
+    // Sort orders by status (complete first) and then by date
+    orders.value = fetchedOrders.sort((a, b) => {
+      if (a.status === b.status) {
+        return b.created - a.created;
       }
-    }));
-
-    orders.value = completeOrders;
+      return a.status === 'complete' ? -1 : 1;
+    });
   } catch (error) {
     console.error('Error loading orders:', error);
     alert('Er is een fout opgetreden bij het laden van je bestellingen.');
@@ -148,7 +139,34 @@ const formatDate = (timestamp) => {
  * @returns {string} - Bedrag in euro's
  */
 const formatAmount = (amount) => {
-    return (amount / 100).toFixed(2);
+    return (amount).toFixed(2);
+};
+
+/**
+ * Formateer de prijs naar twee decimalen
+ * @param {number} price - Prijs
+ * @returns {string} - Geformatteerde prijs
+ */
+const formatPrice = (price) => {
+  return (price).toFixed(2);
+};
+
+
+/**
+ * Vertaal de status naar Nederlands
+ * @param {string} status - Status in het Engels
+ * @returns {string} - Status in het Nederlands
+ */
+const translateStatus = (status) => {
+  const translations = {
+    'pending': 'In afwachting',
+    'complete': 'Betaald',
+    'cancelled': 'Geannuleerd',
+    'failed': 'Mislukt',
+    'processing': 'Wordt verwerkt',
+    'confirmed': 'Bevestigd'
+  };
+  return translations[status] || status;
 };
 
 onMounted(() => {

@@ -1,6 +1,7 @@
 import { createRouter, createWebHistory } from 'vue-router';
 import { watch } from 'vue';
 import { useAuthStore } from '@/stores/auth';
+import ManualPayments from '@/views/ManualPayments.vue';
 
 const routes = [
   {
@@ -35,6 +36,12 @@ const routes = [
     path: '/success',
     name: 'success',
     component: () => import('@/views/Success.vue'),
+  },
+  {
+    path: '/manual-payments',
+    name: 'ManualPayments',
+    component: ManualPayments,
+    meta: { requiresAuth: true }
   }
 ];
 

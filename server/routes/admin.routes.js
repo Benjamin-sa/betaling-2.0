@@ -5,6 +5,7 @@ const { authenticate, authorizeAdmin } = require('../middleware/auth');
 const orderService = require('../services/order.service');
 const userService = require('../services/user.service');
 const admin = require('../config/firebaseAdmin');
+const db = require('../db').instance;
 
 // Get all orders with items
 router.get('/orders', authenticate, authorizeAdmin, async (req, res) => {
@@ -54,6 +55,62 @@ router.delete('/users/:firebaseUid', authenticate, authorizeAdmin, async (req, r
   } catch (error) {
     console.error('Error deleting user from database:', error);
     res.status(500).json({ error: 'Internal Server Error' });
+  }
+});
+
+// Get settings
+router.get('/settings', authenticate, async (req, res) => {
+  console.log('Fetching settings');
+  try {
+    // Use a Promise wrapper for the database query
+    const settings = await new Promise((resolve, reject) => {
+      db.get(
+        'SELECT value FROM settings WHERE key = ?',
+        ['manual_payments_enabled'],
+        (err, row) => {
+          if (err) {
+            reject(err);
+            return;
+          }
+          resolve(row);
+        }
+      );
+    });
+
+    console.log('Settings fetched:', settings);
+    res.json({ 
+      manualPaymentsEnabled: settings?.value === 'true'
+    });
+  } catch (error) {
+    console.error('Error fetching settings:', error);
+    res.status(500).json({ error: 'Failed to fetch settings' });
+  }
+});
+
+// Toggle manual payments
+router.post('/manual-payments', authenticate, authorizeAdmin, async (req, res) => {
+  const { enabled } = req.body;
+  try {
+    await new Promise((resolve, reject) => {
+      db.run(
+        'UPDATE settings SET value = ?, updated_at = CURRENT_TIMESTAMP WHERE key = ?',
+        [enabled ? 'true' : 'false', 'manual_payments_enabled'],
+        (err) => {
+          if (err) {
+            reject(err);
+            return;
+          }
+          resolve();
+        }
+      );
+    });
+
+    res.json({ 
+      manualPaymentsEnabled: enabled
+    });
+  } catch (error) {
+    console.error('Error updating manual payments setting:', error);
+    res.status(500).json({ error: 'Failed to update setting' });
   }
 });
 
