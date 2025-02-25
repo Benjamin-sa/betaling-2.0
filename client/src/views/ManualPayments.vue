@@ -1,44 +1,54 @@
 <template>
   <div class="max-w-4xl mx-auto py-4 sm:py-8 px-3 sm:px-4">
     <!-- Professional Alert System -->
-    <div class="bg-slate-50 border border-slate-200 rounded-lg p-6 mb-8">
-      <div class="flex items-start space-x-6">
-        <div class="flex-shrink-0">
-          <svg class="h-6 w-6 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-          </svg>
-        </div>
-        <div class="flex-1">
-          <div class="border-b border-slate-200 pb-4 mb-4">
-            <h3 class="text-lg font-medium text-slate-900 mb-1">
-              Tijdelijke aanpassing betalingssysteem
-            </h3>
-            <p class="text-slate-600">
-              Wegens een lopende verificatie van onze jeugdbeweging bij onze betalingsprovider maken we tijdelijk gebruik van overschrijvingen.
-            </p>
+    <div class="bg-gradient-to-r from-amber-50 to-red-50 rounded-lg shadow-sm overflow-hidden">
+      <div class="border-l-4 border-red-400 p-6">
+        <div class="flex items-start space-x-6">
+          <div class="flex-shrink-0">
+            <svg class="h-6 w-6 text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+            </svg>
           </div>
-
-          <div class="space-y-4">
-            <div>
-              <h4 class="text-sm font-semibold text-slate-900 mb-2">Betaalproces</h4>
-              <ol class="text-slate-600 list-decimal list-inside space-y-1.5">
-                <li>Bevestig je bestelling via onderstaande knop</li>
-                <li>Schrijf het exacte bedrag over naar de aangegeven rekening</li>
-                <li>Gebruik de unieke mededeling bij je overschrijving</li>
-                <li>Volg je bestelling op via "Mijn Bestellingen"</li>
-              </ol>
+          <div class="flex-1">
+            <div class="border-b border-red-200 pb-4 mb-4">
+              <h3 class="text-lg font-medium text-red-800 mb-2">
+                Tijdelijke aanpassing betalingssysteem
+              </h3>
+              <p class="text-red-700">
+                Wegens een lopende verificatie van onze jeugdbeweging bij onze betalingsprovider maken we tijdelijk gebruik van overschrijvingen.
+              </p>
             </div>
 
-            <div class="bg-slate-100 rounded p-4 mt-4">
-              <div class="flex items-start space-x-3">
-                <svg class="h-5 w-5 text-slate-600 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-                <div>
-                  <p class="text-sm text-slate-700 font-medium">Hulp nodig?</p>
-                  <p class="text-sm text-slate-600">
-                    Contacteer ons via <a href="mailto:groepsleiding@lodlavki.be" class="text-primary hover:text-primary-dark underline">groepsleiding@lodlavki.be</a>
-                  </p>
+            <div class="space-y-6">
+              <div class="bg-white bg-opacity-75 rounded-lg p-4">
+                <h4 class="text-base font-semibold text-red-800 mb-3">Betaalproces</h4>
+                <ol class="text-red-700 list-decimal list-inside space-y-2">
+                  <li class="flex items-center space-x-2">
+                    <span class="font-medium">Bevestig je bestelling via onderstaande knop</span>
+                  </li>
+                  <li class="flex items-center space-x-2">
+                    <span class="font-medium">Schrijf het exacte bedrag over naar de aangegeven rekening</span>
+                  </li>
+                  <li class="flex items-center space-x-2">
+                    <span class="font-medium">Gebruik de unieke mededeling bij je overschrijving</span>
+                  </li>
+                  <li class="flex items-center space-x-2">
+                    <span class="font-medium">Volg je bestelling op via "Mijn Bestellingen"</span>
+                  </li>
+                </ol>
+              </div>
+
+              <div class="bg-white bg-opacity-75 rounded-lg p-4">
+                <div class="flex items-center space-x-3">
+                  <svg class="h-5 w-5 text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  <div>
+                    <p class="text-sm font-medium text-red-800">Hulp nodig?</p>
+                    <p class="text-sm text-red-700">
+                      Contacteer ons via <a href="mailto:groepsleiding@lodlavki.be" class="text-red-600 hover:text-red-800 underline">groepsleiding@lodlavki.be</a>
+                    </p>
+                  </div>
                 </div>
               </div>
             </div>
@@ -136,7 +146,7 @@
 
     <!-- Confirmation Button -->
     <button
-      @click="handleConfirmOrder"
+      @click="confirmOrderDialog"
       :disabled="processing"
       class="w-full bg-primary text-white py-3 px-4 rounded-lg font-medium hover:bg-opacity-90 disabled:bg-gray-400"
     >
@@ -201,6 +211,12 @@ const formatPrice = (price) => {
     return '0.00';
   }
   return numPrice.toFixed(2);
+};
+
+const confirmOrderDialog = () => {
+  if (confirm('Weet je zeker dat je wilt bestellen? Vergeet niet om het bedrag over te schrijven na bevestiging!')) {
+    handleConfirmOrder();
+  }
 };
 
 const handleConfirmOrder = async () => {
