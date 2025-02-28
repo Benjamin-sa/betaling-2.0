@@ -37,6 +37,12 @@ class BackupService {
         throw err;
       });
 
+      console.log('Fetching settings...');
+      const settings = await this.getAllSettings().catch(err => {
+        console.error('Error fetching settings:', err);
+        throw err;
+      });
+
       console.log(`Data fetched successfully:
         Users: ${users?.length || 0}
         Products: ${products?.length || 0}
@@ -51,7 +57,8 @@ class BackupService {
         users,
         products,
         orders,
-        orderItems
+        orderItems,
+        settings
       });
 
       console.log('Backup completed successfully');
@@ -74,6 +81,7 @@ class BackupService {
       }
 
       const backup = snapshot.docs[0].data();
+      console.log(`Restoring from backup created at: ${snapshot.docs[0].id}`);
 
       // Restore users first
       for (const user of backup.users) {
@@ -90,6 +98,7 @@ class BackupService {
           );
         });
       }
+      console.log(`Restored ${backup.users.length} users`);
 
       // Then restore products
       for (const product of backup.products) {
@@ -118,6 +127,7 @@ class BackupService {
           );
         });
       }
+      console.log(`Restored ${backup.products.length} products`);
 
       // Then restore orders
       if (backup.orders) {
@@ -146,6 +156,7 @@ class BackupService {
             );
           });
         }
+        console.log(`Restored ${backup.orders.length} orders`);
       }
 
       // Finally restore order items
@@ -171,11 +182,44 @@ class BackupService {
             );
           });
         }
+        console.log(`Restored ${backup.orderItems.length} order items`);
+      }
+
+      // Restore settings
+      if (backup.settings && backup.settings.length > 0) {
+        console.log('Restoring settings...');
+        for (const setting of backup.settings) {
+          await new Promise((resolve, reject) => {
+            db.run(
+              `INSERT OR REPLACE INTO settings (
+                key, value, updated_at
+              ) VALUES (?, ?, ?)`,
+              [
+                setting.key,
+                setting.value,
+                setting.updated_at || new Date().toISOString()
+              ],
+              (err) => {
+                if (err) {
+                  console.error(`Error restoring setting ${setting.key}:`, err);
+                  reject(err);
+                } else {
+                  resolve();
+                }
+              }
+            );
+          });
+        }
+        console.log(`Restored ${backup.settings.length} settings`);
+      } else {
+        console.log('No settings found in backup');
       }
 
       console.log('Restore completed successfully');
+      return true;
     } catch (error) {
       console.error('Restore failed:', error);
+      throw error;
     }
   }
 
@@ -209,6 +253,16 @@ class BackupService {
   async getAllUsers() {
     return new Promise((resolve, reject) => {
       db.all('SELECT * FROM users', [], (err, rows) => {
+        if (err) reject(err);
+        else resolve(rows);
+      });
+    });
+  }
+
+
+  async getAllSettings() {
+    return new Promise((resolve, reject) => {
+      db.all('SELECT * FROM settings', [], (err, rows) => {
         if (err) reject(err);
         else resolve(rows);
       });
