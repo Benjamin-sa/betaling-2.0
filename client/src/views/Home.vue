@@ -1,24 +1,84 @@
 <template>
   <div class="home-container">
-    <!-- Manual Payments Warning -->
-    <div v-if="manualPaymentsEnabled" class="bg-gradient-to-r from-amber-50 to-red-50 border-l-4 border-red-400 p-8 mb-8 mx-4 sm:mx-auto max-w-4xl shadow-sm">
-      <div class="flex items-start space-x-4">
-        <div class="flex-shrink-0">
-          <svg class="h-6 w-6 text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-          </svg>
-        </div>
-        <div class="flex-1">
-          <h3 class="text-lg font-medium text-red-800 mb-2">
-            Tijdelijke aanpassing betalingssysteem
-          </h3>
-          <p class="text-red-700 mb-4">
-            Wegens een lopende verificatie van onze jeugdbeweging bij onze betalingsprovider maken we tijdelijk gebruik van overschrijvingen.
-          </p>
-          <div class="bg-white bg-opacity-50 rounded-lg p-4">
-            <p class="text-sm text-red-600">
-              Je bestelling zal pas bevestigd worden na ontvangst van de betaling. Gebruik zeker de correcte mededeling bij je overschrijving.
+    <!-- E-commerce Style Payment Notice Banner -->
+    <div v-if="manualPaymentsEnabled && showBanner" class="bg-gradient-to-r from-blue-50 to-indigo-50 fixed z-10 bottom-20 sm:bottom-6 right-4 sm:right-6 max-w-sm rounded-lg shadow-lg overflow-hidden">
+      <div class="border-l-4 border-blue-400 p-4">
+        <div class="flex">
+          <!-- Close Button -->
+          <button @click="closeBanner" class="absolute top-2 right-2 text-gray-400 hover:text-gray-600">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+          
+          <div class="flex flex-col">
+            <div class="flex items-center mb-2">
+              <svg class="h-5 w-5 text-blue-500 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              <h3 class="text-sm font-medium text-blue-800">
+                Betaling via overschrijving
+              </h3>
+            </div>
+            <p class="text-xs text-blue-700 mb-3">
+              We werken momenteel met overschrijvingen. Je krijgt alle betaalgegevens na je bestelling.
             </p>
+            <div class="flex justify-end">
+              <a @click="openInfoModal" class="text-xs font-medium text-blue-600 hover:text-blue-800 cursor-pointer">Meer info</a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Payment Info Modal -->
+    <div v-if="showInfoModal" class="fixed inset-0 z-50 overflow-y-auto" aria-labelledby="payment-modal" role="dialog" aria-modal="true">
+      <div class="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
+        <!-- Background overlay -->
+        <div class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" @click="showInfoModal = false"></div>
+
+        <!-- Modal panel -->
+        <div class="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
+          <div class="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
+            <div class="sm:flex sm:items-start">
+              <div class="mx-auto flex-shrink-0 flex items-center justify-center h-12 w-12 rounded-full bg-blue-100 sm:mx-0 sm:h-10 sm:w-10">
+                <svg class="h-6 w-6 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              </div>
+              <div class="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left">
+                <h3 class="text-lg leading-6 font-medium text-gray-900" id="modal-title">
+                  Betaling via overschrijving
+                </h3>
+                <div class="mt-4 space-y-3">
+                  <p class="text-sm text-gray-700">
+                    Voor deze activiteit maken we gebruik van overschrijvingen in plaats van online betalingen.
+                  </p>
+                  <div class="bg-blue-50 rounded-md p-4">
+                    <h4 class="text-sm font-medium text-blue-800 mb-2">Zo werkt het:</h4>
+                    <ol class="text-sm text-blue-700 list-decimal list-inside space-y-1">
+                      <li>Selecteer je gewenste producten en tijdslot</li>
+                      <li>Klik op "Afrekenen" om je bestelling te plaatsen</li>
+                      <li>Je krijgt alle nodige betaalgegevens (rekeningnummer en gestructureerde mededeling)</li>
+                      <li>Maak het exacte bedrag over naar onze rekening met de juiste mededeling</li>
+                      <li>Na ontvangst van je betaling wordt je bestelling bevestigd</li>
+                    </ol>
+                  </div>
+                  <p class="text-sm text-gray-700">
+                    Dit is een tijdelijke oplossing die even veilig is als online betalen. Heb je vragen? 
+                    Contacteer ons via <a href="mailto:groepsleiding@lodlavki.be" class="text-blue-600 hover:underline">groepsleiding@lodlavki.be</a>
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
+            <button 
+              type="button" 
+              class="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-blue-600 text-base font-medium text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 sm:ml-3 sm:w-auto sm:text-sm"
+              @click="showInfoModal = false">
+              Begrepen
+            </button>
           </div>
         </div>
       </div>
@@ -304,6 +364,8 @@ const isCartOpen = ref(false)
 const showAuthModal = ref(false); // Add this
 const selectedTimeSlot = ref(null);
 const manualPaymentsEnabled = ref(false); // Add this
+const showBanner = ref(true);
+const showInfoModal = ref(false); // Add this for the modal
 
 // Laad producten vanuit de lokale backend
 const loadProducts = async () => {
@@ -472,8 +534,20 @@ const handleImageError = (product) => {
   product.imageUrl = null;
 };
 
+// New function to close banner
+const closeBanner = () => {
+  showBanner.value = false;
+};
+
+// Updated function to open modal instead of showing alert
+const openInfoModal = () => {
+  showInfoModal.value = true;
+};
+
 onMounted(async () => {
   try {
+    
+    
     const [productsResponse, manualPaymentsStatus] = await Promise.all([
       loadProducts(),
       apiClient.isManualPaymentsEnabled()

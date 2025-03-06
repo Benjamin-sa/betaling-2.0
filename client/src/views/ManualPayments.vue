@@ -1,36 +1,36 @@
 <template>
   <div class="max-w-4xl mx-auto py-4 sm:py-8 px-3 sm:px-4">
-    <!-- Professional Alert System -->
-    <div class="bg-gradient-to-r from-amber-50 to-red-50 rounded-lg shadow-sm overflow-hidden">
-      <div class="border-l-4 border-red-400 p-6">
+    <!-- Friendly Payment Notice Banner -->
+    <div class="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg shadow-sm overflow-hidden mb-6">
+      <div class="border-l-4 border-blue-400 p-6">
         <div class="flex items-start space-x-6">
           <div class="flex-shrink-0">
-            <svg class="h-6 w-6 text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+            <svg class="h-6 w-6 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
           </div>
           <div class="flex-1">
-            <div class="border-b border-red-200 pb-4 mb-4">
-              <h3 class="text-lg font-medium text-red-800 mb-2">
-                Tijdelijke aanpassing betalingssysteem
+            <div class="border-b border-blue-100 pb-4 mb-4">
+              <h3 class="text-lg font-medium text-blue-800 mb-2">
+                Eenvoudige overschrijving
               </h3>
-              <p class="text-red-700">
-                Wegens een lopende verificatie van onze jeugdbeweging bij onze betalingsprovider maken we tijdelijk gebruik van overschrijvingen.
+              <p class="text-blue-700">
+                We gebruiken momenteel overschrijvingen als betalingsmethode voor je bestelling. Hieronder vind je alle betalingsgegevens.
               </p>
             </div>
 
             <div class="space-y-6">
               <div class="bg-white bg-opacity-75 rounded-lg p-4">
-                <h4 class="text-base font-semibold text-red-800 mb-3">Betaalproces</h4>
-                <ol class="text-red-700 list-decimal list-inside space-y-2">
+                <h4 class="text-base font-semibold text-blue-800 mb-3">Zo werkt het</h4>
+                <ol class="text-blue-700 list-decimal list-inside space-y-2">
                   <li class="flex items-center space-x-2">
                     <span class="font-medium">Bevestig je bestelling via onderstaande knop</span>
                   </li>
                   <li class="flex items-center space-x-2">
-                    <span class="font-medium">Schrijf het exacte bedrag over naar de aangegeven rekening</span>
+                    <span class="font-medium">Maak het exacte bedrag over naar onze rekening</span>
                   </li>
                   <li class="flex items-center space-x-2">
-                    <span class="font-medium">Gebruik de unieke mededeling bij je overschrijving</span>
+                    <span class="font-medium">Gebruik de unieke mededeling zodat we je betaling kunnen toewijzen</span>
                   </li>
                   <li class="flex items-center space-x-2">
                     <span class="font-medium">Volg je bestelling op via "Mijn Bestellingen"</span>
@@ -40,13 +40,13 @@
 
               <div class="bg-white bg-opacity-75 rounded-lg p-4">
                 <div class="flex items-center space-x-3">
-                  <svg class="h-5 w-5 text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <svg class="h-5 w-5 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                   </svg>
                   <div>
-                    <p class="text-sm font-medium text-red-800">Hulp nodig?</p>
-                    <p class="text-sm text-red-700">
-                      Contacteer ons via <a href="mailto:groepsleiding@lodlavki.be" class="text-red-600 hover:text-red-800 underline">groepsleiding@lodlavki.be</a>
+                    <p class="text-sm font-medium text-blue-800">Vragen?</p>
+                    <p class="text-sm text-blue-700">
+                      Contacteer ons via <a href="mailto:groepsleiding@lodlavki.be" class="text-blue-600 hover:text-blue-800 underline">groepsleiding@lodlavki.be</a>
                     </p>
                   </div>
                 </div>
@@ -57,7 +57,7 @@
       </div>
     </div>
 
-    <h1 class="text-xl sm:text-2xl font-bold mb-6">Manuele Betaling</h1>
+    <h1 class="text-xl sm:text-2xl font-bold mb-6">Je Bestelling</h1>
 
     <!-- Order Summary -->
     <div class="bg-white rounded-lg shadow p-6 mb-6">
