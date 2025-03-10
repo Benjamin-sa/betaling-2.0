@@ -1,10 +1,10 @@
 // server/routes/checkout.routes.js
 const express = require('express');
 const router = express.Router();
-const stripeService = require('../services/stripe.service');
-const storageService = require('../services/storage.service');
-const { authenticate } = require('../middleware/auth');
-const db = require('../db').instance;
+const stripeService = require('../../services/stripe.service');
+const storageService = require('../../services/storage.service');
+const { authenticate } = require('../../middleware/auth');
+const db = require('../../db').instance;
 
 
 router.post('/', authenticate, async (req, res) => {

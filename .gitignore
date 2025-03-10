@@ -33,3 +33,7 @@ server\db\database.sqlite
 *.sw?
 server/config/scoutswinkel-firebase-adminsdk-ucote-20a5438186.json
 server/db/database.sqlite
+
+*firebase*adminsdk*.json
+*serviceAccount*.json
+*firebase*.json

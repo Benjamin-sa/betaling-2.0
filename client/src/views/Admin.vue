@@ -678,7 +678,7 @@ const generateOrdersCSV = () => {
   return csvContent;
 };
 
-// Update the printOrderChecklist function to better handle orders with and without timeslots
+// Update the printOrderChecklist function to include a summary at the top
 const printOrderChecklist = () => {
   // Group orders by time slot first, ensuring "Geen tijdslot" is properly handled
   const ordersByTimeSlot = {};
@@ -773,6 +773,65 @@ const printOrderChecklist = () => {
       .page-break {
         page-break-before: always;
       }
+      .summary-table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-bottom: 20px;
+      }
+      .summary-table th,
+      .summary-table td {
+        border: 1px solid #ddd;
+        padding: 8px;
+        text-align: left;
+      }
+      .summary-table th {
+        background-color: #f5f5f5;
+        font-weight: bold;
+      }
+      .summary-table tr:nth-child(even) {
+        background-color: #f9f9f9;
+      }
+      .summary-table tr:hover {
+        background-color: #f1f1f1;
+      }
+      .summary-section {
+        background-color: #f9f9f9;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        padding: 15px;
+        margin-bottom: 20px;
+        page-break-inside: avoid;
+      }
+      .summary-subtitle {
+        color: #4f6e4f;
+        font-size: 1.2em;
+        margin-top: 0;
+        margin-bottom: 10px;
+        border-bottom: 1px solid #ddd;
+        padding-bottom: 5px;
+      }
+      .small-header {
+        font-size: 0.8em;
+        color: #666;
+        text-transform: uppercase;
+        margin-bottom: 5px;
+      }
+      .summary-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+        gap: 15px;
+      }
+      .summary-item {
+        background: white;
+        border: 1px solid #eee;
+        border-radius: 4px;
+        padding: 10px;
+      }
+      .big-number {
+        font-size: 1.8em;
+        font-weight: bold;
+        color: #4f6e4f;
+      }
       @media print {
         body {
           padding: 0;
@@ -795,6 +854,111 @@ const printOrderChecklist = () => {
     <body>
       <h1>Bestellingen Checklist - ${new Date().toLocaleDateString('nl-BE')}</h1>
       <button onclick="window.print()" style="padding: 10px 20px; background: #4f6e4f; color: white; border: none; border-radius: 4px; cursor: pointer; margin-bottom: 20px;">Print deze pagina</button>
+      
+      <!-- Summary Section -->
+      <div class="summary-section">
+        <h2 style="margin-top: 0;">Bestellingen Overzicht</h2>
+        
+        <!-- Key metrics summary at the top -->
+        <div class="summary-grid">
+          <div class="summary-item">
+            <div class="small-header">Totaal Bestellingen</div>
+            <div class="big-number">${orders.value.length}</div>
+          </div>
+          <div class="summary-item">
+            <div class="small-header">Totaal Aantal Items</div>
+            <div class="big-number">${getTotalQuantity(orders.value)}</div>
+          </div>
+          <div class="summary-item">
+            <div class="small-header">Totaal Bedrag</div>
+            <div class="big-number">€${formatAmount(getTotalAmount(orders.value))}</div>
+          </div>
+        </div>
+
+        <h3 class="summary-subtitle">Per Product</h3>
+        <table class="summary-table">
+          <thead>
+            <tr>
+              <th>Product</th>
+              <th>Aantal</th>
+              <th>Totaal Bedrag</th>
+            </tr>
+          </thead>
+          <tbody>
+  `;
+
+  // Collect product totals across all time slots
+  const productTotals = {};
+  orders.value.forEach(order => {
+    if (!productTotals[order.product_name]) {
+      productTotals[order.product_name] = {
+        quantity: 0,
+        total: 0
+      };
+    }
+    productTotals[order.product_name].quantity += order.quantity;
+    productTotals[order.product_name].total += order.amount_total;
+  });
+
+  // Sort products by quantity (highest first)
+  const sortedProducts = Object.entries(productTotals).sort((a, b) => b[1].quantity - a[1].quantity);
+  
+  // Add each product row
+  sortedProducts.forEach(([productName, data]) => {
+    printContent += `
+      <tr>
+        <td>${productName}</td>
+        <td>${data.quantity}x</td>
+        <td>€${formatAmount(data.total)}</td>
+      </tr>
+    `;
+  });
+
+  printContent += `
+          </tbody>
+        </table>
+
+        <h3 class="summary-subtitle">Per Tijdslot</h3>
+        <table class="summary-table">
+          <thead>
+            <tr>
+              <th>Tijdslot</th>
+              <th>Aantal Orders</th>
+              <th>Aantal Items</th>
+              <th>Totaal Bedrag</th>
+            </tr>
+          </thead>
+          <tbody>
+  `;
+
+  // Sort the time slots for the summary table
+  const sortedTimeSlotsForSummary = Object.keys(ordersByTimeSlot).sort((a, b) => {
+    if (a === 'Geen tijdslot') return 1;
+    if (b === 'Geen tijdslot') return -1;
+    return a.localeCompare(b);
+  });
+  
+  // Add each time slot row
+  sortedTimeSlotsForSummary.forEach(timeSlot => {
+    const timeSlotOrders = ordersByTimeSlot[timeSlot];
+    const orderCount = timeSlotOrders.length;
+    const itemCount = getTotalQuantity(timeSlotOrders);
+    const totalAmount = getTotalAmount(timeSlotOrders);
+    
+    printContent += `
+      <tr>
+        <td>${timeSlot}</td>
+        <td>${orderCount}</td>
+        <td>${itemCount}</td>
+        <td>€${formatAmount(totalAmount)}</td>
+      </tr>
+    `;
+  });
+
+  printContent += `
+          </tbody>
+        </table>
+      </div>
   `;
 
   // Sort the time slots to ensure a consistent order, but place "Geen tijdslot" at the end
@@ -806,8 +970,11 @@ const printOrderChecklist = () => {
   
   // Add each time slot section
   sortedTimeSlots.forEach((timeSlot, timeSlotIndex) => {
-    // Add page break after the first time slot
-    if (timeSlotIndex > 0) {
+    // Add page break after the summary section
+    if (timeSlotIndex === 0) {
+      printContent += `<div class="page-break"></div>`;
+    } else if (timeSlotIndex > 0) {
+      // And after each subsequent time slot
       printContent += `<div class="page-break"></div>`;
     }
     

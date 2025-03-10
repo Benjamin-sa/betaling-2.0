@@ -146,5 +146,42 @@ export const apiClient = {
     return this.request(`/orders/manual-order/${orderId}/confirm`, {
       method: 'POST'
     });
+  },
+
+  // Scout Management API methods
+  async getLeden() {
+    return this.request('/scout-management/leden');
+  },
+  
+  async getLid(id) {
+    return this.request(`/scout-management/leden/${id}`);
+  },
+  
+  async createLid(lidData) {
+    return this.request('/scout-management/leden', {
+      method: 'POST',
+      data: lidData
+    });
+  },
+  
+  async updateLid(id, lidData) {
+    return this.request(`/scout-management/leden/${id}`, {
+      method: 'PUT',
+      data: lidData
+    });
+  },
+  
+  async deleteLid(id) {
+    return this.request(`/scout-management/leden/${id}`, {
+      method: 'DELETE'
+    });
+  },
+  
+  async getLeiding() {
+    return this.request('/scout-management/leiding');
+  },
+  
+  async getMaterialen() {
+    return this.request('/scout-management/materialen');
   }
 };

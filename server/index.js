@@ -55,13 +55,16 @@ async function startServer() {
     app.use(express.static(path.join(__dirname, '../client/dist')));
 
 
-    // Routes
-    app.use('/api/products', require('./routes/product.routes'));
-    app.use('/api/checkout', require('./routes/checkout.routes'));
+    // Routes for webshop
+    app.use('/api/products', require('./routes/webshop/product.routes'));
+    app.use('/api/checkout', require('./routes/webshop/checkout.routes'));
     app.use('/api/auth', require('./routes/auth.routes'));
-    app.use('/api/orders', require('./routes/order.routes'));
-    app.use('/webhook', require('./routes/webhook.routes'));
+    app.use('/api/orders', require('./routes/webshop/order.routes'));
+    app.use('/webhook', require('./routes/webshop/webhook.routes'));
     app.use('/api/admin', require('./routes/admin.routes'));
+    
+// Routes for scout management
+    app.use('/api/scout-management', require('./routes/scout-management'));
 
     // Handle SPA routing - must be after API routes
     app.get('*', (req, res) => {

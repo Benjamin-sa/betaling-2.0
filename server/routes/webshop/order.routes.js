@@ -1,10 +1,10 @@
 // server/routes/order.routes.js
 const express = require('express');
 const router = express.Router();
-const stripeService = require('../services/stripe.service');
-const userService = require('../services/user.service');
-const db = require('../db').instance;
-const { authenticate, authorizeAdmin } = require('../middleware/auth');
+const stripeService = require('../../services/stripe.service');
+const userService = require('../../services/user.service');
+const db = require('../../db').instance;
+const { authenticate, authorizeAdmin } = require('../../middleware/auth');
 
 // Add this helper function before the routes
 const getOrderStatus = (order) => {

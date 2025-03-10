@@ -2,7 +2,7 @@
 const express = require('express');
 const router = express.Router();
 const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
-const stripeService = require('../services/stripe.service');
+const stripeService = require('../../services/stripe.service');
 
 router.post('/stripe', express.raw({type: 'application/json'}), async (req, res) => {
   console.log('Received webhook request');

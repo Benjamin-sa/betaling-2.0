@@ -1,9 +1,9 @@
 const express = require('express');
 const router = express.Router();
 const multer = require('multer');
-const { authenticate, authorizeAdmin } = require('../middleware/auth');
-const StorageService = require('../services/storage.service');
-const StripeService = require('../services/stripe.service');
+const { authenticate, authorizeAdmin } = require('../../middleware/auth');
+const StorageService = require('../../services/storage.service');
+const StripeService = require('../../services/stripe.service');
 
 // Configureer multer om bestanden in het geheugen op te slaan
 const storage = multer.memoryStorage();
