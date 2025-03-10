@@ -1,10 +1,11 @@
 // server/db/migrations.js
-const { DatabaseError } = require('./errors');
-const path = require('path');
+const { DatabaseError } = require("./errors");
+const path = require("path");
 
-const migrations = [{
-  name: '001_init',
-  up: `
+const migrations = [
+  {
+    name: "001_init",
+    up: `
     -- Create migrations table first
     CREATE TABLE IF NOT EXISTS migrations (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -38,10 +39,11 @@ const migrations = [{
     CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
     CREATE INDEX IF NOT EXISTS idx_users_stripe ON users(stripe_customer_id);
     CREATE INDEX IF NOT EXISTS idx_products_stripe ON products(stripe_product_id);
-  `
-}, {
-  name: '002_create_orders_tables',
-  up: `
+  `,
+  },
+  {
+    name: "002_create_orders_tables",
+    up: `
     -- Create orders table
     CREATE TABLE IF NOT EXISTS orders (
       id TEXT PRIMARY KEY,
@@ -67,10 +69,11 @@ const migrations = [{
     -- Indexes
     CREATE INDEX IF NOT EXISTS idx_orders_user_id ON orders(user_id);
     CREATE INDEX IF NOT EXISTS idx_order_items_order_id ON order_items(order_id);
-  `
-}, {
-  name: '003_create_settings_table',
-  up: `
+  `,
+  },
+  {
+    name: "003_create_settings_table",
+    up: `
     CREATE TABLE IF NOT EXISTS settings (
       key TEXT PRIMARY KEY,
       value TEXT NOT NULL,
@@ -79,10 +82,11 @@ const migrations = [{
     
     -- Insert or update default settings
     INSERT OR REPLACE INTO settings (key, value) VALUES ('manual_payments_enabled', 'false');
-  `
-}, {
-  name: '004_add_payment_status_to_orders',
-  up: `
+  `,
+  },
+  {
+    name: "004_add_payment_status_to_orders",
+    up: `
     -- Add payment method and manual payment confirmation columns to orders table
     ALTER TABLE orders ADD COLUMN payment_method TEXT DEFAULT 'stripe' CHECK(payment_method IN ('stripe', 'manual'));
     ALTER TABLE orders ADD COLUMN manual_payment_confirmed_at TIMESTAMP;
@@ -90,13 +94,16 @@ const migrations = [{
 
     -- Create index for payment method
     CREATE INDEX IF NOT EXISTS idx_orders_payment_method ON orders(payment_method);
-  `
-}, {
-  name: '005_add_scout_management_tables',
-  up: `
+  `,
+  },
+  {
+    name: "005_add_scout_management_tables",
+    up: `
     -- Lid (Member) table
     CREATE TABLE IF NOT EXISTS Lid (
       LidID INTEGER PRIMARY KEY,
+      Voornaam TEXT,
+      Achternaam TEXT,
       Geboortedatum DATE,
       Allergieën TEXT,
       Dieetwensen TEXT,
@@ -106,23 +113,23 @@ const migrations = [{
       Lidmaatschap_Datum DATE
     );
     
-    -- Leiding (Leaders) table - specialized Lid
-    CREATE TABLE IF NOT EXISTS Leiding (
+    -- Leiding (specialisatie van Lid)
+    CREATE TABLE Leiding (
       LidID INTEGER PRIMARY KEY,
       Is_Groepsleiding BOOLEAN,
       Is_Hopman BOOLEAN,
       FOREIGN KEY (LidID) REFERENCES Lid(LidID)
     );
     
-    -- Ouder (Parent) table - using the existing users table
-    CREATE TABLE IF NOT EXISTS Ouder (
+    -- Ouder (specifiek type gebruiker)
+    CREATE TABLE Ouder (
       OuderID INTEGER PRIMARY KEY,
       firebase_uid TEXT UNIQUE,
       FOREIGN KEY (firebase_uid) REFERENCES users(firebase_uid)
     );
 
-    -- Lid-Ouder relationship
-    CREATE TABLE IF NOT EXISTS Lid_Ouder (
+    -- Koppeling tussen leden en ouders
+    CREATE TABLE Lid_Ouder (
       LidID INTEGER,
       OuderID INTEGER,
       PRIMARY KEY (LidID, OuderID),
@@ -130,36 +137,16 @@ const migrations = [{
       FOREIGN KEY (OuderID) REFERENCES Ouder(OuderID)
     );
 
-    -- Kampen (Camps) table
+    -- Kampen
     CREATE TABLE IF NOT EXISTS Kampen (
       KampID INTEGER PRIMARY KEY,
       Startdatum DATE,
-      Eindatum DATE
+      Eindatum DATE,
+      Thema TEXT,
+      Naam TEXT
     );
 
-    -- Weien (Fields/Meadows) table
-    CREATE TABLE IF NOT EXISTS Weien (
-      WeiID INTEGER PRIMARY KEY,
-      Naam TEXT,
-      Telefoonnummer TEXT,
-      Email TEXT,
-      Aantal_Hectare REAL,
-      Contactpersoon TEXT
-    );
-
-    -- Kamp-Wei relationship
-    CREATE TABLE IF NOT EXISTS Kamp_Wei (
-      KampID INTEGER,
-      WeiID INTEGER,
-      Voorgaande_Prijs REAL,
-      Ervaring TEXT,
-      Opmerkingen TEXT,
-      PRIMARY KEY (KampID, WeiID),
-      FOREIGN KEY (KampID) REFERENCES Kampen(KampID),
-      FOREIGN KEY (WeiID) REFERENCES Weien(WeiID)
-    );
-
-    -- Deelname (Participation) table
+    -- Deelname aan kampen
     CREATE TABLE IF NOT EXISTS Deelname (
       LidID INTEGER,
       KampID INTEGER,
@@ -169,11 +156,35 @@ const migrations = [{
       FOREIGN KEY (KampID) REFERENCES Kampen(KampID)
     );
 
-    -- Recept (Recipe) table
-    CREATE TABLE IF NOT EXISTS Recept (
+
+    -- Weien (kamplocaties)
+    CREATE TABLE IF NOT EXISTS Weien (
+      WeiID INTEGER PRIMARY KEY,
+      Naam TEXT,
+      Telefoonnummer TEXT,
+      Email TEXT,
+      Aantal_Hectare REAL,
+      Coordinaten TEXT,
+      Contactpersoon TEXT
+    );
+
+    -- Koppeling tussen kampen en weien
+    CREATE TABLE IF NOT EXISTS Kamp_Wei (
+      KampID INTEGER,
+      WeiID INTEGER,
+      Voorgaande_Prijs REAL,
+      Ervaring TEXT,
+      Thema TEXT,
+      Opmerkingen TEXT,
+      PRIMARY KEY (KampID, WeiID),
+      FOREIGN KEY (KampID) REFERENCES Kampen(KampID),
+      FOREIGN KEY (WeiID) REFERENCES Weien(WeiID)
+    );
+
+    -- Recepten
+    CREATE TABLE Recept (
       ReceptID INTEGER PRIMARY KEY,
       Naam TEXT,
-      Ingrediënten TEXT,
       Heeft_Vega_Optie BOOLEAN,
       Allergieën TEXT,
       Moeilijkheidsgraad TEXT,
@@ -181,21 +192,67 @@ const migrations = [{
       Opmerkingen TEXT
     );
 
-    -- Maaltijden (Meals) relationship entity
-    CREATE TABLE IF NOT EXISTS Maaltijden (
+    -- Ingredienten (Ingredients) table
+    CREATE TABLE IF NOT EXISTS Ingredienten (
+      IngredientBasisID INTEGER PRIMARY KEY AUTOINCREMENT,
+      Naam TEXT NOT NULL UNIQUE,
+      Eenheid_Standaard TEXT,
+      Categorie TEXT
+    );
+
+    -- Recept_Ingredienten relatie tabel
+    CREATE TABLE IF NOT EXISTS Recept_Ingredienten (
+      IngredientID INTEGER PRIMARY KEY AUTOINCREMENT,
+      ReceptID INTEGER NOT NULL,
+      IngredientBasisID INTEGER NOT NULL,
+      Hoeveelheid REAL,
+      Eenheid TEXT,
+      FOREIGN KEY (ReceptID) REFERENCES Recept(ReceptID) ON DELETE CASCADE,
+      FOREIGN KEY (IngredientBasisID) REFERENCES Ingredienten(IngredientBasisID)
+);
+
+    -- Maaltijden
+    CREATE TABLE Maaltijden (
       MaaltijdID INTEGER PRIMARY KEY,
       Datum DATE,
       Soort_Maaltijd TEXT,
       Aantal_Eters INTEGER,
-      KampID INTEGER,
-      ReceptID INTEGER,
-      Aantal_Porties_Gegeten INTEGER,
-      FOREIGN KEY (KampID) REFERENCES Kampen(KampID),
-      FOREIGN KEY (ReceptID) REFERENCES Recept(ReceptID)
-    );
+      Aantal_Porties_Gegeten INTEGER
+      );
 
-    -- Bereidingsteam (Meal preparation team)
-    CREATE TABLE IF NOT EXISTS Bereidingsteam (
+      CREATE TABLE Maaltijd_Kamp (
+    MaaltijdID INTEGER,
+    KampID INTEGER,
+    PRIMARY KEY (MaaltijdID, KampID),
+    FOREIGN KEY (MaaltijdID) REFERENCES Maaltijden(MaaltijdID),
+    FOREIGN KEY (KampID) REFERENCES Kampen(KampID)
+  );
+
+    -- Maaltijd Deelnemers (wie eet welke maaltijd)
+  CREATE TABLE Maaltijd_Deelnemers (
+    MaaltijdID INTEGER,
+    LidID INTEGER,
+    Aanwezig BOOLEAN DEFAULT TRUE,
+    Speciale_Wensen TEXT,
+    PRIMARY KEY (MaaltijdID, LidID),
+    FOREIGN KEY (MaaltijdID) REFERENCES Maaltijden(MaaltijdID),
+    FOREIGN KEY (LidID) REFERENCES Lid(LidID)
+  );
+  
+    -- Maaltijd Recept (welke recepten worden gebruikt voor welke maaltijd)
+    CREATE TABLE Maaltijd_Recept (
+    MaaltijdID INTEGER,
+    ReceptID INTEGER,
+    Is_Hoofdrecept BOOLEAN DEFAULT TRUE,
+    Aantal_Porties INTEGER,
+    Opmerkingen TEXT,
+    PRIMARY KEY (MaaltijdID, ReceptID),
+    FOREIGN KEY (MaaltijdID) REFERENCES Maaltijden(MaaltijdID),
+    FOREIGN KEY (ReceptID) REFERENCES Recept(ReceptID)
+  );
+
+    -- Bereidingsteam
+    CREATE TABLE Bereidingsteam (
       MaaltijdID INTEGER,
       LidID INTEGER,
       PRIMARY KEY (MaaltijdID, LidID),
@@ -253,26 +310,41 @@ const migrations = [{
       FOREIGN KEY (ActiviteitenID) REFERENCES Activiteiten(ActiviteitenID),
       FOREIGN KEY (MateriaalID) REFERENCES Materialen(MateriaalID)
     );
+    
+    -- Create index for faster lookups
+    CREATE INDEX IF NOT EXISTS idx_recept_ingredienten_receptid ON Recept_Ingredienten(ReceptID);
 
-    -- Scout-specific products table
-    CREATE TABLE IF NOT EXISTS Scout_Producten (
-      ProductID INTEGER PRIMARY KEY,
-      product_id TEXT UNIQUE,
-      Naam TEXT,
-      Beschrijving TEXT,
-      FOREIGN KEY (product_id) REFERENCES products(id)
+  `,
+  },
+  {
+    name: "006_add_material_types",
+    up: `
+    -- Create MaterialTypes table with predefined types
+    CREATE TABLE IF NOT EXISTS MaterialTypes (
+      TypeID INTEGER PRIMARY KEY AUTOINCREMENT,
+      Naam TEXT NOT NULL UNIQUE
     );
-
-    -- Connection between parents (users) and orders
-    CREATE TABLE IF NOT EXISTS Ouder_Bestelling (
-      OuderID INTEGER,
-      order_id TEXT,
-      PRIMARY KEY (OuderID, order_id),
-      FOREIGN KEY (OuderID) REFERENCES Ouder(OuderID),
-      FOREIGN KEY (order_id) REFERENCES orders(id)
-    );
-  `
-}];
+    
+    -- Insert predefined material types
+    INSERT OR IGNORE INTO MaterialTypes (Naam) VALUES 
+      ('Tent'),
+      ('Shelter'),
+      ('Materiaaltent'),
+      ('Hamer'),
+      ('Bijl'),
+      ('Pickhouweel'),
+      ('Zaag'),
+      ('Kookgerief'),
+      ('Anders');
+      
+    -- Add foreign key to Materialen table (keep existing data intact)
+    ALTER TABLE Materialen ADD COLUMN TypeID INTEGER REFERENCES MaterialTypes(TypeID);
+    
+    -- Add index for TypeID
+    CREATE INDEX IF NOT EXISTS idx_materialen_typeid ON Materialen(TypeID);
+  `,
+  },
+  ];
 
 class Migrations {
   constructor(db) {
@@ -283,87 +355,112 @@ class Migrations {
     return new Promise((resolve, reject) => {
       this.db.serialize(() => {
         // Start transaction
-        this.db.run('BEGIN TRANSACTION');
-  
+        this.db.run("BEGIN TRANSACTION");
+
         // First create migrations table explicitly
-        this.db.run(`
+        this.db.run(
+          `
           CREATE TABLE IF NOT EXISTS migrations (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             name TEXT NOT NULL UNIQUE,
             executed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
           );
-        `, (err) => {
-          if (err) {
-            this.db.run('ROLLBACK');
-            reject(new DatabaseError('Failed to create migrations table', err));
-            return;
-          }
-  
-          console.log('Checking migrations...');
-          
-          // Get executed migrations
-          this.db.all('SELECT name FROM migrations', [], (err, executedMigrations) => {
+        `,
+          (err) => {
             if (err) {
-              this.db.run('ROLLBACK');
-              reject(new DatabaseError('Failed to check migrations', err));
+              this.db.run("ROLLBACK");
+              reject(
+                new DatabaseError("Failed to create migrations table", err)
+              );
               return;
             }
-  
-            const executed = new Set(executedMigrations?.map(m => m.name) || []);
-  
-            // Run pending migrations in sequence
-            let chain = Promise.resolve();
-            
-            migrations.forEach(migration => {
-              if (!executed.has(migration.name)) {
-                chain = chain.then(() => {
-                  return new Promise((resolveExec, rejectExec) => {
-                    console.log(`Running migration: ${migration.name}`);
-                    
-                    this.db.exec(migration.up, (err) => {
-                      if (err) {
-                        rejectExec(new DatabaseError(`Failed to run migration ${migration.name}`, err));
-                        return;
-                      }
-  
-                      // Track executed migration
-                      this.db.run(
-                        'INSERT INTO migrations (name) VALUES (?)',
-                        [migration.name],
-                        (err) => {
+
+            console.log("Checking migrations...");
+
+            // Get executed migrations
+            this.db.all(
+              "SELECT name FROM migrations",
+              [],
+              (err, executedMigrations) => {
+                if (err) {
+                  this.db.run("ROLLBACK");
+                  reject(new DatabaseError("Failed to check migrations", err));
+                  return;
+                }
+
+                const executed = new Set(
+                  executedMigrations?.map((m) => m.name) || []
+                );
+
+                // Run pending migrations in sequence
+                let chain = Promise.resolve();
+
+                migrations.forEach((migration) => {
+                  if (!executed.has(migration.name)) {
+                    chain = chain.then(() => {
+                      return new Promise((resolveExec, rejectExec) => {
+                        console.log(`Running migration: ${migration.name}`);
+
+                        this.db.exec(migration.up, (err) => {
                           if (err) {
-                            rejectExec(new DatabaseError(`Failed to track migration ${migration.name}`, err));
+                            rejectExec(
+                              new DatabaseError(
+                                `Failed to run migration ${migration.name}`,
+                                err
+                              )
+                            );
                             return;
                           }
-                          console.log(`Completed migration: ${migration.name}`);
-                          resolveExec();
-                        }
-                      );
+
+                          // Track executed migration
+                          this.db.run(
+                            "INSERT INTO migrations (name) VALUES (?)",
+                            [migration.name],
+                            (err) => {
+                              if (err) {
+                                rejectExec(
+                                  new DatabaseError(
+                                    `Failed to track migration ${migration.name}`,
+                                    err
+                                  )
+                                );
+                                return;
+                              }
+                              console.log(
+                                `Completed migration: ${migration.name}`
+                              );
+                              resolveExec();
+                            }
+                          );
+                        });
+                      });
                     });
-                  });
-                });
-              }
-            });
-  
-            // After all migrations complete
-            chain
-              .then(() => {
-                this.db.run('COMMIT', (err) => {
-                  if (err) {
-                    this.db.run('ROLLBACK');
-                    reject(new DatabaseError('Failed to commit migrations', err));
-                    return;
                   }
-                  console.log('All migrations completed successfully');
-                  resolve();
                 });
-              })
-              .catch(err => {
-                this.db.run('ROLLBACK');
-                reject(err);
-              });
-          });
-        });
+
+                // After all migrations complete
+                chain
+                  .then(() => {
+                    this.db.run("COMMIT", (err) => {
+                      if (err) {
+                        this.db.run("ROLLBACK");
+                        reject(
+                          new DatabaseError("Failed to commit migrations", err)
+                        );
+                        return;
+                      }
+                      console.log("All migrations completed successfully");
+                      resolve();
+                    });
+                  })
+                  .catch((err) => {
+                    this.db.run("ROLLBACK");
+                    reject(err);
+                  });
+              }
+            );
+          }
+        );
       });
     });
   }

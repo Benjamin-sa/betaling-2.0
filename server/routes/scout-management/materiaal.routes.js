@@ -3,11 +3,32 @@ const router = express.Router();
 const database = require('../../db');
 const { authenticate, authorizeAdmin } = require('../../middleware/auth');
 
+// Get all material types
+router.get('/types', authenticate, async (req, res) => {
+  try {
+    const db = database.instance;
+    db.all('SELECT * FROM MaterialTypes ORDER BY Naam', [], (err, rows) => {
+      if (err) {
+        console.error('Database error:', err);
+        return res.status(500).json({ error: 'Database error' });
+      }
+      res.json(rows);
+    });
+  } catch (error) {
+    console.error('Server error:', error);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
 // Get all materialen (materials)
 router.get('/', authenticate, async (req, res) => {
   try {
     const db = database.instance;
-    db.all('SELECT * FROM Materialen', [], (err, rows) => {
+    db.all(`
+      SELECT m.*, mt.Naam as TypeNaam 
+      FROM Materialen m
+      LEFT JOIN MaterialTypes mt ON m.TypeID = mt.TypeID
+    `, [], (err, rows) => {
       if (err) {
         console.error('Database error:', err);
         return res.status(500).json({ error: 'Database error' });
@@ -93,12 +114,12 @@ router.get('/:id/tent', authenticate, async (req, res) => {
 // Create new material
 router.post('/', authenticate, authorizeAdmin, async (req, res) => {
   try {
-    const { Naam, Type, Aantal, Aanschafdatum, Status } = req.body;
+    const { Naam, Type, TypeID, Aantal, Aanschafdatum, Status } = req.body;
     
     const db = database.instance;
     db.run(
-      'INSERT INTO Materialen (Naam, Type, Aantal, Aanschafdatum, Status) VALUES (?, ?, ?, ?, ?)',
-      [Naam, Type, Aantal, Aanschafdatum, Status],
+      'INSERT INTO Materialen (Naam, Type, TypeID, Aantal, Aanschafdatum, Status) VALUES (?, ?, ?, ?, ?, ?)',
+      [Naam, Type, TypeID, Aantal, Aanschafdatum, Status],
       function(err) {
         if (err) {
           console.error('Database error:', err);

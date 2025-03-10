@@ -42,6 +42,37 @@ const routes = [
     name: 'ManualPayments',
     component: ManualPayments,
     meta: { requiresAuth: true }
+  },
+  // Scout Management routes within Admin section
+  {
+    path: '/admin/scout-management',
+    component: () => import('@/views/Admin.vue'),
+    meta: { requiresAuth: true, requiresAdmin: true },
+    children: [
+      {
+        path: 'materialen',
+        name: 'MaterialManagement',
+        component: () => import('@/views/admin/MaterialManagement.vue')
+      },
+      {
+        path: 'weien',
+        name: 'WeiManagement',
+        component: () => import('@/views/admin/WeiManagement.vue')
+      },
+      {
+        path: 'recepten',
+        name: 'ReceptenManagement',
+        component: () => import('@/views/admin/ReceptenManagement.vue')
+      },
+      // Add the new meal management route
+      
+      // Add the new camp meal planning route
+      {
+        path: 'camp-meals',
+        name: 'CampMealPlanning',
+        component: () => import('@/views/admin/CampMealPlanning.vue')
+      }
+    ]
   }
 ];
 

@@ -43,12 +43,12 @@ router.get('/:id', authenticate, async (req, res) => {
 // Create new wei
 router.post('/', authenticate, authorizeAdmin, async (req, res) => {
   try {
-    const { Naam, Telefoonnummer, Email, Aantal_Hectare, Contactpersoon } = req.body;
+    const { Naam, Telefoonnummer, Email, Aantal_Hectare, Contactpersoon, Coordinaten } = req.body;
     
     const db = database.instance;
     db.run(
-      'INSERT INTO Weien (Naam, Telefoonnummer, Email, Aantal_Hectare, Contactpersoon) VALUES (?, ?, ?, ?, ?)',
-      [Naam, Telefoonnummer, Email, Aantal_Hectare, Contactpersoon],
+      'INSERT INTO Weien (Naam, Telefoonnummer, Email, Aantal_Hectare, Contactpersoon, Coordinaten) VALUES (?, ?, ?, ?, ?, ?)',
+      [Naam, Telefoonnummer, Email, Aantal_Hectare, Contactpersoon, Coordinaten],
       function(err) {
         if (err) {
           console.error('Database error:', err);
@@ -67,13 +67,13 @@ router.post('/', authenticate, authorizeAdmin, async (req, res) => {
 // Update wei
 router.put('/:id', authenticate, authorizeAdmin, async (req, res) => {
   try {
-    const { Naam, Telefoonnummer, Email, Aantal_Hectare, Contactpersoon } = req.body;
+    const { Naam, Telefoonnummer, Email, Aantal_Hectare, Contactpersoon, Coordinaten } = req.body;
     const weiId = req.params.id;
     
     const db = database.instance;
     db.run(
-      'UPDATE Weien SET Naam = ?, Telefoonnummer = ?, Email = ?, Aantal_Hectare = ?, Contactpersoon = ? WHERE WeiID = ?',
-      [Naam, Telefoonnummer, Email, Aantal_Hectare, Contactpersoon, weiId],
+      'UPDATE Weien SET Naam = ?, Telefoonnummer = ?, Email = ?, Aantal_Hectare = ?, Contactpersoon = ?, Coordinaten = ? WHERE WeiID = ?',
+      [Naam, Telefoonnummer, Email, Aantal_Hectare, Contactpersoon, Coordinaten, weiId],
       function(err) {
         if (err) {
           console.error('Database error:', err);
@@ -87,6 +87,45 @@ router.put('/:id', authenticate, authorizeAdmin, async (req, res) => {
         res.json({ message: 'Wei updated successfully' });
       }
     );
+  } catch (error) {
+    console.error('Server error:', error);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// Delete wei
+router.delete('/:id', authenticate, authorizeAdmin, async (req, res) => {
+  try {
+    const weiId = req.params.id;
+    
+    const db = database.instance;
+    
+    // First check if the wei is linked to any camps
+    db.get('SELECT COUNT(*) as count FROM Kamp_Wei WHERE WeiID = ?', [weiId], (err, result) => {
+      if (err) {
+        console.error('Database error:', err);
+        return res.status(500).json({ error: 'Database error' });
+      }
+      
+      // If wei is being used in camps, don't allow deletion
+      if (result.count > 0) {
+        return res.status(400).json({ error: 'Wei kan niet worden verwijderd omdat deze in gebruik is bij één of meerdere kampen' });
+      }
+      
+      // Delete the wei if not in use
+      db.run('DELETE FROM Weien WHERE WeiID = ?', [weiId], function(err) {
+        if (err) {
+          console.error('Database error:', err);
+          return res.status(500).json({ error: 'Database error' });
+        }
+        
+        if (this.changes === 0) {
+          return res.status(404).json({ error: 'Wei not found' });
+        }
+        
+        res.json({ message: 'Wei successfully deleted' });
+      });
+    });
   } catch (error) {
     console.error('Server error:', error);
     res.status(500).json({ error: 'Server error' });
