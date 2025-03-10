@@ -138,6 +138,32 @@
     <!-- Verkochte Producten Overzicht -->
     <div class="bg-cardBackground rounded-lg shadow-lg p-4 sm:p-6 mt-4 sm:mt-8">
       <h2 class="text-xl sm:text-2xl font-semibold text-primary mb-4">Verkochte Producten Overzicht</h2>
+      
+      <!-- Download buttons -->
+      <div class="mb-4 flex justify-end flex-wrap gap-2">
+        <button 
+          @click="printOrderChecklist" 
+          :disabled="!orders.length"
+          class="flex items-center bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 transition duration-300 disabled:bg-gray-400 disabled:cursor-not-allowed"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
+          </svg>
+          Print Checklist
+        </button>
+        
+        <button 
+          @click="downloadOrdersCSV" 
+          :disabled="!orders.length"
+          class="flex items-center bg-primary text-white px-4 py-2 rounded hover:bg-green-700 transition duration-300 disabled:bg-gray-400 disabled:cursor-not-allowed"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+          </svg>
+          Download CSV Overzicht
+        </button>
+      </div>
+      
       <div class="space-y-6"> <!-- Changed from table to card-based layout -->
         <div v-for="(userOrders, email) in groupedOrders" :key="email" 
              class="bg-white rounded-lg shadow overflow-hidden">
@@ -540,6 +566,342 @@ const toggleManualPayments = async () => {
   } finally {
     loadingSettings.value = false;
   }
+};
+
+// Add these for CSV functionality
+const downloadOrdersCSV = () => {
+  // Generate CSV content
+  const csvContent = generateOrdersCSV();
+  
+  // Create a Blob with the CSV content
+  const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+  
+  // Create a temporary link to trigger the download
+  const link = document.createElement('a');
+  const url = URL.createObjectURL(blob);
+  
+  // Set download attributes
+  const currentDate = new Date().toISOString().split('T')[0];
+  link.setAttribute('href', url);
+  link.setAttribute('download', `bestellingen-${currentDate}.csv`);
+  
+  // Append to body, trigger click and clean up
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+};
+
+// Update the CSV functionality to include detailed orders
+const generateOrdersCSV = () => {
+  // CSV headers for both summary and detailed sections
+  let csvContent = 'Tijdslot,Product,Aantal,Totaal Prijs\n';
+  
+  // Group orders by time slot for summary
+  const ordersByTimeSlot = {};
+  
+  // First pass: group orders by time slot and count quantities
+  orders.value.forEach(order => {
+    const timeSlot = order.time_slot || 'Geen tijdslot';
+    
+    if (!ordersByTimeSlot[timeSlot]) {
+      ordersByTimeSlot[timeSlot] = {};
+    }
+    
+    const productKey = order.product_name;
+    if (!ordersByTimeSlot[timeSlot][productKey]) {
+      ordersByTimeSlot[timeSlot][productKey] = {
+        quantity: 0,
+        totalPrice: 0
+      };
+    }
+    
+    ordersByTimeSlot[timeSlot][productKey].quantity += order.quantity;
+    ordersByTimeSlot[timeSlot][productKey].totalPrice += order.amount_total;
+  });
+  
+  // Second pass: generate summary CSV rows
+  Object.entries(ordersByTimeSlot).forEach(([timeSlot, products]) => {
+    let timeSlotTotal = 0;
+    let timeSlotQuantity = 0;
+    
+    // Add products for this time slot
+    Object.entries(products).forEach(([productName, data]) => {
+      // Add quotes around fields that might contain commas
+      const safeProductName = `"${productName}"`;
+      csvContent += `${timeSlot},${safeProductName},${data.quantity},€${formatAmount(data.totalPrice)}\n`;
+      
+      timeSlotTotal += data.totalPrice;
+      timeSlotQuantity += data.quantity;
+    });
+    
+    // Add summary row for this time slot
+    csvContent += `${timeSlot} Totaal,,,€${formatAmount(timeSlotTotal)}\n`;
+    csvContent += `${timeSlot} Aantal Items,,${timeSlotQuantity},\n`;
+    csvContent += `\n`; // Empty row for separation
+  });
+  
+  // Add global totals
+  const grandTotal = orders.value.reduce((sum, order) => sum + order.amount_total, 0);
+  const grandQuantity = orders.value.reduce((sum, order) => sum + order.quantity, 0);
+  
+  csvContent += `\nTotaal Alle Bestellingen,,,€${formatAmount(grandTotal)}\n`;
+  csvContent += `Totaal Aantal Items,,${grandQuantity},\n\n\n`;
+  
+  // Add detailed orders section
+  csvContent += `\n\nGedetailleerde Bestellingen\n`;
+  csvContent += `Email,Naam,Tijdslot,Product,Aantal,Prijs,Betalingsstatus\n`;
+  
+  // Group by email for easier reading
+  const ordersByEmail = {};
+  orders.value.forEach(order => {
+    if (!ordersByEmail[order.email]) {
+      ordersByEmail[order.email] = [];
+    }
+    ordersByEmail[order.email].push(order);
+  });
+  
+  // Add each individual order
+  Object.entries(ordersByEmail).forEach(([email, userOrders]) => {
+    userOrders.forEach(order => {
+      const customerName = order.customer_name || email;
+      const safeEmail = `"${email}"`;
+      const safeName = `"${customerName}"`;
+      const timeSlot = order.time_slot || 'Geen tijdslot';
+      const safeProduct = `"${order.product_name}"`;
+      const status = getPaymentStatusText(order);
+      
+      csvContent += `${safeEmail},${safeName},${timeSlot},${safeProduct},${order.quantity},€${formatAmount(order.amount_total)},${status}\n`;
+    });
+    csvContent += `\n`; // Add empty line between different customers
+  });
+  
+  return csvContent;
+};
+
+// Update the printOrderChecklist function to better handle orders with and without timeslots
+const printOrderChecklist = () => {
+  // Group orders by time slot first, ensuring "Geen tijdslot" is properly handled
+  const ordersByTimeSlot = {};
+  
+  // First pass: collect all orders with time slots
+  orders.value.forEach(order => {
+    if (order.time_slot) {
+      if (!ordersByTimeSlot[order.time_slot]) {
+        ordersByTimeSlot[order.time_slot] = [];
+      }
+      ordersByTimeSlot[order.time_slot].push(order);
+    } else {
+      // For orders without time slot, we'll handle them separately
+      if (!ordersByTimeSlot['Geen tijdslot']) {
+        ordersByTimeSlot['Geen tijdslot'] = [];
+      }
+      ordersByTimeSlot['Geen tijdslot'].push(order);
+    }
+  });
+
+  // Create a new window for printing
+  const printWindow = window.open('', '_blank');
+  
+  // Generate CSS for the print view
+  const printCSS = `
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        line-height: 1.5;
+        margin: 0;
+        padding: 20px;
+      }
+      h1 {
+        text-align: center;
+        margin-bottom: 20px;
+        color: #4f6e4f; /* Primary color */
+      }
+      h2 {
+        color: #4f6e4f;
+        border-bottom: 2px solid #4f6e4f;
+        padding-bottom: 5px;
+        margin-top: 30px;
+      }
+      .order-card {
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        margin-bottom: 10px;
+        page-break-inside: avoid;
+      }
+      .order-header {
+        padding: 8px;
+        background: #f5f5f5;
+        display: flex;
+        justify-content: space-between;
+        border-bottom: 1px solid #ddd;
+      }
+      .order-details {
+        padding: 8px;
+      }
+      .product-item {
+        display: flex;
+        align-items: center;
+        padding: 4px 0;
+      }
+      .checkbox {
+        width: 20px;
+        height: 20px;
+        border: 1px solid #333;
+        margin-right: 10px;
+        border-radius: 3px;
+        display: inline-block;
+      }
+      .product-quantity {
+        font-weight: bold;
+        margin-right: 10px;
+      }
+      .timestamp {
+        font-size: 0.8em;
+        color: #666;
+        margin-top: 4px;
+      }
+      .time-tag {
+        display: inline-block;
+        background: #e2f0e2;
+        border: 1px solid #4f6e4f;
+        border-radius: 3px;
+        padding: 1px 5px;
+        margin-right: 6px;
+        font-size: 0.8em;
+        color: #4f6e4f;
+      }
+      .page-break {
+        page-break-before: always;
+      }
+      @media print {
+        body {
+          padding: 0;
+        }
+        button {
+          display: none;
+        }
+      }
+    </style>
+  `;
+
+  // Generate the HTML content
+  let printContent = `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <title>Bestellingen Checklist</title>
+      ${printCSS}
+    </head>
+    <body>
+      <h1>Bestellingen Checklist - ${new Date().toLocaleDateString('nl-BE')}</h1>
+      <button onclick="window.print()" style="padding: 10px 20px; background: #4f6e4f; color: white; border: none; border-radius: 4px; cursor: pointer; margin-bottom: 20px;">Print deze pagina</button>
+  `;
+
+  // Sort the time slots to ensure a consistent order, but place "Geen tijdslot" at the end
+  const sortedTimeSlots = Object.keys(ordersByTimeSlot).sort((a, b) => {
+    if (a === 'Geen tijdslot') return 1;
+    if (b === 'Geen tijdslot') return -1;
+    return a.localeCompare(b);
+  });
+  
+  // Add each time slot section
+  sortedTimeSlots.forEach((timeSlot, timeSlotIndex) => {
+    // Add page break after the first time slot
+    if (timeSlotIndex > 0) {
+      printContent += `<div class="page-break"></div>`;
+    }
+    
+    printContent += `<h2>${timeSlot}</h2>`;
+    
+    // Group orders by email within time slot
+    const ordersByEmailAndName = {};
+    
+    // Group by email first, but we'll use name and email for display
+    ordersByTimeSlot[timeSlot].forEach(order => {
+      const key = order.email;
+      if (!ordersByEmailAndName[key]) {
+        ordersByEmailAndName[key] = {
+          email: order.email,
+          name: order.customer_name || order.email,
+          orders: []
+        };
+      }
+      ordersByEmailAndName[key].orders.push(order);
+    });
+    
+    // Convert to array for sorting
+    const customers = Object.values(ordersByEmailAndName);
+    
+    // Sort alphabetically by name then email
+    customers.sort((a, b) => {
+      const aKey = a.name.toLowerCase();
+      const bKey = b.name.toLowerCase();
+      return aKey.localeCompare(bKey);
+    });
+    
+    // Add each person's orders
+    customers.forEach(customer => {
+      const personOrders = customer.orders;
+      
+      printContent += `
+        <div class="order-card">
+          <div class="order-header">
+            <div><strong>${customer.name}</strong> ${customer.name.toLowerCase() !== customer.email.toLowerCase() ? `(${customer.email})` : ''}</div>
+            <div>${formatAmount(getTotalAmount(personOrders))} €</div>
+          </div>
+          <div class="order-details">
+      `;
+
+      // Add each product - for orders without timeslot, add a visible label
+      personOrders.forEach(order => {
+        // If we're in a time slot section but this specific order doesn't have a time slot, mark it
+        const needsTimeSlotTag = timeSlot !== 'Geen tijdslot' && !order.time_slot;
+        // If we're in the "no time slot" section but this order has a time slot (shouldn't happen with our grouping), mark it
+        const hasTimeSlotTag = timeSlot === 'Geen tijdslot' && order.time_slot;
+        
+        printContent += `
+          <div class="product-item">
+            <span class="checkbox"></span>
+            <span class="product-quantity">${order.quantity}x</span>
+            <span>
+              ${needsTimeSlotTag ? '<span class="time-tag">Geen tijdslot</span>' : ''}
+              ${hasTimeSlotTag ? `<span class="time-tag">${order.time_slot}</span>` : ''}
+              ${order.product_name}
+            </span>
+          </div>
+        `;
+      });
+      
+      // Add timestamp
+      printContent += `
+        <div class="timestamp">Besteld op ${formatDate(personOrders[0].created_at)}</div>
+        </div>
+        </div>
+      `;
+    });
+    
+    // Add totals for the time slot
+    const timeSlotOrders = ordersByTimeSlot[timeSlot];
+    const timeSlotTotal = getTotalAmount(timeSlotOrders);
+    const timeSlotQuantity = getTotalQuantity(timeSlotOrders);
+    
+    printContent += `
+      <div style="margin-top: 20px; font-weight: bold; text-align: right;">
+        Totaal voor ${timeSlot}: ${formatAmount(timeSlotTotal)} € (${timeSlotQuantity} items)
+      </div>
+    `;
+  });
+  
+  // Close the HTML
+  printContent += `
+    </body>
+    </html>
+  `;
+
+  // Write the content to the new window
+  printWindow.document.open();
+  printWindow.document.write(printContent);
+  printWindow.document.close();
 };
 
 // Modify your onMounted to include loadSettings
