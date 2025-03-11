@@ -64,13 +64,15 @@ const routes = [
         name: 'ReceptenManagement',
         component: () => import('@/views/admin/ReceptenManagement.vue')
       },
-      // Add the new meal management route
-      
-      // Add the new camp meal planning route
       {
-        path: 'camp-meals',
-        name: 'CampMealPlanning',
-        component: () => import('@/views/admin/CampMealPlanning.vue')
+        path: 'leden',
+        name: 'MemberManagement',
+        component: () => import('@/views/admin/LedenManagementView.vue')
+      },
+      {
+        path: 'camp-planning',
+        name: 'CampPlanning',
+        component: () => import('@/views/admin/CampPlanning.vue')
       }
     ]
   }

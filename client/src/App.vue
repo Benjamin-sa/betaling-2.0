@@ -137,7 +137,7 @@
 import { ref} from 'vue'
 import { useAuthStore } from '@/stores/auth'
 import { useRouter } from 'vue-router'
-import Footer from './components/Footer.vue'
+import Footer from './components/ui/Footer.vue'
 
 const auth = useAuthStore()
 const router = useRouter()

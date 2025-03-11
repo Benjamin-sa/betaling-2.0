@@ -25,12 +25,20 @@
           Recepten
         </router-link>
         <router-link
-          to="/admin/scout-management/camp-meals"
-          class="px-3 py-2 text-sm font-medium rounded-md"
-          :class="$route.path.includes('/admin/scout-management/camp-meals') ? 
+          to="/admin/scout-management/camp-planning"
+          class="px-4 py-2 rounded-md hover:bg-gray-100 transition-colors"
+          :class="$route.path.includes('/admin/scout-management/camp-planning') ? 
             'bg-primary text-white' : 'text-gray-700 hover:bg-gray-100'"
         >
-          Camp Meal Planning
+          Kamp Planning
+        </router-link>
+        <router-link
+          to="/admin/scout-management/leden"
+          class="px-4 py-2 rounded-md hover:bg-gray-100 transition-colors"
+          :class="$route.path.includes('/admin/scout-management/leden') ? 
+            'bg-primary text-white' : 'text-gray-700 hover:bg-gray-100'"
+        >
+          Leden Beheer
         </router-link>
       </nav>
     </div>

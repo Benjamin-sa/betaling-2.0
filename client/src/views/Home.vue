@@ -351,8 +351,8 @@ import { useRouter } from 'vue-router';
 import { loadStripe } from '@stripe/stripe-js';
 import { apiClient } from '@/services/api';
 import { useAuthStore } from '@/stores/auth';
-import Modal from '@/components/Modal.vue'; // Add this
-import TimeSlotSelector from '@/components/TimeSlotSelector.vue'; // Add this
+import Modal from '@/components/ui/Modal.vue'; // Add this
+import TimeSlotSelector from '@/components/ui/TimeSlotSelector.vue'; // Add this
 
 const router = useRouter(); // Add this
 const auth = useAuthStore();

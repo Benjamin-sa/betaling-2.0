@@ -232,7 +232,6 @@ const migrations = [
   CREATE TABLE Maaltijd_Deelnemers (
     MaaltijdID INTEGER,
     LidID INTEGER,
-    Aanwezig BOOLEAN DEFAULT TRUE,
     Speciale_Wensen TEXT,
     PRIMARY KEY (MaaltijdID, LidID),
     FOREIGN KEY (MaaltijdID) REFERENCES Maaltijden(MaaltijdID),

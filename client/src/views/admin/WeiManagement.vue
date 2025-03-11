@@ -29,45 +29,33 @@
       <p>{{ error }}</p>
     </div>
 
-    <!-- Wei Form Dialog -->
-    <div v-if="showAddForm || showEditForm" class="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50">
-      <div class="bg-white p-6 rounded-lg shadow-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-        <div class="flex justify-between items-center mb-4">
-          <h3 class="text-xl font-semibold">{{ showEditForm ? 'Wei bewerken' : 'Nieuwe wei toevoegen' }}</h3>
-          <button @click="closeForm" class="text-gray-500 hover:text-gray-700">
-            <i class="fas fa-times text-xl"></i>
-          </button>
-        </div>
-        
-        <WeiForm 
-          :wei="currentWei" 
-          @save="saveWei" 
-          @cancel="closeForm"
-        />
-      </div>
-    </div>
+    <!-- Wei Form Modal -->
+    <BaseModal
+      v-model="showFormModal"
+      :title="currentWei ? 'Wei bewerken' : 'Nieuwe wei toevoegen'"
+      size="lg"
+      :hide-footer="true"
+    >
+      <WeiForm 
+        :wei="currentWei" 
+        @save="saveWei" 
+        @cancel="closeForm"
+      />
+    </BaseModal>
 
-    <!-- Confirmation Dialog -->
-    <div v-if="showDeleteConfirm" class="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50">
-      <div class="bg-white p-6 rounded-lg shadow-lg max-w-md w-full">
-        <h3 class="text-xl font-semibold mb-4">Wei verwijderen</h3>
-        <p class="mb-6">Weet je zeker dat je de wei "{{ weiToDelete?.Naam }}" wilt verwijderen?</p>
-        <div class="flex justify-end gap-3">
-          <button 
-            @click="showDeleteConfirm = false; weiToDelete = null;" 
-            class="px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
-          >
-            Annuleren
-          </button>
-          <button 
-            @click="confirmDelete" 
-            class="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-red-600 hover:bg-red-700"
-          >
-            Verwijderen
-          </button>
-        </div>
-      </div>
-    </div>
+    <!-- Confirmation Modal -->
+    <BaseModal
+      v-model="showDeleteConfirm"
+      title="Wei verwijderen"
+      size="sm"
+      confirm-text="Verwijderen"
+      cancel-text="Annuleren"
+      confirm-button-class="bg-red-600 hover:bg-red-700"
+      @confirm="confirmDelete"
+      @cancel="showDeleteConfirm = false; weiToDelete = null;"
+    >
+      <p>Weet je zeker dat je de wei "{{ weiToDelete?.Naam }}" wilt verwijderen?</p>
+    </BaseModal>
 
     <!-- Wei list -->
     <div v-if="!loading && !error && weien.length > 0" class="overflow-x-auto">
@@ -158,9 +146,10 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue';
+import { ref, onMounted, computed } from 'vue';
 import { apiClient } from '@/services/api';
 import WeiForm from '@/components/admin/WeiForm.vue';
+import BaseModal from '@/components/ui/BaseModal.vue';
 
 const weien = ref([]);
 const loading = ref(true);
@@ -171,6 +160,18 @@ const currentWei = ref(null);
 const successMessage = ref('');
 const showDeleteConfirm = ref(false);
 const weiToDelete = ref(null);
+
+// Computed property to control form modal visibility
+const showFormModal = computed({
+  get: () => showAddForm.value || showEditForm.value,
+  set: (value) => {
+    if (!value) {
+      showAddForm.value = false;
+      showEditForm.value = false;
+      currentWei.value = null;
+    }
+  }
+});
 
 onMounted(async () => {
   await loadWeien();
@@ -238,7 +239,6 @@ const deleteWei = (wei) => {
 const confirmDelete = async () => {
   try {
     loading.value = true;
-    showDeleteConfirm.value = false;
     
     if (!weiToDelete.value) return;
     
@@ -258,10 +258,10 @@ const confirmDelete = async () => {
   } catch (err) {
     error.value = `Error deleting wei: ${err.message}`;
     console.error(err);
-    showDeleteConfirm.value = false;
     weiToDelete.value = null;
   } finally {
     loading.value = false;
+    showDeleteConfirm.value = false;
   }
 };
 </script>

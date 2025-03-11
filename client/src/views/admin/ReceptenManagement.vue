@@ -93,266 +93,260 @@
     </div>
 
     <!-- Recept Modal -->
-    <div v-if="showModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div class="bg-white p-6 rounded-lg shadow-lg w-full max-w-2xl max-h-[90vh] overflow-y-auto">
-        <h3 class="text-lg font-semibold mb-4">{{ editingRecept ? 'Recept bewerken' : 'Nieuw recept toevoegen' }}</h3>
+    <BaseModal
+      v-model="showModal"
+      :title="editingRecept ? 'Recept bewerken' : 'Nieuw recept toevoegen'"
+      size="lg"
+      confirm-text="Opslaan"
+      :disabled="saving"
+      @confirm="saveRecept"
+    >
+      <form @submit.prevent="saveRecept">
+        <div class="mb-4">
+          <label class="block text-sm font-medium mb-1">Naam</label>
+          <input 
+            v-model="receptForm.Naam" 
+            type="text" 
+            required
+            class="w-full p-2 border rounded"
+          />
+        </div>
         
-        <form @submit.prevent="saveRecept">
-          <div class="mb-4">
-            <label class="block text-sm font-medium mb-1">Naam</label>
-            <input 
-              v-model="receptForm.Naam" 
-              type="text" 
-              required
-              class="w-full p-2 border rounded"
-            />
+        <!-- Structured Ingredients Section -->
+        <div class="mb-4">
+          <div class="flex justify-between items-center mb-2">
+            <label class="block text-sm font-medium">Gestructureerde Ingrediënten</label>
+            <button 
+              type="button"
+              @click="addIngredient"
+              class="text-sm px-2 py-1 bg-primary text-white rounded hover:bg-primary-dark"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 inline mr-1" viewBox="0 0 20 20" fill="currentColor">
+                <path fill-rule="evenodd" d="M10 5a1 1 0 011 1v3h3a1 1 0 110 2h-3v3a1 1 0 11-2 0v-3H6a1 1 0 110-2h3V6a1 1 0 011-1z" clip-rule="evenodd" />
+              </svg>
+              Ingredient toevoegen
+            </button>
           </div>
           
-          <!-- Structured Ingredients Section -->
-          <div class="mb-4">
-            <div class="flex justify-between items-center mb-2">
-              <label class="block text-sm font-medium">Gestructureerde Ingrediënten</label>
+          <div 
+            v-for="(ingredient, index) in receptForm.StructuredIngredienten" 
+            :key="index" 
+            class="p-3 border rounded mb-2 bg-gray-50"
+          >
+            <div class="flex justify-between mb-2">
+              <h4 class="text-sm font-medium">Ingredient #{{ index + 1 }}</h4>
               <button 
-                type="button"
-                @click="addIngredient"
-                class="text-sm px-2 py-1 bg-primary text-white rounded hover:bg-primary-dark"
+                type="button" 
+                @click="removeIngredient(index)" 
+                class="text-red-600 hover:text-red-800"
               >
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 inline mr-1" viewBox="0 0 20 20" fill="currentColor">
-                  <path fill-rule="evenodd" d="M10 5a1 1 0 011 1v3h3a1 1 0 110 2h-3v3a1 1 0 11-2 0v-3H6a1 1 0 110-2h3V6a1 1 0 011-1z" clip-rule="evenodd" />
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                  <path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd" />
                 </svg>
-                Ingredient toevoegen
               </button>
             </div>
             
-            <div 
-              v-for="(ingredient, index) in receptForm.StructuredIngredienten" 
-              :key="index" 
-              class="p-3 border rounded mb-2 bg-gray-50"
-            >
-              <div class="flex justify-between mb-2">
-                <h4 class="text-sm font-medium">Ingredient #{{ index + 1 }}</h4>
-                <button 
-                  type="button" 
-                  @click="removeIngredient(index)" 
-                  class="text-red-600 hover:text-red-800"
-                >
-                  <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
-                    <path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd" />
-                  </svg>
-                </button>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-3 mb-2">
+              <div>
+                <label class="block text-xs mb-1">Naam</label>
+                <input 
+                  v-model="ingredient.Naam" 
+                  type="text" 
+                  class="w-full p-2 border rounded text-sm" 
+                  required
+                />
               </div>
-              
-              <div class="grid grid-cols-1 md:grid-cols-2 gap-3 mb-2">
-                <div>
-                  <label class="block text-xs mb-1">Naam</label>
-                  <input 
-                    v-model="ingredient.Naam" 
-                    type="text" 
-                    class="w-full p-2 border rounded text-sm" 
-                    required
-                  />
-                </div>
-                <div>
-                  <label class="block text-xs mb-1">Categorie</label>
-                  <input 
-                    v-model="ingredient.Categorie" 
-                    type="text" 
-                    class="w-full p-2 border rounded text-sm"
-                    placeholder="bijv. Groenten, Vlees, etc."
-                  />
-                </div>
-              </div>
-              
-              <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
-                <div>
-                  <label class="block text-xs mb-1">Hoeveelheid</label>
-                  <input 
-                    v-model.number="ingredient.Hoeveelheid" 
-                    type="number" 
-                    step="0.01"
-                    class="w-full p-2 border rounded text-sm" 
-                  />
-                </div>
-                <div>
-                  <label class="block text-xs mb-1">Eenheid</label>
-                  <select 
-                    v-model="ingredient.Eenheid" 
-                    class="w-full p-2 border rounded text-sm"
-                  >
-                    <option value="g">gram (g)</option>
-                    <option value="kg">kilogram (kg)</option>
-                    <option value="ml">milliliter (ml)</option>
-                    <option value="l">liter (l)</option>
-                    <option value="stuk">stuk</option>
-                    <option value="el">eetlepel (el)</option>
-                    <option value="tl">theelepel (tl)</option>
-                  </select>
-                </div>
+              <div>
+                <label class="block text-xs mb-1">Categorie</label>
+                <input 
+                  v-model="ingredient.Categorie" 
+                  type="text" 
+                  class="w-full p-2 border rounded text-sm"
+                  placeholder="bijv. Groenten, Vlees, etc."
+                />
               </div>
             </div>
             
-            <div v-if="receptForm.StructuredIngredienten.length === 0" class="text-center py-3 border rounded bg-gray-50 text-sm text-gray-500">
-              Nog geen ingrediënten toegevoegd
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+              <div>
+                <label class="block text-xs mb-1">Hoeveelheid</label>
+                <input 
+                  v-model.number="ingredient.Hoeveelheid" 
+                  type="number" 
+                  step="0.01"
+                  class="w-full p-2 border rounded text-sm" 
+                />
+              </div>
+              <div>
+                <label class="block text-xs mb-1">Eenheid</label>
+                <select 
+                  v-model="ingredient.Eenheid" 
+                  class="w-full p-2 border rounded text-sm"
+                >
+                  <option value="g">gram (g)</option>
+                  <option value="kg">kilogram (kg)</option>
+                  <option value="ml">milliliter (ml)</option>
+                  <option value="l">liter (l)</option>
+                  <option value="stuk">stuk</option>
+                  <option value="el">eetlepel (el)</option>
+                  <option value="tl">theelepel (tl)</option>
+                </select>
+              </div>
             </div>
           </div>
-
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div class="mb-4">
-              <label class="block text-sm font-medium mb-1">Moeilijkheidsgraad</label>
-              <select 
-                v-model="receptForm.Moeilijkheidsgraad" 
-                class="w-full p-2 border rounded"
-              >
-                <option value="Makkelijk">Makkelijk</option>
-                <option value="Gemiddeld">Gemiddeld</option>
-                <option value="Moeilijk">Moeilijk</option>
-              </select>
-            </div>
-
-            <div class="mb-4">
-              <label class="block text-sm font-medium mb-1">Bereidingstijd (minuten)</label>
-              <input 
-                v-model.number="receptForm.Bereidingstijd" 
-                type="number"
-                min="1" 
-                class="w-full p-2 border rounded"
-              />
-            </div>
-          </div>
-
-          <div class="mb-4">
-            <label class="block text-sm font-medium mb-1">Allergieën</label>
-            <input 
-              v-model="receptForm.Allergieën" 
-              type="text" 
-              class="w-full p-2 border rounded"
-              placeholder="bijv. gluten, lactose, noten"
-            />
-          </div>
-
-          <div class="mb-4 flex items-center">
-            <input 
-              id="vega-optie" 
-              v-model="receptForm.Heeft_Vega_Optie" 
-              type="checkbox" 
-              class="mr-2"
-            />
-            <label for="vega-optie">Heeft vegetarische optie</label>
-          </div>
-
-          <div class="mb-4">
-            <label class="block text-sm font-medium mb-1">Opmerkingen</label>
-            <textarea 
-              v-model="receptForm.Opmerkingen" 
-              rows="3" 
-              class="w-full p-2 border rounded"
-            ></textarea>
-          </div>
-
-          <div class="flex justify-end space-x-2 mt-4">
-            <button 
-              type="button" 
-              @click="showModal = false"
-              class="px-4 py-2 border rounded hover:bg-gray-100"
-            >
-              Annuleren
-            </button>
-            <button 
-              type="submit" 
-              class="px-4 py-2 bg-primary text-white rounded hover:bg-primary-dark"
-              :disabled="saving"
-            >
-              {{ saving ? 'Opslaan...' : 'Opslaan' }}
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
-
-    <!-- Details Modal -->
-    <div v-if="showDetailsModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div class="bg-white p-6 rounded-lg shadow-lg w-full max-w-2xl max-h-[90vh] overflow-y-auto">
-        <h3 class="text-xl font-semibold mb-3">{{ selectedRecept.Naam }}</h3>
-        
-        <!-- Structured Ingredients Display -->
-        <div v-if="selectedRecept.StructuredIngredienten && selectedRecept.StructuredIngredienten.length > 0" class="bg-gray-50 p-4 mb-4 rounded">
-          <h4 class="font-medium mb-2">Ingrediënten:</h4>
           
-          <!-- Group ingredients by category if present -->
-          <div v-for="category in ingredientCategories" :key="category" class="mb-3">
-            <h5 v-if="category !== 'uncategorized'" class="font-medium text-sm text-gray-700 mb-1">{{ category }}</h5>
-            <ul class="list-disc pl-5">
-              <li v-for="ingredient in getIngredientsForCategory(category)" :key="ingredient.ID" class="mb-1">
-                {{ ingredient.Hoeveelheid }} {{ ingredient.Eenheid }} {{ ingredient.Naam }}
-                <span v-if="ingredient.Per_Persoon" class="text-xs text-gray-600">(per persoon)</span>
-              </li>
-            </ul>
-          </div>
-        </div>
-        
-        <!-- Traditional Ingredients Display -->
-        <div v-else-if="selectedRecept.Ingrediënten" class="bg-gray-50 p-4 mb-4 rounded">
-          <h4 class="font-medium mb-2">Ingrediënten:</h4>
-          <pre class="whitespace-pre-wrap">{{ selectedRecept.Ingrediënten }}</pre>
-        </div>
-        
-        <!-- No Ingredients -->
-        <div v-else class="bg-gray-50 p-4 mb-4 rounded">
-          <h4 class="font-medium mb-2">Ingrediënten:</h4>
-          <p class="text-gray-600">Geen ingrediënten vermeld</p>
-        </div>
-
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-          <div>
-            <p><span class="font-medium">Moeilijkheidsgraad:</span> {{ selectedRecept.Moeilijkheidsgraad || '-' }}</p>
-            <p><span class="font-medium">Bereidingstijd:</span> {{ selectedRecept.Bereidingstijd }} minuten</p>
-          </div>
-          <div>
-            <p><span class="font-medium">Vegetarische optie:</span> {{ selectedRecept.Heeft_Vega_Optie ? 'Ja' : 'Nee' }}</p>
-            <p><span class="font-medium">Allergieën:</span> {{ selectedRecept.Allergieën || 'Geen' }}</p>
+          <div v-if="receptForm.StructuredIngredienten.length === 0" class="text-center py-3 border rounded bg-gray-50 text-sm text-gray-500">
+            Nog geen ingrediënten toegevoegd
           </div>
         </div>
 
-        <div class="mb-4" v-if="selectedRecept.Opmerkingen">
-          <h4 class="font-medium mb-2">Opmerkingen:</h4>
-          <p class="whitespace-pre-wrap">{{ selectedRecept.Opmerkingen }}</p>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div class="mb-4">
+            <label class="block text-sm font-medium mb-1">Moeilijkheidsgraad</label>
+            <select 
+              v-model="receptForm.Moeilijkheidsgraad" 
+              class="w-full p-2 border rounded"
+            >
+              <option value="Makkelijk">Makkelijk</option>
+              <option value="Gemiddeld">Gemiddeld</option>
+              <option value="Moeilijk">Moeilijk</option>
+            </select>
+          </div>
+
+          <div class="mb-4">
+            <label class="block text-sm font-medium mb-1">Bereidingstijd (minuten)</label>
+            <input 
+              v-model.number="receptForm.Bereidingstijd" 
+              type="number"
+              min="1" 
+              class="w-full p-2 border rounded"
+            />
+          </div>
         </div>
 
-        <div class="flex justify-end mt-4">
+        <div class="mb-4">
+          <label class="block text-sm font-medium mb-1">Allergieën</label>
+          <input 
+            v-model="receptForm.Allergieën" 
+            type="text" 
+            class="w-full p-2 border rounded"
+            placeholder="bijv. gluten, lactose, noten"
+          />
+        </div>
+
+        <div class="mb-4 flex items-center">
+          <input 
+            id="vega-optie" 
+            v-model="receptForm.Heeft_Vega_Optie" 
+            type="checkbox" 
+            class="mr-2"
+          />
+          <label for="vega-optie">Heeft vegetarische optie</label>
+        </div>
+
+        <div class="mb-4">
+          <label class="block text-sm font-medium mb-1">Opmerkingen</label>
+          <textarea 
+            v-model="receptForm.Opmerkingen" 
+            rows="3" 
+            class="w-full p-2 border rounded"
+          ></textarea>
+        </div>
+
+        <div class="flex justify-end space-x-2 mt-4">
           <button 
-            @click="showDetailsModal = false" 
-            class="px-4 py-2 bg-gray-200 text-gray-800 rounded hover:bg-gray-300"
-          >
-            Sluiten
-          </button>
-        </div>
-      </div>
-    </div>
-
-    <!-- Delete Confirmation Modal -->
-    <div v-if="showDeleteModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div class="bg-white p-6 rounded-lg shadow-lg w-full max-w-md">
-        <h3 class="text-lg font-semibold mb-4">Recept verwijderen</h3>
-        <p>Weet je zeker dat je het recept "{{ receptToDelete?.Naam }}" wilt verwijderen?</p>
-        <p class="text-sm text-gray-600 mt-2">Deze actie kan niet ongedaan worden gemaakt.</p>
-        
-        <div class="flex justify-end space-x-2 mt-6">
-          <button 
-            @click="showDeleteModal = false" 
+            type="button" 
+            @click="showModal = false"
             class="px-4 py-2 border rounded hover:bg-gray-100"
           >
             Annuleren
           </button>
           <button 
-            @click="deleteRecept" 
-            class="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700"
-            :disabled="deleting"
+            type="submit" 
+            class="px-4 py-2 bg-primary text-white rounded hover:bg-primary-dark"
+            :disabled="saving"
           >
-            {{ deleting ? 'Verwijderen...' : 'Verwijderen' }}
+            {{ saving ? 'Opslaan...' : 'Opslaan' }}
           </button>
         </div>
+      </form>
+    </BaseModal>
+
+    <!-- Details Modal -->
+    <BaseModal
+      v-model="showDetailsModal"
+      :title="selectedRecept.Naam || 'Recept Details'"
+      size="lg"
+      :show-confirm-button="false"
+      cancel-text="Sluiten"
+    >
+      <!-- Structured Ingredients Display -->
+      <div v-if="selectedRecept.StructuredIngredienten && selectedRecept.StructuredIngredienten.length > 0" class="bg-gray-50 p-4 mb-4 rounded">
+        <h4 class="font-medium mb-2">Ingrediënten:</h4>
+        
+        <!-- Group ingredients by category if present -->
+        <div v-for="category in ingredientCategories" :key="category" class="mb-3">
+          <h5 v-if="category !== 'uncategorized'" class="font-medium text-sm text-gray-700 mb-1">{{ category }}</h5>
+          <ul class="list-disc pl-5">
+            <li v-for="ingredient in getIngredientsForCategory(category)" :key="ingredient.ID" class="mb-1">
+              {{ ingredient.Hoeveelheid }} {{ ingredient.Eenheid }} {{ ingredient.Naam }}
+              <span v-if="ingredient.Per_Persoon" class="text-xs text-gray-600">(per persoon)</span>
+            </li>
+          </ul>
+        </div>
       </div>
-    </div>
+      
+      <!-- Traditional Ingredients Display -->
+      <div v-else-if="selectedRecept.Ingrediënten" class="bg-gray-50 p-4 mb-4 rounded">
+        <h4 class="font-medium mb-2">Ingrediënten:</h4>
+        <pre class="whitespace-pre-wrap">{{ selectedRecept.Ingrediënten }}</pre>
+      </div>
+      
+      <!-- No Ingredients -->
+      <div v-else class="bg-gray-50 p-4 mb-4 rounded">
+        <h4 class="font-medium mb-2">Ingrediënten:</h4>
+        <p class="text-gray-600">Geen ingrediënten vermeld</p>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+        <div>
+          <p><span class="font-medium">Moeilijkheidsgraad:</span> {{ selectedRecept.Moeilijkheidsgraad || '-' }}</p>
+          <p><span class="font-medium">Bereidingstijd:</span> {{ selectedRecept.Bereidingstijd }} minuten</p>
+        </div>
+        <div>
+          <p><span class="font-medium">Vegetarische optie:</span> {{ selectedRecept.Heeft_Vega_Optie ? 'Ja' : 'Nee' }}</p>
+          <p><span class="font-medium">Allergieën:</span> {{ selectedRecept.Allergieën || 'Geen' }}</p>
+        </div>
+      </div>
+
+      <div class="mb-4" v-if="selectedRecept.Opmerkingen">
+        <h4 class="font-medium mb-2">Opmerkingen:</h4>
+        <p class="whitespace-pre-wrap">{{ selectedRecept.Opmerkingen }}</p>
+      </div>
+
+      <div class="flex justify-end mt-4">
+        <button 
+          @click="showDetailsModal = false" 
+          class="px-4 py-2 bg-gray-200 text-gray-800 rounded hover:bg-gray-300"
+        >
+          Sluiten
+        </button>
+      </div>
+    </BaseModal>
+
+    <!-- Delete Confirmation Modal -->
+    <BaseModal
+      v-model="showDeleteModal"
+      title="Recept verwijderen"
+      size="sm"
+      confirm-text="Verwijderen"
+      :disabled="deleting"
+      confirm-button-class="bg-red-600 hover:bg-red-700"
+      @confirm="deleteRecept"
+    >
+      <p>Weet je zeker dat je het recept "{{ receptToDelete?.Naam }}" wilt verwijderen?</p>
+      <p class="text-sm text-gray-600 mt-2">Deze actie kan niet ongedaan worden gemaakt.</p>
+    </BaseModal>
 
     <!-- Simple toast notification -->
     <div 
@@ -371,6 +365,7 @@
 <script setup>
 import { ref, onMounted, reactive, computed } from 'vue';
 import ScoutManagementNav from '@/components/admin/ScoutManagementNav.vue';
+import BaseModal from '@/components/ui/BaseModal.vue';
 import { apiClient } from '@/services/api';
 
 // State variables

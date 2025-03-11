@@ -1,10 +1,6 @@
-const db = require('../db').instance;
+const DbService = require('../db/services/db.service');
 
 class UserService {
-  constructor() {
-    this.db = db;
-  }
-
   /**
    * Creates a new user in the database.
    *
@@ -16,20 +12,19 @@ class UserService {
    * @returns {Promise<Object>} A promise that resolves to the created user object.
    */
   async createUser({ firebaseUid, email, stripeCustomerId, isAdmin = 0 }) {
-    return new Promise((resolve, reject) => {
-      this.db.run(
-        `INSERT INTO users (firebase_uid, email, stripe_customer_id, is_admin) 
-         VALUES (?, ?, ?, ?)`,
-        [firebaseUid, email, stripeCustomerId, isAdmin],
-        function(err) {
-          if (err) {
-            reject(err);
-            return;
-          }
-          resolve({ firebaseUid, email, stripeCustomerId, isAdmin });
-        }
-      );
-    });
+    try {
+      const data = {
+        firebase_uid: firebaseUid,
+        email,
+        stripe_customer_id: stripeCustomerId,
+        is_admin: isAdmin
+      };
+      
+      await DbService.create('users', data);
+      return { firebaseUid, email, stripeCustomerId, isAdmin };
+    } catch (error) {
+      throw error;
+    }
   }
 
   /**
@@ -39,35 +34,21 @@ class UserService {
    * @returns {Promise<Object>} A promise that resolves to the user object if found, or rejects with an error.
    */
   async getUserByFirebaseId(firebaseUid) {
-    return new Promise((resolve, reject) => {
-      this.db.get(
-        `SELECT * FROM users WHERE firebase_uid = ?`,
-        [firebaseUid],
-        (err, row) => {
-          if (err) {
-            reject(err);
-            return;
-          }
-          resolve(row);
-        }
-      );
-    });
+    return DbService.getById('users', 'firebase_uid', firebaseUid);
   }
 
+  /**
+   * Retrieves a user from the database by their email.
+   *
+   * @param {string} email - The email of the user to retrieve.
+   * @returns {Promise<Object>} A promise that resolves to the user object if found, or null.
+   */
   async getUserByEmail(email) {
-    return new Promise((resolve, reject) => {
-      this.db.get(
-        `SELECT * FROM users WHERE email = ?`,
-        [email],
-        (err, row) => {
-          if (err) {
-            reject(err);
-          } else {
-            resolve(row || null);
-          }
-        }
-      );
-    });
+    try {
+      return await DbService.queryOne('SELECT * FROM users WHERE email = ?', [email]);
+    } catch (error) {
+      throw error;
+    }
   }
 
   /**
@@ -78,19 +59,7 @@ class UserService {
    */
   async getUserByStripeId(stripeCustomerId) {
     console.log(stripeCustomerId);
-    return new Promise((resolve, reject) => {
-      this.db.get(
-        `SELECT * FROM users WHERE stripe_customer_id = ?`,
-        [stripeCustomerId],
-        (err, row) => {
-          if (err) {
-            reject(err);
-            return;
-          }
-          resolve(row);
-        }
-      );
-    });
+    return DbService.queryOne('SELECT * FROM users WHERE stripe_customer_id = ?', [stripeCustomerId]);
   }
 
   /**
@@ -101,76 +70,57 @@ class UserService {
    * @throws {Error} If there is an error during the database operation.
    */
   async makeUserAdmin(firebaseUid) {
-    return new Promise((resolve, reject) => {
-      this.db.run(
-        `UPDATE users SET is_admin = 1 WHERE firebase_uid = ?`,
-        [firebaseUid],
-        (err) => {
-          if (err) {
-            reject(err);
-            return;
-          }
-          resolve({ success: true });
-        }
-      );
-    });
+    try {
+      await DbService.update('users', 'firebase_uid', firebaseUid, { is_admin: 1 });
+      return { success: true };
+    } catch (error) {
+      throw error;
+    }
   }
 
-
-    /**
-     * Checks if a user is an admin based on their Firebase UID.
-     *
-     * @param {string} firebaseUid - The Firebase UID of the user.
-     * @returns {Promise<boolean>} - A promise that resolves to a boolean indicating whether the user is an admin.
-     */
-    async isUserAdmin(firebaseUid) {
-      return new Promise((resolve, reject) => {
-        this.db.get(
-          `SELECT is_admin FROM users WHERE firebase_uid = ?`,
-          [firebaseUid],
-          (err, row) => {
-            if (err) {
-              reject(err);
-              return;
-            }
-            resolve(row ? !!row.is_admin : false);
-          }
-        );
-      });
+  /**
+   * Checks if a user is an admin based on their Firebase UID.
+   *
+   * @param {string} firebaseUid - The Firebase UID of the user.
+   * @returns {Promise<boolean>} - A promise that resolves to a boolean indicating whether the user is an admin.
+   */
+  async isUserAdmin(firebaseUid) {
+    try {
+      const row = await DbService.queryOne('SELECT is_admin FROM users WHERE firebase_uid = ?', [firebaseUid]);
+      return row ? !!row.is_admin : false;
+    } catch (error) {
+      throw error;
     }
+  }
 
- // Get all users
- async getAllUsers() {
-  return new Promise((resolve, reject) => {
-    this.db.all('SELECT firebase_uid, email, is_admin FROM users', [], (err, rows) => {
-      if (err) reject(err);
-      else resolve(rows);
-    });
-  });
+  /**
+   * Get all users from the database.
+   * 
+   * @returns {Promise<Array>} A promise that resolves to an array of user objects.
+   */
+  async getAllUsers() {
+    return DbService.query('SELECT firebase_uid, email, is_admin FROM users');
+  }
+
+  /**
+   * Delete a user from the database.
+   * 
+   * @param {string} firebaseUid - The Firebase UID of the user to delete.
+   * @returns {Promise<void>} A promise that resolves when the user is deleted.
+   */
+  async deleteUser(firebaseUid) {
+    return DbService.delete('users', 'firebase_uid', firebaseUid);
+  }
+
+  /**
+   * Remove admin privileges from a user.
+   * 
+   * @param {string} firebaseUid - The Firebase UID of the user.
+   * @returns {Promise<void>} A promise that resolves when admin privileges are removed.
+   */
+  async removeUserAdmin(firebaseUid) {
+    return DbService.update('users', 'firebase_uid', firebaseUid, { is_admin: 0 });
+  }
 }
 
-// Delete a user
-async deleteUser(firebaseUid) {
-  return new Promise((resolve, reject) => {
-    this.db.run('DELETE FROM users WHERE firebase_uid = ?', [firebaseUid], function (err) {
-      if (err) reject(err);
-      else resolve();
-    });
-  });
-}
-
-
-async removeUserAdmin(firebaseUid) {
-  return new Promise((resolve, reject) => {
-    db.run(
-      'UPDATE users SET is_admin = 0 WHERE firebase_uid = ?',
-      [firebaseUid],
-      (err) => {
-        if (err) reject(err);
-        else resolve();
-      }
-    );
-  });
-}
-}
 module.exports = new UserService();
