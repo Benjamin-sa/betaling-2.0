@@ -12,6 +12,11 @@ A web application for managing product orders and payments for Scouts events, bu
 - 📱 Responsive design
 - 🔒 Secure webhook handling
 - 💾 SQLite database with automatic backups
+- 👨‍👩‍👧‍👦 Member management system
+- 🏕️ Camp planning and organization
+- 🍲 Meal planning with recipes and ingredients
+- 📝 Material inventory tracking
+- 🗺️ Campsite (Wei) management
 
 ## Prerequisites
 
@@ -78,6 +83,7 @@ betaling-2.0/
 │   └── public/
 ├── server/              # Express backend
 │   ├── routes/
+│   │   ├── scout-management/  # Scout management routes
 │   ├── services/
 │   ├── middleware/
 │   └── db/
@@ -116,6 +122,17 @@ betaling-2.0/
 
 ### Webhooks
 - `POST /webhook/stripe` - Stripe webhook endpoint
+
+### Scout Management
+- `GET /api/scout-management/leden` - Get all members (with optional filtering)
+- `GET /api/scout-management/leden/leiding` - Get all leaders
+- `GET /api/scout-management/kampen` - Get all camps
+- `POST /api/scout-management/kampen` - Create a new camp
+- `GET /api/scout-management/maaltijden` - Get all meals
+- `GET /api/scout-management/recepten` - Get all recipes
+- `GET /api/scout-management/materialen` - Get all materials
+- `GET /api/scout-management/materialen/types` - Get all material types
+- `GET /api/scout-management/weien` - Get all camp locations
 
 ## License
 

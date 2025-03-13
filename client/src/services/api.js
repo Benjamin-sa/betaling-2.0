@@ -527,5 +527,17 @@ export const apiClient = {
     return this.request(`/scout-management/kampen/${id}`, {
       method: 'DELETE'
     });
+  },
+
+  /**
+   * Get registration status
+   * @returns {Promise<Object>} The registration status
+   */
+  async getRegistrationStatus() {
+    try {
+      return response = 'true';
+    } catch (error) {
+      throw new Error(error.response?.data?.message || 'Failed to get registration status');
+    }
   }
 };

@@ -1,7 +1,7 @@
 <template>
   <div class="home-container">
     <!-- E-commerce Style Payment Notice Banner -->
-    <div v-if="manualPaymentsEnabled && showBanner" class="bg-gradient-to-r from-blue-50 to-indigo-50 fixed z-10 bottom-20 sm:bottom-6 right-4 sm:right-6 max-w-sm rounded-lg shadow-lg overflow-hidden">
+    <div v-if="manualPaymentsEnabled && showBanner && !registrationsClosed" class="bg-gradient-to-r from-blue-50 to-indigo-50 fixed z-10 bottom-20 sm:bottom-6 right-4 sm:right-6 max-w-sm rounded-lg shadow-lg overflow-hidden">
       <div class="border-l-4 border-blue-400 p-4">
         <div class="flex">
           <!-- Close Button -->
@@ -108,15 +108,20 @@
           Schrijf je in voor onze jaarlijkse spaghetti avond op 15 maart 2025. Kies je shift en geniet van heerlijke spaghetti!
         </p>
         
-        <!-- Call to Action -->
+        <!-- Call to Action - Show different button based on registration status -->
         <div class="mt-6 sm:mt-8 flex flex-col sm:flex-row gap-4">
-          <a 
+          <a v-if="!registrationsClosed" 
             @click.prevent="scrollToProducts" 
             href="#products" 
             class="w-full sm:w-auto text-center px-6 py-3 border border-transparent text-base font-medium rounded-md shadow-sm text-white bg-primary hover:bg-green-700 transition-colors"
           >
             Kies je shift
           </a>
+          <div v-else
+            class="w-full sm:w-auto text-center px-6 py-3 border border-transparent text-base font-medium rounded-md shadow-sm text-white bg-red-600"
+          >
+            Inschrijvingen gesloten
+          </div>
         </div>
       </div>
 
@@ -130,135 +135,156 @@
   <div>
     <!-- Main Content -->
     <div id="products-section" class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-      <!-- Time Slot Selector -->
-      <div class="mb-8">
-        <TimeSlotSelector v-model="selectedTimeSlot" />
+      <!-- Registration Closed Message -->
+      <div v-if="registrationsClosed" class="text-center py-12 bg-red-50 border border-red-100 rounded-lg mb-8">
+        <div class="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-red-100 mb-4">
+          <svg class="h-6 w-6 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+        </div>
+        <h3 class="mt-2 text-lg font-medium text-gray-900">Inschrijvingen zijn gesloten</h3>
+        <p class="mt-3 text-base text-gray-500 max-w-md mx-auto">
+          De inschrijvingen voor deze activiteit zijn momenteel niet beschikbaar. Bedankt voor je interesse!
+        </p>
+        <div class="mt-6">
+          <a href="mailto:groepsleiding@lodlavki.be" class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500">
+            Contact opnemen
+          </a>
+        </div>
       </div>
 
-      <!-- Loading State -->
-      <div v-if="loading" class="flex justify-center py-12">
-        <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
-      </div>
+      <!-- Only show the following sections if registrations are not closed -->
+      <template v-if="!registrationsClosed">
+        <!-- Time Slot Selector -->
+        <div class="mb-8">
+          <TimeSlotSelector v-model="selectedTimeSlot" />
+        </div>
 
-      <!-- Empty State -->
-      <div v-else-if="products.length === 0" class="text-center py-12">
-        <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4"/>
-        </svg>
-        <h3 class="mt-2 text-sm font-medium text-gray-900">Geen producten beschikbaar</h3>
-        <p class="mt-1 text-sm text-gray-500">Kom later terug voor nieuwe producten!</p>
-      </div>
+        <!-- Loading State -->
+        <div v-if="loading" class="flex justify-center py-12">
+          <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+        </div>
 
-      <!-- Products Grid -->
-      <div v-else>
-        <!-- Products that require time slots -->
-        <div v-if="productsWithTimeSlot.length > 0">
-          <div class="grid grid-cols-1 gap-8 md:grid-cols-2 lg:grid-cols-3 mb-12">
-            <div v-for="product in productsWithTimeSlot" :key="product.id" 
-                 class="group bg-white rounded-lg shadow-lg overflow-hidden transform transition-all duration-300 hover:-translate-y-1 hover:shadow-xl">
-              <div class="relative aspect-w-4 aspect-h-3">
-                <img v-if="product.imageUrl"
-                     :src="product.imageUrl" 
-                     :alt="product.name" 
-                     @error="handleImageError(product)"
-                     class="w-full h-full object-cover transform transition-transform group-hover:scale-105" />
-                <div v-else
-                     class="w-full h-full bg-gradient-to-br from-primary/10 to-primary/5 flex flex-col items-center justify-center p-4">
-                  <span class="text-2xl font-bold text-primary/80 text-center">{{ product.name }}</span>
-                  <span class="mt-2 text-sm text-gray-600 text-center">€{{ product.price.toFixed(2) }}</span>
+        <!-- Empty State -->
+        <div v-else-if="products.length === 0" class="text-center py-12">
+          <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4"/>
+          </svg>
+          <h3 class="mt-2 text-sm font-medium text-gray-900">Geen producten beschikbaar</h3>
+          <p class="mt-1 text-sm text-gray-500">Kom later terug voor nieuwe producten!</p>
+        </div>
+
+        <!-- Products Grid -->
+        <div v-else>
+          <!-- Products that require time slots -->
+          <div v-if="productsWithTimeSlot.length > 0">
+            <div class="grid grid-cols-1 gap-8 md:grid-cols-2 lg:grid-cols-3 mb-12">
+              <div v-for="product in productsWithTimeSlot" :key="product.id" 
+                   class="group bg-white rounded-lg shadow-lg overflow-hidden transform transition-all duration-300 hover:-translate-y-1 hover:shadow-xl">
+                <div class="relative aspect-w-4 aspect-h-3">
+                  <img v-if="product.imageUrl"
+                       :src="product.imageUrl" 
+                       :alt="product.name" 
+                       @error="handleImageError(product)"
+                       class="w-full h-full object-cover transform transition-transform group-hover:scale-105" />
+                  <div v-else
+                       class="w-full h-full bg-gradient-to-br from-primary/10 to-primary/5 flex flex-col items-center justify-center p-4">
+                    <span class="text-2xl font-bold text-primary/80 text-center">{{ product.name }}</span>
+                    <span class="mt-2 text-sm text-gray-600 text-center">€{{ product.price.toFixed(2) }}</span>
+                  </div>
+                </div>
+                
+                <div class="p-6">
+                  <h3 class="text-xl font-bold text-gray-900 mb-2">{{ product.name }}</h3>
+                  <p class="text-gray-600 text-sm mb-4">{{ product.description }}</p>
+                  
+                  <div class="flex items-center justify-between">
+                    <span class="text-2xl font-bold text-primary">€{{ product.price.toFixed(2) }}</span>
+                    <div class="flex items-center space-x-2">
+                      <button @click="decreaseQuantity(product.id)" 
+                              class="p-1 rounded-full hover:bg-gray-100">
+                        <svg class="w-6 h-6 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 12H4"/>
+                        </svg>
+                      </button>
+                      
+                      <input type="number"
+                             v-model.number="quantities[product.id]"
+                             min="0"
+                             class="w-16 text-center border-gray-200 rounded-md focus:ring-primary focus:border-primary" />
+                      
+                      <button @click="increaseQuantity(product.id)"
+                              class="p-1 rounded-full hover:bg-gray-100">
+                        <svg class="w-6 h-6 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
+                        </svg>
+                      </button>
+                    </div>
+                  </div>
                 </div>
               </div>
-              
-              <div class="p-6">
-                <h3 class="text-xl font-bold text-gray-900 mb-2">{{ product.name }}</h3>
-                <p class="text-gray-600 text-sm mb-4">{{ product.description }}</p>
+            </div>
+          </div>
+
+          <!-- Divider if both types exist -->
+          <div v-if="productsWithTimeSlot.length > 0 && productsWithoutTimeSlot.length > 0" 
+               class="border-t border-gray-200 my-12"></div>
+
+          <!-- Products without time slots -->
+          <div v-if="productsWithoutTimeSlot.length > 0">
+            <h2 class="text-xl font-bold text-gray-900 mb-6">Extra's</h2>
+            <div class="grid grid-cols-1 gap-8 md:grid-cols-2 lg:grid-cols-3">
+              <div v-for="product in productsWithoutTimeSlot" :key="product.id" 
+                   class="group bg-white rounded-lg shadow-lg overflow-hidden transform transition-all duration-300 hover:-translate-y-1 hover:shadow-xl">
+                <div class="relative aspect-w-4 aspect-h-3">
+                  <img v-if="product.imageUrl"
+                       :src="product.imageUrl" 
+                       :alt="product.name" 
+                       @error="handleImageError(product)"
+                       class="w-full h-full object-cover transform transition-transform group-hover:scale-105" />
+                  <div v-else
+                       class="w-full h-full bg-gradient-to-br from-primary/10 to-primary/5 flex flex-col items-center justify-center p-4">
+                    <span class="text-2xl font-bold text-primary/80 text-center">{{ product.name }}</span>
+                    <span class="mt-2 text-sm text-gray-600 text-center">€{{ product.price.toFixed(2) }}</span>
+                  </div>
+                </div>
                 
-                <div class="flex items-center justify-between">
-                  <span class="text-2xl font-bold text-primary">€{{ product.price.toFixed(2) }}</span>
-                  <div class="flex items-center space-x-2">
-                    <button @click="decreaseQuantity(product.id)" 
-                            class="p-1 rounded-full hover:bg-gray-100">
-                      <svg class="w-6 h-6 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 12H4"/>
-                      </svg>
-                    </button>
-                    
-                    <input type="number"
-                           v-model.number="quantities[product.id]"
-                           min="0"
-                           class="w-16 text-center border-gray-200 rounded-md focus:ring-primary focus:border-primary" />
-                    
-                    <button @click="increaseQuantity(product.id)"
-                            class="p-1 rounded-full hover:bg-gray-100">
-                      <svg class="w-6 h-6 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
-                      </svg>
-                    </button>
+                <div class="p-6">
+                  <h3 class="text-xl font-bold text-gray-900 mb-2">{{ product.name }}</h3>
+                  <p class="text-gray-600 text-sm mb-4">{{ product.description }}</p>
+                  
+                  <div class="flex items-center justify-between">
+                    <span class="text-2xl font-bold text-primary">€{{ product.price.toFixed(2) }}</span>
+                    <div class="flex items-center space-x-2">
+                      <button @click="decreaseQuantity(product.id)" 
+                              class="p-1 rounded-full hover:bg-gray-100">
+                        <svg class="w-6 h-6 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 12H4"/>
+                        </svg>
+                      </button>
+                      
+                      <input type="number"
+                             v-model.number="quantities[product.id]"
+                             min="0"
+                             class="w-16 text-center border-gray-200 rounded-md focus:ring-primary focus:border-primary" />
+                      
+                      <button @click="increaseQuantity(product.id)"
+                              class="p-1 rounded-full hover:bg-gray-100">
+                        <svg class="w-6 h-6 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
+                        </svg>
+                      </button>
+                    </div>
                   </div>
                 </div>
               </div>
             </div>
           </div>
         </div>
-
-        <!-- Divider if both types exist -->
-        <div v-if="productsWithTimeSlot.length > 0 && productsWithoutTimeSlot.length > 0" 
-             class="border-t border-gray-200 my-12"></div>
-
-        <!-- Products without time slots -->
-        <div v-if="productsWithoutTimeSlot.length > 0">
-          <h2 class="text-xl font-bold text-gray-900 mb-6">Extra's</h2>
-          <div class="grid grid-cols-1 gap-8 md:grid-cols-2 lg:grid-cols-3">
-            <div v-for="product in productsWithoutTimeSlot" :key="product.id" 
-                 class="group bg-white rounded-lg shadow-lg overflow-hidden transform transition-all duration-300 hover:-translate-y-1 hover:shadow-xl">
-              <div class="relative aspect-w-4 aspect-h-3">
-                <img v-if="product.imageUrl"
-                     :src="product.imageUrl" 
-                     :alt="product.name" 
-                     @error="handleImageError(product)"
-                     class="w-full h-full object-cover transform transition-transform group-hover:scale-105" />
-                <div v-else
-                     class="w-full h-full bg-gradient-to-br from-primary/10 to-primary/5 flex flex-col items-center justify-center p-4">
-                  <span class="text-2xl font-bold text-primary/80 text-center">{{ product.name }}</span>
-                  <span class="mt-2 text-sm text-gray-600 text-center">€{{ product.price.toFixed(2) }}</span>
-                </div>
-              </div>
-              
-              <div class="p-6">
-                <h3 class="text-xl font-bold text-gray-900 mb-2">{{ product.name }}</h3>
-                <p class="text-gray-600 text-sm mb-4">{{ product.description }}</p>
-                
-                <div class="flex items-center justify-between">
-                  <span class="text-2xl font-bold text-primary">€{{ product.price.toFixed(2) }}</span>
-                  <div class="flex items-center space-x-2">
-                    <button @click="decreaseQuantity(product.id)" 
-                            class="p-1 rounded-full hover:bg-gray-100">
-                      <svg class="w-6 h-6 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 12H4"/>
-                      </svg>
-                    </button>
-                    
-                    <input type="number"
-                           v-model.number="quantities[product.id]"
-                           min="0"
-                           class="w-16 text-center border-gray-200 rounded-md focus:ring-primary focus:border-primary" />
-                    
-                    <button @click="increaseQuantity(product.id)"
-                            class="p-1 rounded-full hover:bg-gray-100">
-                      <svg class="w-6 h-6 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
-                      </svg>
-                    </button>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
+      </template>
 
     <!-- Checkout Bar -->
-<div v-if="hasItems" 
+<div v-if="hasItems && !registrationsClosed" 
      class="fixed bottom-0 left-0 right-0 bg-white border-t shadow-lg">
   
   <!-- Collapsed Summary -->
@@ -332,6 +358,13 @@
             Kom op 15 maart genieten van onze heerlijke spaghetti! Kies een shift die jou het beste uitkomt.
             De opbrengst gaat naar onze scoutswerking. Smakelijk!
           </p>
+          
+          <!-- Registration status notice -->
+          <div v-if="registrationsClosed" class="mt-6 p-4 bg-red-50 rounded-lg inline-block mx-auto">
+            <p class="text-sm font-medium text-red-800">
+              Inschrijvingen zijn momenteel gesloten
+            </p>
+          </div>
         </div>
       </div>
     </div>
@@ -354,6 +387,9 @@ import { useAuthStore } from '@/stores/auth';
 import Modal from '@/components/ui/Modal.vue'; // Add this
 import TimeSlotSelector from '@/components/ui/TimeSlotSelector.vue'; // Add this
 
+// HARDCODED FLAG: Set to true to close registrations, false to keep them open
+const registrationsClosed = ref(true);
+
 const router = useRouter(); // Add this
 const auth = useAuthStore();
 const stripePromise = loadStripe('pk_live_51Q2YysK7LyHlGaLskm9jgeFHZ8r7ZeCHxNzEvEO1553OeCAcXzAYQIXGvWgggcp6aZQCV61IgF5gJqwTJY4YK6d1009Gq55TcX');
@@ -370,14 +406,17 @@ const showInfoModal = ref(false); // Add this for the modal
 // Laad producten vanuit de lokale backend
 const loadProducts = async () => {
   try {
-    const data = await apiClient.getProducts();
-    products.value = data.products;
+    // Only load products if registrations are open
+    if (!registrationsClosed.value) {
+      const data = await apiClient.getProducts();
+      products.value = data.products;
 
-    // Initialiseer hoeveelheden vanuit localStorage
-    const savedQuantities = JSON.parse(localStorage.getItem('quantities')) || {};
-    products.value.forEach((product) => {
-      quantities.value[product.id] = savedQuantities[product.id] || 0;
-    });
+      // Initialiseer hoeveelheden vanuit localStorage
+      const savedQuantities = JSON.parse(localStorage.getItem('quantities')) || {};
+      products.value.forEach((product) => {
+        quantities.value[product.id] = savedQuantities[product.id] || 0;
+      });
+    }
   } catch (error) {
     console.error('Error loading products:', error);
     alert('Er is een fout opgetreden bij het laden van de producten.');
@@ -546,13 +585,16 @@ const openInfoModal = () => {
 
 onMounted(async () => {
   try {
-    
-    
-    const [productsResponse, manualPaymentsStatus] = await Promise.all([
-      loadProducts(),
-      apiClient.isManualPaymentsEnabled()
-    ]);
-    manualPaymentsEnabled.value = manualPaymentsStatus;
+    if (!registrationsClosed.value) {
+      const [productsResponse, manualPaymentsStatus] = await Promise.all([
+        loadProducts(),
+        apiClient.isManualPaymentsEnabled()
+      ]);
+      manualPaymentsEnabled.value = manualPaymentsStatus;
+    } else {
+      // No need to load products or check payment settings if registrations are closed
+      loading.value = false;
+    }
   } catch (error) {
     console.error('Error during initialization:', error);
   }
