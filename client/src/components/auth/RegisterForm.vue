@@ -86,7 +86,7 @@
 import { ref } from 'vue';
 import { useAuthStore } from '@/stores/auth';
 import { useRouter } from 'vue-router';
-import Modal from '@/components/Modal.vue';
+import Modal from '@/components/ui/Modal.vue';
 
 const router = useRouter(); // Add router instance
 const auth = useAuthStore();
