@@ -1,108 +1,110 @@
 // server/services/order.service.js
-const db = require('../db').instance;
+const admin = require("../config/firebaseAdmin");
 
 class OrderService {
+  constructor() {
+    this.db = admin.firestore();
+  }
   async getAllOrdersWithItems() {
-    return new Promise((resolve, reject) => {
-      db.all(
-        `
-        SELECT 
-          orders.id AS order_id, 
-          orders.created_at, 
-          orders.time_slot,
-          orders.payment_method,
-          orders.manual_payment_confirmed_at,
-          orders.manual_payment_confirmed_by,
-          users.email, 
-          order_items.product_name, 
-          order_items.quantity, 
-          order_items.amount_total,
-          confirmed_by.email as confirmed_by_email
-        FROM orders
-        JOIN users ON orders.user_id = users.firebase_uid
-        JOIN order_items ON orders.id = order_items.order_id
-        LEFT JOIN users AS confirmed_by ON orders.manual_payment_confirmed_by = confirmed_by.firebase_uid
-        ORDER BY orders.created_at DESC
-        `,
-        [],
-        (err, rows) => {
-          if (err) reject(err);
-          else {
-            // Process rows to include payment status information
-            const processedRows = rows.map(row => ({
-              ...row,
-              payment_status: row.payment_method === 'stripe' ? 'paid' : 
-                            (row.manual_payment_confirmed_at ? 'manual_confirmed' : 'manual_pending'),
-              confirmation_details: row.manual_payment_confirmed_at ? {
-                confirmed_at: row.manual_payment_confirmed_at,
-                confirmed_by: row.confirmed_by_email
-              } : null
-            }));
-            resolve(processedRows);
-          }
-        }
-      );
-    });
+    try {
+      const ordersSnapshot = await this.db
+        .collection("orders")
+        .orderBy("createdAt", "desc")
+        .get();
+      const usersSnapshot = await this.db.collection("users").get();
+
+      // Create user lookup
+      const users = {};
+      usersSnapshot.forEach((doc) => {
+        users[doc.id] = doc.data();
+      });
+
+      const allOrdersWithItems = [];
+
+      for (const orderDoc of ordersSnapshot.docs) {
+        const orderData = orderDoc.data();
+        const orderItemsSnapshot = await this.db
+          .collection("orders")
+          .doc(orderDoc.id)
+          .collection("items")
+          .get();
+
+        const user = users[orderData.userId];
+        const confirmedByUser = orderData.manualPaymentConfirmedBy
+          ? users[orderData.manualPaymentConfirmedBy]
+          : null;
+
+        orderItemsSnapshot.forEach((itemDoc) => {
+          const itemData = itemDoc.data();
+          allOrdersWithItems.push({
+            order_id: orderDoc.id,
+            created_at: orderData.createdAt,
+            time_slot: orderData.timeSlot,
+            payment_method: orderData.paymentMethod,
+            manual_payment_confirmed_at: orderData.manualPaymentConfirmedAt,
+            manual_payment_confirmed_by: orderData.manualPaymentConfirmedBy,
+            email: user?.email,
+            product_name: itemData.productName,
+            quantity: itemData.quantity,
+            amount_total: itemData.amountTotal,
+            confirmed_by_email: confirmedByUser?.email,
+            payment_status:
+              orderData.paymentMethod === "stripe"
+                ? "paid"
+                : orderData.manualPaymentConfirmedAt
+                ? "manual_confirmed"
+                : "manual_pending",
+            confirmation_details: orderData.manualPaymentConfirmedAt
+              ? {
+                  confirmed_at: orderData.manualPaymentConfirmedAt,
+                  confirmed_by: confirmedByUser?.email,
+                }
+              : null,
+          });
+        });
+      }
+
+      return allOrdersWithItems;
+    } catch (error) {
+      throw error;
+    }
   }
 
   // Save order and order items to the database
   async createOrder(order) {
-    return new Promise((resolve, reject) => {
-      db.serialize(() => {
-        // Start transaction
-        db.run('BEGIN TRANSACTION');
+    try {
+      // Create order document
+      await this.db
+        .collection("orders")
+        .doc(order.id)
+        .set({
+          userId: order.user_id,
+          amountTotal: order.amount_total,
+          currency: order.currency,
+          paymentMethod: order.payment_method || "stripe",
+          timeSlot: order.time_slot || null,
+          createdAt: admin.firestore.FieldValue.serverTimestamp(),
+        });
 
-        // Insert order
-        db.run(
-          `INSERT INTO orders (id, user_id, amount_total, currency) VALUES (?, ?, ?, ?)`,
-          [order.id, order.user_id, order.amount_total, order.currency],
-          (err) => {
-            if (err) {
-              db.run('ROLLBACK');
-              reject(err);
-              return;
-            }
+      // Create order items subcollection
+      const itemsRef = this.db
+        .collection("orders")
+        .doc(order.id)
+        .collection("items");
 
-            // Insert order items
-            const stmt = db.prepare(
-              `INSERT INTO order_items (order_id, product_name, quantity, amount_total, unit_price) VALUES (?, ?, ?, ?, ?)`
-            );
+      for (const item of order.items) {
+        await itemsRef.add({
+          productName: item.description,
+          quantity: item.quantity,
+          amountTotal: item.amount,
+          unitPrice: item.unit_price,
+        });
+      }
 
-            for (const item of order.items) {
-              stmt.run(
-                [order.id, item.description, item.quantity, item.amount, item.unit_price],
-                (err) => {
-                  if (err) {
-                    db.run('ROLLBACK');
-                    stmt.finalize();
-                    reject(err);
-                    return;
-                  }
-                }
-              );
-            }
-
-            stmt.finalize((err) => {
-              if (err) {
-                db.run('ROLLBACK');
-                reject(err);
-                return;
-              }
-
-              // Commit transaction
-              db.run('COMMIT', (err) => {
-                if (err) {
-                  db.run('ROLLBACK');
-                  reject(err);
-                  return;
-                }
-                resolve();
-              });
-            });
-          }
-        );
-      });
-    });
+      return order.id;
+    } catch (error) {
+      throw error;
+    }
   }
 }
 

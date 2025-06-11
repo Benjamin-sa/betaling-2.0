@@ -1,6 +1,6 @@
 // server/config/firebaseAdmin.js
-const admin = require('firebase-admin');
-const dotenv = require('dotenv');
+const admin = require("firebase-admin");
+const dotenv = require("dotenv");
 
 // Laad environment variables uit .env
 dotenv.config();
@@ -10,8 +10,11 @@ const base64ServiceAccount = process.env.FIREBASE_SERVICE_ACCOUNT_BASE64;
 
 if (base64ServiceAccount) {
   // Decodeer de base64-string
-  const decodedServiceAccount = Buffer.from(base64ServiceAccount, 'base64').toString('utf-8');
-  
+  const decodedServiceAccount = Buffer.from(
+    base64ServiceAccount,
+    "base64"
+  ).toString("utf-8");
+
   // Parse de JSON-string naar een object
   const serviceAccount = JSON.parse(decodedServiceAccount);
 
@@ -21,7 +24,7 @@ if (base64ServiceAccount) {
   });
 } else {
   // Fallback voor lokaal testen met JSON-bestand
-  const serviceAccount = require('./scoutswinkel-firebase-adminsdk-ucote-20a5438186');
+  const serviceAccount = require("./scoutswinkel-firebase-adminsdk-ucote-e949402905");
 
   admin.initializeApp({
     credential: admin.credential.cert(serviceAccount),

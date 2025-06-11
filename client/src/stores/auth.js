@@ -1,10 +1,17 @@
 // src/stores/auth.js
-import { defineStore } from 'pinia';
-import { ref, onMounted } from 'vue';
-import { auth } from '@/config/firebase';
-import { signInWithEmailAndPassword, signOut, GoogleAuthProvider, signInWithPopup, sendPasswordResetEmail, sendEmailVerification} from 'firebase/auth';
+import { defineStore } from "pinia";
+import { ref, onMounted } from "vue";
+import { auth } from "@/config/firebase";
+import {
+  signInWithEmailAndPassword,
+  signOut,
+  GoogleAuthProvider,
+  signInWithPopup,
+  sendPasswordResetEmail,
+  sendEmailVerification,
+} from "firebase/auth";
 
-export const useAuthStore = defineStore('auth', () => {
+export const useAuthStore = defineStore("auth", () => {
   const user = ref(null);
   const token = ref(null);
   const loading = ref(true);
@@ -16,25 +23,30 @@ export const useAuthStore = defineStore('auth', () => {
     try {
       error.value = null;
       loading.value = true;
-      
-      const response = await fetch(`${import.meta.env.VITE_SERVER_URL}/api/auth/register`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ email, password })
-      });
+
+      const response = await fetch(
+        `${import.meta.env.VITE_SERVER_URL}/api/auth/register`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ email, password }),
+        }
+      );
 
       if (!response.ok) {
         const data = await response.json();
-        throw new Error(data.error || 'Registration failed');
+        throw new Error(data.error || "Registration failed");
       }
 
-      const userCredential = await signInWithEmailAndPassword(auth, email, password);
+      const userCredential = await signInWithEmailAndPassword(
+        auth,
+        email,
+        password
+      );
       await sendEmailVerification(userCredential.user);
       await signOut(auth);
-    
-
     } catch (e) {
       error.value = e.message;
       throw e;
@@ -48,26 +60,13 @@ export const useAuthStore = defineStore('auth', () => {
     try {
       error.value = null;
       loading.value = true;
-      
-      const userCredential = await signInWithEmailAndPassword(auth, email, password);
-      // Check if email is verified
-      if (!userCredential.user.emailVerified) {
-        try {
-          await sendEmailVerification(userCredential.user);
-        } catch (verificationError) {
-          // Check if the error code is "auth/too-many-requests" or similar 400 error
-          if (verificationError.code === 'auth/too-many-requests' || String(verificationError.status) === '400') {
-            // Log a warning; you can also set an informational message in your UI if desired.
-            console.warn('Verification email already sent recently. Please check your inbox.');
-          } else {
-            throw verificationError;
-          }
-        }
-        await signOut(auth);
-        // Instead of always throwing a verification error, you might conditionally throw it
-        throw new Error('E-mailadres nog niet geverifieerd. Nieuwe verificatie e-mail verzonden.');
-      }
-      
+
+      const userCredential = await signInWithEmailAndPassword(
+        auth,
+        email,
+        password
+      );
+
       user.value = userCredential.user;
       token.value = await userCredential.user.getIdToken();
     } catch (e) {
@@ -83,29 +82,32 @@ export const useAuthStore = defineStore('auth', () => {
     try {
       error.value = null;
       loading.value = true;
-      
+
       const provider = new GoogleAuthProvider();
       const userCredential = await signInWithPopup(auth, provider);
       user.value = userCredential.user;
       token.value = await userCredential.user.getIdToken();
 
       // Check if user is already in the database
-      const response = await fetch(`${import.meta.env.VITE_SERVER_URL}/api/auth/ensure-user`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token.value}`
+      const response = await fetch(
+        `${import.meta.env.VITE_SERVER_URL}/api/auth/ensure-user`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token.value}`,
+          },
         }
-      });
+      );
 
       if (!response.ok) {
         const data = await response.json();
-        throw new Error(data.error || 'Failed to ensure user exists in backend.');
+        throw new Error(
+          data.error || "Failed to ensure user exists in backend."
+        );
       }
 
       await fetchAdminStatus();
-
-
     } catch (e) {
       error.value = e.message;
       throw e;
@@ -120,7 +122,7 @@ export const useAuthStore = defineStore('auth', () => {
       error.value = null;
       loading.value = true;
       await sendPasswordResetEmail(auth, email);
-      alert('Password reset email sent');
+      alert("Password reset email sent");
     } catch (e) {
       error.value = e.message;
       throw e;
@@ -146,28 +148,30 @@ export const useAuthStore = defineStore('auth', () => {
     }
   };
 
-
   /**
    * Fetch admin status from the backend
    */
   const fetchAdminStatus = async () => {
     if (!token.value) return;
     try {
-      const response = await fetch(`${import.meta.env.VITE_SERVER_URL}/api/auth/admin-status`, {
-        method: 'GET',
-        headers: {
-          'Authorization': `Bearer ${token.value}`,
-        },
-      });
+      const response = await fetch(
+        `${import.meta.env.VITE_SERVER_URL}/api/auth/admin-status`,
+        {
+          method: "GET",
+          headers: {
+            Authorization: `Bearer ${token.value}`,
+          },
+        }
+      );
 
       if (!response.ok) {
-        throw new Error('Failed to fetch admin status');
+        throw new Error("Failed to fetch admin status");
       }
 
       const data = await response.json();
       isAdmin.value = data.isAdmin;
     } catch (e) {
-      console.error('Error fetching admin status:', e.message);
+      console.error("Error fetching admin status:", e.message);
       isAdmin.value = false;
     }
   };
@@ -177,19 +181,22 @@ export const useAuthStore = defineStore('auth', () => {
     try {
       error.value = null;
       loading.value = true;
-      
-      const response = await fetch(`${import.meta.env.VITE_SERVER_URL}/api/auth/make-admin`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token.value}`
-        },
-        body: JSON.stringify({ email })
-      });
+
+      const response = await fetch(
+        `${import.meta.env.VITE_SERVER_URL}/api/auth/make-admin`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token.value}`,
+          },
+          body: JSON.stringify({ email }),
+        }
+      );
 
       if (!response.ok) {
         const data = await response.json();
-        throw new Error(data.error || 'Failed to make user admin');
+        throw new Error(data.error || "Failed to make user admin");
       }
 
       alert(`${email} is now an admin.`);
@@ -208,7 +215,6 @@ export const useAuthStore = defineStore('auth', () => {
         user.value = currentUser;
         token.value = await currentUser.getIdToken();
         await fetchAdminStatus();
-
       } else {
         user.value = null;
         token.value = null;
@@ -230,6 +236,6 @@ export const useAuthStore = defineStore('auth', () => {
     resetPassword,
     logout,
     makeUserAdmin,
-    fetchAdminStatus
+    fetchAdminStatus,
   };
 });

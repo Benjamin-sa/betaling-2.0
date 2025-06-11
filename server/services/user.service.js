@@ -1,6 +1,9 @@
-const DbService = require('../db/services/db.service');
+const admin = require("../config/firebaseAdmin");
 
 class UserService {
+  constructor() {
+    this.db = admin.firestore();
+  }
   /**
    * Creates a new user in the database.
    *
@@ -13,14 +16,16 @@ class UserService {
    */
   async createUser({ firebaseUid, email, stripeCustomerId, isAdmin = 0 }) {
     try {
-      const data = {
-        firebase_uid: firebaseUid,
-        email,
-        stripe_customer_id: stripeCustomerId,
-        is_admin: isAdmin
-      };
-      
-      await DbService.create('users', data);
+      await this.db
+        .collection("users")
+        .doc(firebaseUid)
+        .set({
+          email,
+          stripeCustomerId,
+          isAdmin: isAdmin === 1,
+          createdAt: admin.firestore.FieldValue.serverTimestamp(),
+        });
+
       return { firebaseUid, email, stripeCustomerId, isAdmin };
     } catch (error) {
       throw error;
@@ -34,7 +39,23 @@ class UserService {
    * @returns {Promise<Object>} A promise that resolves to the user object if found, or rejects with an error.
    */
   async getUserByFirebaseId(firebaseUid) {
-    return DbService.getById('users', 'firebase_uid', firebaseUid);
+    try {
+      const doc = await this.db.collection("users").doc(firebaseUid).get();
+
+      if (!doc.exists) {
+        return null;
+      }
+
+      const data = doc.data();
+      return {
+        firebase_uid: firebaseUid,
+        email: data.email,
+        stripe_customer_id: data.stripeCustomerId,
+        is_admin: data.isAdmin ? 1 : 0,
+      };
+    } catch (error) {
+      throw error;
+    }
   }
 
   /**
@@ -45,7 +66,23 @@ class UserService {
    */
   async getUserByEmail(email) {
     try {
-      return await DbService.queryOne('SELECT * FROM users WHERE email = ?', [email]);
+      const snapshot = await this.db
+        .collection("users")
+        .where("email", "==", email)
+        .get();
+
+      if (snapshot.empty) {
+        return null;
+      }
+
+      const doc = snapshot.docs[0];
+      const data = doc.data();
+      return {
+        firebase_uid: doc.id,
+        email: data.email,
+        stripe_customer_id: data.stripeCustomerId,
+        is_admin: data.isAdmin ? 1 : 0,
+      };
     } catch (error) {
       throw error;
     }
@@ -58,8 +95,27 @@ class UserService {
    * @returns {Promise<Object>} A promise that resolves to the user object if found, or rejects with an error.
    */
   async getUserByStripeId(stripeCustomerId) {
-    console.log(stripeCustomerId);
-    return DbService.queryOne('SELECT * FROM users WHERE stripe_customer_id = ?', [stripeCustomerId]);
+    try {
+      const snapshot = await this.db
+        .collection("users")
+        .where("stripeCustomerId", "==", stripeCustomerId)
+        .get();
+
+      if (snapshot.empty) {
+        return null;
+      }
+
+      const doc = snapshot.docs[0];
+      const data = doc.data();
+      return {
+        firebase_uid: doc.id,
+        email: data.email,
+        stripe_customer_id: data.stripeCustomerId,
+        is_admin: data.isAdmin ? 1 : 0,
+      };
+    } catch (error) {
+      throw error;
+    }
   }
 
   /**
@@ -71,7 +127,9 @@ class UserService {
    */
   async makeUserAdmin(firebaseUid) {
     try {
-      await DbService.update('users', 'firebase_uid', firebaseUid, { is_admin: 1 });
+      await this.db.collection("users").doc(firebaseUid).update({
+        isAdmin: true,
+      });
       return { success: true };
     } catch (error) {
       throw error;
@@ -86,8 +144,14 @@ class UserService {
    */
   async isUserAdmin(firebaseUid) {
     try {
-      const row = await DbService.queryOne('SELECT is_admin FROM users WHERE firebase_uid = ?', [firebaseUid]);
-      return row ? !!row.is_admin : false;
+      const doc = await this.db.collection("users").doc(firebaseUid).get();
+
+      if (!doc.exists) {
+        return false;
+      }
+
+      const data = doc.data();
+      return !!data.isAdmin;
     } catch (error) {
       throw error;
     }
@@ -95,31 +159,57 @@ class UserService {
 
   /**
    * Get all users from the database.
-   * 
+   *
    * @returns {Promise<Array>} A promise that resolves to an array of user objects.
    */
   async getAllUsers() {
-    return DbService.query('SELECT firebase_uid, email, is_admin FROM users');
+    try {
+      const snapshot = await this.db.collection("users").get();
+      const users = [];
+
+      snapshot.forEach((doc) => {
+        const data = doc.data();
+        users.push({
+          firebase_uid: doc.id,
+          email: data.email,
+          is_admin: data.isAdmin ? 1 : 0,
+        });
+      });
+
+      return users;
+    } catch (error) {
+      throw error;
+    }
   }
 
   /**
    * Delete a user from the database.
-   * 
+   *
    * @param {string} firebaseUid - The Firebase UID of the user to delete.
    * @returns {Promise<void>} A promise that resolves when the user is deleted.
    */
   async deleteUser(firebaseUid) {
-    return DbService.delete('users', 'firebase_uid', firebaseUid);
+    try {
+      await this.db.collection("users").doc(firebaseUid).delete();
+    } catch (error) {
+      throw error;
+    }
   }
 
   /**
    * Remove admin privileges from a user.
-   * 
+   *
    * @param {string} firebaseUid - The Firebase UID of the user.
    * @returns {Promise<void>} A promise that resolves when admin privileges are removed.
    */
   async removeUserAdmin(firebaseUid) {
-    return DbService.update('users', 'firebase_uid', firebaseUid, { is_admin: 0 });
+    try {
+      await this.db.collection("users").doc(firebaseUid).update({
+        isAdmin: false,
+      });
+    } catch (error) {
+      throw error;
+    }
   }
 }
 

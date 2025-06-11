@@ -1,141 +1,150 @@
 // server/services/storage.service.js
-const db = require('../db');
-const { v4: uuidv4 } = require('uuid');
+const admin = require("../config/firebaseAdmin");
+const { v4: uuidv4 } = require("uuid");
 
 class StorageService {
   constructor() {
-    this.db = db.instance;
+    this.db = admin.firestore();
   }
 
   async uploadImage(file, productId) {
-    return new Promise((resolve, reject) => {
+    try {
       const imageBuffer = file.buffer;
       const imageType = file.mimetype;
 
-      this.db.run(
-        `UPDATE products SET image = ?, imageType = ? WHERE id = ?`,
-        [imageBuffer, imageType, productId],
-        (err) => {
-          if (err) {
-            reject(err);
-            return;
-          }
-          resolve(productId);
-        }
-      );
-    });
+      await this.db
+        .collection("products")
+        .doc(productId)
+        .update({
+          image: imageBuffer.toString("base64"),
+          imageType: imageType,
+        });
+
+      return productId;
+    } catch (error) {
+      throw error;
+    }
   }
   async getAllProducts() {
-    return new Promise((resolve, reject) => {
-      this.db.all(
-        `SELECT id, name, description, price, stripe_product_id, stripe_price_id, created_at, requires_timeslot
-         FROM products`,
-        [],
-        (err, rows) => {
-          if (err) {
-            reject(err);
-            return;
-          }
-          resolve(rows.map(row => ({
-            ...row,
-            imageUrl: `/api/products/${row.id}/image`
-          })));
-        }
-      );
-    });
+    try {
+      const snapshot = await this.db.collection("products").get();
+      const products = [];
+
+      snapshot.forEach((doc) => {
+        const data = doc.data();
+        products.push({
+          id: doc.id,
+          name: data.name,
+          description: data.description,
+          price: data.price,
+          stripe_product_id: data.stripeProductId,
+          stripe_price_id: data.stripePriceId,
+          created_at: data.createdAt,
+          requires_timeslot: data.requiresTimeslot,
+          imageUrl: `/api/products/${doc.id}/image`,
+        });
+      });
+
+      return products;
+    } catch (error) {
+      throw error;
+    }
   }
 
   async getProduct(productId) {
-    return new Promise((resolve, reject) => {
-      this.db.get(
-        `SELECT * FROM products WHERE id = ?`,
-        [productId],
-        (err, row) => {
-          if (err) {
-            reject(err);
-            return;
-          }
-          if (row) {
-            resolve({
-              ...row,
-              imageUrl: `/api/products/${row.id}/image`
-            });
-          } else {
-            resolve(null);
-          }
-        }
-      );
-    });
+    try {
+      const doc = await this.db.collection("products").doc(productId).get();
+
+      if (!doc.exists) {
+        return null;
+      }
+
+      const data = doc.data();
+      return {
+        id: doc.id,
+        name: data.name,
+        description: data.description,
+        price: data.price,
+        stripe_product_id: data.stripeProductId,
+        stripe_price_id: data.stripePriceId,
+        created_at: data.createdAt,
+        requires_timeslot: data.requiresTimeslot,
+        imageUrl: `/api/products/${doc.id}/image`,
+      };
+    } catch (error) {
+      throw error;
+    }
   }
 
   async getProductImage(productId) {
-    return new Promise((resolve, reject) => {
-      this.db.get(
-        `SELECT image, image_type FROM products WHERE id = ?`,
-        [productId],
-        (err, row) => {
-          if (err) {
-            reject(err);
-            return;
-          }
-          resolve(row);
-        }
-      );
-    });
+    try {
+      const doc = await this.db.collection("products").doc(productId).get();
+
+      if (!doc.exists) {
+        return null;
+      }
+
+      const data = doc.data();
+      return {
+        image: data.image,
+        image_type: data.imageType,
+      };
+    } catch (error) {
+      throw error;
+    }
   }
 
-  async saveProduct({ name, description, price, image, imageType, stripeProductId, stripePriceId, requiresTimeslot }) {
-    return new Promise((resolve, reject) => {
+  async saveProduct({
+    name,
+    description,
+    price,
+    image,
+    imageType,
+    stripeProductId,
+    stripePriceId,
+    requiresTimeslot,
+  }) {
+    try {
       const id = uuidv4();
-      
-      // Ensure requiresTimeslot is a number (0 or 1)
-      const timeslotValue = requiresTimeslot ? 1 : 0;
-  
-      this.db.run(
-        `INSERT INTO products (
-          id, name, description, price, image, image_type,
-          stripe_product_id, stripe_price_id, requires_timeslot
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-        [id, name, description, price, image, imageType, stripeProductId, stripePriceId, timeslotValue],
-        function (err) {
-          if (err) {
-            reject(err);
-            return;
-          }
-          resolve({
-            id,
-            name,
-            description,
-            price,
-            imageUrl: `/api/products/${id}/image`,
-            stripeProductId,
-            stripePriceId,
-            requiresTimeslot: timeslotValue === 1  // Return as boolean for frontend
-          });
-        }
-      );
-    });
+
+      await this.db
+        .collection("products")
+        .doc(id)
+        .set({
+          name,
+          description,
+          price,
+          image,
+          imageType,
+          stripeProductId,
+          stripePriceId,
+          requiresTimeslot: requiresTimeslot ? true : false,
+          createdAt: admin.firestore.FieldValue.serverTimestamp(),
+        });
+
+      return {
+        id,
+        name,
+        description,
+        price,
+        imageUrl: `/api/products/${id}/image`,
+        stripeProductId,
+        stripePriceId,
+        requiresTimeslot: requiresTimeslot ? true : false,
+      };
+    } catch (error) {
+      throw error;
+    }
   }
 
   async deleteProduct(productId) {
-    return new Promise((resolve, reject) => {
-      // Hard delete by removing the row
-      this.db.run(
-        `DELETE FROM products WHERE id = ?`,
-        [productId],
-        function (err) {
-          if (err) {
-            reject(err);
-            return;
-          }
-          resolve({ id: productId });
-        }
-      );
-    });
+    try {
+      await this.db.collection("products").doc(productId).delete();
+      return { id: productId };
+    } catch (error) {
+      throw error;
+    }
   }
-
-
-
 }
 
 module.exports = new StorageService();
