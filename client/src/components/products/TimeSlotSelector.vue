@@ -1,7 +1,7 @@
 <template>
   <div class="bg-white p-6 rounded-lg shadow-sm border border-gray-200 touch-manipulation">
     <h3 class="text-lg font-medium text-gray-900 mb-4">Kies een shift</h3>
-    
+
     <!-- Loading State -->
     <div v-if="loading" class="flex items-center justify-center py-4">
       <div class="animate-spin rounded-full h-6 w-6 border-b-2 border-primary"></div>
@@ -14,20 +14,14 @@
 
     <!-- Time Slots Grid -->
     <div v-else class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-      <button
-        v-for="slot in timeSlots"
-        :key="slot.timeSlot"
-        @click="selectTimeSlot(slot.timeSlot)"
-        :class="[
-          'relative p-4 rounded-lg border text-left transition-all',
-          slot.isFull ? 
-            'bg-gray-50 cursor-not-allowed border-gray-200' :
+      <button v-for="slot in timeSlots" :key="slot.timeSlot" @click="selectTimeSlot(slot.timeSlot)" :class="[
+        'relative p-4 rounded-lg border text-left transition-all',
+        slot.isFull ?
+          'bg-gray-50 cursor-not-allowed border-gray-200' :
           selectedTimeSlot === slot.timeSlot ?
             'border-primary ring-2 ring-primary ring-opacity-50 bg-primary bg-opacity-5' :
             'border-gray-200 hover:border-primary'
-        ]"
-        :disabled="slot.isFull"
-      >
+      ]" :disabled="slot.isFull">
         <div class="flex justify-between items-start">
           <div class="w-full">
             <p class="text-sm font-medium text-gray-900">{{ formatTimeSlot(slot.timeSlot) }}</p>
@@ -36,19 +30,16 @@
             </p>
             <!-- Capacity Progress Bar -->
             <div class="mt-2 w-full bg-gray-200 rounded-full h-2 overflow-hidden">
-              <div
-                :style="{ width: `${getCapacityPercentage(slot.available)}%` }"
-                :class="[
-                  'h-full transition-all duration-300',
-                  getProgressBarColor(slot.available)
-                ]"
-              ></div>
+              <div :style="{ width: `${getCapacityPercentage(slot.available)}%` }" :class="[
+                'h-full transition-all duration-300',
+                getProgressBarColor(slot.available)
+              ]"></div>
             </div>
             <p class="mt-1 text-xs text-gray-400">
               {{ getCapacityPercentage(slot.available) }}% bezet
             </p>
           </div>
-          
+
           <!-- Availability Indicator -->
           <div :class="[
             'h-2.5 w-2.5 rounded-full ml-2',
@@ -57,10 +48,9 @@
         </div>
 
         <!-- Selected Check Mark -->
-        <div v-if="selectedTimeSlot === slot.timeSlot" 
-             class="absolute top-2 right-2">
+        <div v-if="selectedTimeSlot === slot.timeSlot" class="absolute top-2 right-2">
           <svg class="h-5 w-5 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
           </svg>
         </div>
       </button>
@@ -68,7 +58,7 @@
 
     <!-- Help Text -->
     <p class="mt-4 text-sm text-gray-500">
-      Geselecteerd tijdslot: 
+      Geselecteerd tijdslot:
       <span v-if="selectedTimeSlot" class="font-medium text-gray-900">
         {{ formatTimeSlot(selectedTimeSlot) }}
       </span>
@@ -139,32 +129,7 @@ const selectTimeSlot = (timeSlot) => {
   emit('update:modelValue', timeSlot);
 };
 
-// Load time slots
-const loadTimeSlots = async () => {
-  loading.value = true;
-  error.value = null;
-  
-  try {
-    const response = await apiClient.getTimeSlotAvailability();
-    const availabilityData = response.availability || {};
 
-    // Merge fixed time slots with availability data
-    timeSlots.value = FIXED_TIME_SLOTS.map(slot => ({
-      timeSlot: slot,
-      available: Math.min(availabilityData[slot] || 0, MAX_CAPACITY),
-      isFull: (availabilityData[slot] || 0) === 0
-    }));
-  } catch (err) {
-    error.value = 'Er is een fout opgetreden bij het laden van de tijdsloten.';
-    console.error('Error loading time slots:', err);
-  } finally {
-    loading.value = false;
-  }
-};
-
-onMounted(() => {
-  loadTimeSlots();
-});
 </script>
 
 <style>

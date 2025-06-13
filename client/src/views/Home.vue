@@ -1,95 +1,5 @@
 <template>
   <div class="home-container">
-    <!-- E-commerce Style Payment Notice Banner -->
-    <div v-if="manualPaymentsEnabled && showBanner"
-      class="bg-gradient-to-r from-blue-50 to-indigo-50 fixed z-10 bottom-20 sm:bottom-6 right-4 sm:right-6 max-w-sm rounded-lg shadow-lg overflow-hidden">
-      <div class="border-l-4 border-blue-400 p-4">
-        <div class="flex">
-          <!-- Close Button -->
-          <button @click="closeBanner" class="absolute top-2 right-2 text-gray-400 hover:text-gray-600">
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-            </svg>
-          </button>
-
-          <div class="flex flex-col">
-            <div class="flex items-center mb-2">
-              <svg class="h-5 w-5 text-blue-500 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                  d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-              <h3 class="text-sm font-medium text-blue-800">
-                Betaling via overschrijving
-              </h3>
-            </div>
-            <p class="text-xs text-blue-700 mb-3">
-              We werken momenteel met overschrijvingen. Je krijgt alle betaalgegevens na je bestelling.
-            </p>
-            <div class="flex justify-end">
-              <a @click="openInfoModal"
-                class="text-xs font-medium text-blue-600 hover:text-blue-800 cursor-pointer">Meer info</a>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Payment Info Modal -->
-    <div v-if="showInfoModal" class="fixed inset-0 z-50 overflow-y-auto" aria-labelledby="payment-modal" role="dialog"
-      aria-modal="true">
-      <div class="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
-        <!-- Background overlay -->
-        <div class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" @click="showInfoModal = false"></div>
-
-        <!-- Modal panel -->
-        <div
-          class="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
-          <div class="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
-            <div class="sm:flex sm:items-start">
-              <div
-                class="mx-auto flex-shrink-0 flex items-center justify-center h-12 w-12 rounded-full bg-blue-100 sm:mx-0 sm:h-10 sm:w-10">
-                <svg class="h-6 w-6 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                    d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-              </div>
-              <div class="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left">
-                <h3 class="text-lg leading-6 font-medium text-gray-900" id="modal-title">
-                  Betaling via overschrijving
-                </h3>
-                <div class="mt-4 space-y-3">
-                  <p class="text-sm text-gray-700">
-                    Voor deze activiteit maken we gebruik van overschrijvingen in plaats van online betalingen.
-                  </p>
-                  <div class="bg-blue-50 rounded-md p-4">
-                    <h4 class="text-sm font-medium text-blue-800 mb-2">Zo werkt het:</h4>
-                    <ol class="text-sm text-blue-700 list-decimal list-inside space-y-1">
-                      <li>Selecteer je gewenste producten en tijdslot</li>
-                      <li>Klik op "Afrekenen" om je bestelling te plaatsen</li>
-                      <li>Je krijgt alle nodige betaalgegevens (rekeningnummer en gestructureerde mededeling)</li>
-                      <li>Maak het exacte bedrag over naar onze rekening met de juiste mededeling</li>
-                      <li>Na ontvangst van je betaling wordt je bestelling bevestigd</li>
-                    </ol>
-                  </div>
-                  <p class="text-sm text-gray-700">
-                    Dit is een tijdelijke oplossing die even veilig is als online betalen. Heb je vragen?
-                    Contacteer ons via <a href="mailto:groepsleiding@lodlavki.be"
-                      class="text-blue-600 hover:underline">groepsleiding@lodlavki.be</a>
-                  </p>
-                </div>
-              </div>
-            </div>
-          </div>
-          <div class="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
-            <button type="button"
-              class="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-blue-600 text-base font-medium text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 sm:ml-3 sm:w-auto sm:text-sm"
-              @click="showInfoModal = false">
-              Begrepen
-            </button>
-          </div>
-        </div>
-      </div>
-    </div>
 
     <!-- Hero Section -->
     <div class="relative bg-gray-900 mb-12">
@@ -134,11 +44,6 @@
     <div>
       <!-- Main Content -->
       <div id="products-section" class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <!-- Time Slot Selector -->
-        <div class="mb-8">
-          <TimeSlotSelector v-model="selectedTimeSlot" />
-        </div>
-
         <!-- Loading State -->
         <div v-if="loading" class="flex justify-center py-12">
           <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
@@ -156,98 +61,10 @@
 
         <!-- Products Grid -->
         <div v-else>
-          <div v-if="productsWithTimeSlot.length > 0">
-            <div class="grid grid-cols-1 gap-8 md:grid-cols-2 lg:grid-cols-3 mb-12">
-              <div v-for="product in productsWithTimeSlot" :key="product.id"
-                class="group bg-white rounded-lg shadow-lg overflow-hidden transform transition-all duration-300 hover:-translate-y-1 hover:shadow-xl">
-                <div class="relative aspect-w-4 aspect-h-3">
-                  <img v-if="product.imageUrl" :src="product.imageUrl" :alt="product.name"
-                    @error="handleImageError(product)"
-                    class="w-full h-full object-cover transform transition-transform group-hover:scale-105" />
-                  <div v-else
-                    class="w-full h-full bg-gradient-to-br from-primary/10 to-primary/5 flex flex-col items-center justify-center p-4">
-                    <span class="text-2xl font-bold text-primary/80 text-center">{{ product.name }}</span>
-                    <span class="mt-2 text-sm text-gray-600 text-center">€{{ product.price.toFixed(2) }}</span>
-                  </div>
-                </div>
-
-                <div class="p-6">
-                  <h3 class="text-xl font-bold text-gray-900 mb-2">{{ product.name }}</h3>
-                  <p class="text-gray-600 text-sm mb-4">{{ product.description }}</p>
-
-                  <div class="flex items-center justify-between">
-                    <span class="text-2xl font-bold text-primary">€{{ product.price.toFixed(2) }}</span>
-                    <div class="flex items-center space-x-2">
-                      <button @click="decreaseQuantity(product.id)" class="p-1 rounded-full hover:bg-gray-100">
-                        <svg class="w-6 h-6 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 12H4" />
-                        </svg>
-                      </button>
-
-                      <input type="number" v-model.number="quantities[product.id]" min="0"
-                        class="w-16 text-center border-gray-200 rounded-md focus:ring-primary focus:border-primary" />
-
-                      <button @click="increaseQuantity(product.id)" class="p-1 rounded-full hover:bg-gray-100">
-                        <svg class="w-6 h-6 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                            d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-                        </svg>
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <!-- Divider if both types exist -->
-          <div v-if="productsWithTimeSlot.length > 0 && productsWithoutTimeSlot.length > 0"
-            class="border-t border-gray-200 my-12"></div>
-
-          <!-- Products without time slots -->
-          <div v-if="productsWithoutTimeSlot.length > 0">
-            <h2 class="text-xl font-bold text-gray-900 mb-6">Extra's</h2>
-            <div class="grid grid-cols-1 gap-8 md:grid-cols-2 lg:grid-cols-3">
-              <div v-for="product in productsWithoutTimeSlot" :key="product.id"
-                class="group bg-white rounded-lg shadow-lg overflow-hidden transform transition-all duration-300 hover:-translate-y-1 hover:shadow-xl">
-                <div class="relative aspect-w-4 aspect-h-3">
-                  <img v-if="product.imageUrl" :src="product.imageUrl" :alt="product.name"
-                    @error="handleImageError(product)"
-                    class="w-full h-full object-cover transform transition-transform group-hover:scale-105" />
-                  <div v-else
-                    class="w-full h-full bg-gradient-to-br from-primary/10 to-primary/5 flex flex-col items-center justify-center p-4">
-                    <span class="text-2xl font-bold text-primary/80 text-center">{{ product.name }}</span>
-                    <span class="mt-2 text-sm text-gray-600 text-center">€{{ product.price.toFixed(2) }}</span>
-                  </div>
-                </div>
-
-                <div class="p-6">
-                  <h3 class="text-xl font-bold text-gray-900 mb-2">{{ product.name }}</h3>
-                  <p class="text-gray-600 text-sm mb-4">{{ product.description }}</p>
-
-                  <div class="flex items-center justify-between">
-                    <span class="text-2xl font-bold text-primary">€{{ product.price.toFixed(2) }}</span>
-                    <div class="flex items-center space-x-2">
-                      <button @click="decreaseQuantity(product.id)" class="p-1 rounded-full hover:bg-gray-100">
-                        <svg class="w-6 h-6 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 12H4" />
-                        </svg>
-                      </button>
-
-                      <input type="number" v-model.number="quantities[product.id]" min="0"
-                        class="w-16 text-center border-gray-200 rounded-md focus:ring-primary focus:border-primary" />
-
-                      <button @click="increaseQuantity(product.id)" class="p-1 rounded-full hover:bg-gray-100">
-                        <svg class="w-6 h-6 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                            d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-                        </svg>
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
+          <div class="grid grid-cols-1 gap-8 md:grid-cols-2 lg:grid-cols-3">
+            <ProductCard v-for="product in products" :key="product.id" :product="product"
+              :quantity="quantities[product.id] || 0" @update:quantity="updateQuantity"
+              @image-error="handleImageError" />
           </div>
         </div>
 
@@ -271,7 +88,7 @@
                 </span>
               </div>
 
-              <button @click="handleCheckout" :disabled="loading || (requiresTimeSlot && !selectedTimeSlot)"
+              <button @click="handleCheckout" :disabled="loading"
                 class="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-md shadow-sm text-white bg-primary hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed">
                 <span v-if="loading" class="mr-2">
                   <svg class="animate-spin h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
@@ -279,9 +96,7 @@
                     <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
                   </svg>
                 </span>
-                {{ loading ? 'Bezig met afrekenen...' :
-                  (requiresTimeSlot && !selectedTimeSlot) ? 'Selecteer eerst een tijdslot' :
-                'Afrekenen' }}
+                {{ loading ? 'Bezig met afrekenen...' : 'Afrekenen' }}
               </button>
             </div>
 
@@ -323,31 +138,24 @@
       </div>
     </div>
   </div>
-  <Modal type="auth" :show="showAuthModal" @login="handleLogin" @register="handleRegister"
-    @close="showAuthModal = false" />
+
 </template>
 
 <script setup>
 import { ref, computed, onMounted } from 'vue';
-import { useRouter } from 'vue-router';
 import { loadStripe } from '@stripe/stripe-js';
 import { apiClient } from '@/services/api';
 import { useAuthStore } from '@/stores/auth';
-import Modal from '@/components/ui/Modal.vue'; // Add this
-import TimeSlotSelector from '@/components/ui/TimeSlotSelector.vue'; // Add this
+import { useNotificationStore } from '@/stores/notifications';
+import ProductCard from '@/components/products/ProductCard.vue';
 
-const router = useRouter(); // Add this
 const auth = useAuthStore();
-const stripePromise = loadStripe('pk_live_51Q2YysK7LyHlGaLskm9jgeFHZ8r7ZeCHxNzEvEO1553OeCAcXzAYQIXGvWgggcp6aZQCV61IgF5gJqwTJY4YK6d1009Gq55TcX');
+const notifications = useNotificationStore();
+const stripePromise = loadStripe('pk_test_51Q2YysK7LyHlGaLs1KaOcD1Gk6A8b8l45LVF3q9URgskNKwgFHBEIPRKtMXGZEu0kFn9Iq0yWGcJ0Aatm5XCMsiK00SWythWSu');
 const products = ref([]);
 const quantities = ref({});
 const loading = ref(false);
-const isCartOpen = ref(false)
-const showAuthModal = ref(false); // Add this
-const selectedTimeSlot = ref(null);
-const manualPaymentsEnabled = ref(false); // Add this
-const showBanner = ref(true);
-const showInfoModal = ref(false); // Add this for the modal
+const isCartOpen = ref(false);
 
 // Laad producten vanuit de lokale backend
 const loadProducts = async () => {
@@ -362,7 +170,7 @@ const loadProducts = async () => {
     });
   } catch (error) {
     console.error('Error loading products:', error);
-    alert('Er is een fout opgetreden bij het laden van de producten.');
+    notifications.error('Laadprobleem', error?.message || 'Er is een fout opgetreden bij het laden van de producten.');
   }
 };
 
@@ -370,32 +178,12 @@ const selectedProducts = computed(() => {
   return products.value.filter(product => quantities.value[product.id] > 0)
 })
 
-// Add this computed property in the <script setup> section
-const requiresTimeSlot = computed(() => {
-  return selectedProducts.value.some(product => product.requires_timeslot === 1);
-});
-
-// Add these computed properties
-const productsWithTimeSlot = computed(() => {
-  return products.value.filter(product => product.requires_timeslot === 1);
-});
-
-const productsWithoutTimeSlot = computed(() => {
-  return products.value.filter(product => product.requires_timeslot === 0);
-});
-
 const getQuantity = (productId) => {
   return quantities.value[productId] || 0;
 };
 
-const decreaseQuantity = (productId) => {
-  if (quantities.value[productId] > 0) {
-    quantities.value[productId]--;
-  }
-};
-
-const increaseQuantity = (productId) => {
-  quantities.value[productId] = (quantities.value[productId] || 0) + 1;
+const updateQuantity = (productId, newQuantity) => {
+  quantities.value[productId] = Math.max(0, newQuantity);
 };
 
 const hasItems = computed(() => {
@@ -412,36 +200,17 @@ const totalItems = computed(() => {
   return Object.values(quantities.value).reduce((sum, quantity) => sum + quantity, 0);
 });
 
-// Add these handlers
-const handleLogin = () => {
-  router.push('/login');
-  showAuthModal.value = false;
-};
-
-const handleRegister = () => {
-  router.push('/register');
-  showAuthModal.value = false;
-};
-
 
 const handleCheckout = async () => {
   loading.value = true;
 
   if (!auth.token) {
-    showAuthModal.value = true;
+    notifications.warning('Authenticatie', 'Log in om af te rekenen.');
     loading.value = false;
     return;
   }
 
   try {
-    // Check if manual payments are enabled
-    const manualPaymentsEnabled = await apiClient.isManualPaymentsEnabled();
-
-    if (requiresTimeSlot.value && !selectedTimeSlot.value) {
-      alert('Selecteer een tijdslot.');
-      return;
-    }
-
     // Create items array from selected products and quantities
     const items = products.value
       .filter(product => quantities.value[product.id] > 0)
@@ -453,21 +222,7 @@ const handleCheckout = async () => {
       }));
 
     if (items.length === 0) {
-      alert('Selecteer ten minste één product om af te rekenen.');
-      return;
-    }
-
-    if (manualPaymentsEnabled) {
-
-      console.log('Manual payments enabled');
-      // Redirect to manual payments with cart data
-      router.push({
-        name: 'ManualPayments',
-        query: {
-          items: JSON.stringify(items),
-          timeSlot: selectedTimeSlot.value
-        }
-      });
+      notifications.warning('Controleer je invoer', 'Selecteer ten minste één product om af te rekenen.');
       return;
     }
 
@@ -477,7 +232,7 @@ const handleCheckout = async () => {
         productId: item.id,
         quantity: item.quantity,
       })),
-      requiresTimeSlot.value ? selectedTimeSlot.value : null
+      null
     );
 
     const stripe = await stripePromise;
@@ -489,13 +244,15 @@ const handleCheckout = async () => {
     const { error } = await stripe.redirectToCheckout({
       sessionId: response.sessionId
     });
-
     if (error) {
-      throw error;
+      throw new Error(error.message);
     }
   } catch (error) {
     console.error('Error during checkout:', error);
-    alert(error.message || 'Er is een fout opgetreden tijdens het afrekenen.');
+    notifications.error(
+      'Afrekenfout',
+      error.message || 'Er is een fout opgetreden tijdens het afrekenen.'
+    );
   } finally {
     loading.value = false;
   }
@@ -516,23 +273,10 @@ const handleImageError = (product) => {
   product.imageUrl = null;
 };
 
-// New function to close banner
-const closeBanner = () => {
-  showBanner.value = false;
-};
-
-// Updated function to open modal instead of showing alert
-const openInfoModal = () => {
-  showInfoModal.value = true;
-};
-
 onMounted(async () => {
   try {
-    const [productsResponse, manualPaymentsStatus] = await Promise.all([
-      loadProducts(),
-      apiClient.isManualPaymentsEnabled()
-    ]);
-    manualPaymentsEnabled.value = manualPaymentsStatus;
+    loadProducts();
+
   } catch (error) {
     console.error('Error during initialization:', error);
   }

@@ -14,11 +14,15 @@ dist-ssr
 
 .env
 
-# Ignore Firebase service account key
-server\config\scoutswinkel-firebase-adminsdk-ucote-20a5438186.json
+# Ignore ALL Firebase service account keys (comprehensive patterns)
+*firebase*adminsdk*.json
+*serviceAccount*.json
 
+
+
+# Database and data files
 data/*
-
+server/db/database.sqlite
 server\db\database.sqlite
 
 # Editor directories and files
@@ -31,9 +35,3 @@ server\db\database.sqlite
 *.njsproj
 *.sln
 *.sw?
-server/config/scoutswinkel-firebase-adminsdk-ucote-20a5438186.json
-server/db/database.sqlite
-
-*firebase*adminsdk*.json
-*serviceAccount*.json
-*firebase*.json

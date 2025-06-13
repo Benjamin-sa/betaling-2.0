@@ -1,48 +1,60 @@
-import { getAuth } from "firebase/auth";
-
 const BASE_URL = import.meta.env.VITE_SERVER_URL;
 
+// Token provider to avoid circular dependency
+let tokenProvider = null;
+
+// Function to set the token provider (called from auth store)
+export const setTokenProvider = (provider) => {
+  tokenProvider = provider;
+};
+
+// Helper function to make requests without circular dependency
+const makeRequest = async (endpoint, options = {}, useAuth = true) => {
+  const headers = {
+    "Content-Type": "application/json",
+    ...options.headers,
+  };
+
+  // Only add auth header if needed and if we have a token provider
+  if (useAuth && tokenProvider) {
+    try {
+      const token = await tokenProvider();
+      if (token) {
+        headers["Authorization"] = `Bearer ${token}`;
+      }
+    } catch (error) {
+      console.warn("Could not get auth token for request:", error);
+    }
+  }
+
+  const config = {
+    method: options.method || "GET",
+    headers,
+    ...options,
+  };
+
+  if (options.data && !(options.data instanceof FormData)) {
+    config.body = JSON.stringify(options.data);
+  } else if (options.data) {
+    config.body = options.data;
+    delete headers["Content-Type"];
+  }
+
+  const response = await fetch(`${BASE_URL}/api${endpoint}`, config);
+
+  if (!response.ok) {
+    const error = await response
+      .json()
+      .catch(() => ({ error: "Request failed" }));
+    throw new Error(error.error || "Request failed");
+  }
+
+  return response.json();
+};
+
 export const apiClient = {
-  async getFirebaseToken() {
-    const auth = getAuth();
-    const user = auth.currentUser;
-    if (!user) return null;
-    return user.getIdToken(true); // Force token refresh
-  },
-
   async request(endpoint, options = {}) {
-    const headers = {
-      "Content-Type": "application/json",
-      ...options.headers,
-    };
-
-    // Automatically get fresh token
-    const token = await this.getFirebaseToken();
-    if (token) {
-      headers["Authorization"] = `Bearer ${token}`;
-    }
-
-    const config = {
-      method: options.method || "GET",
-      headers,
-      ...options,
-    };
-
-    if (options.data && !(options.data instanceof FormData)) {
-      config.body = JSON.stringify(options.data);
-    } else if (options.data) {
-      config.body = options.data;
-      delete headers["Content-Type"];
-    }
-
-    const response = await fetch(`${BASE_URL}/api${endpoint}`, config);
-
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.error || "Request failed");
-    }
-
-    return response.json();
+    return makeRequest(endpoint, options, true);
   },
 
   // Products API
@@ -68,18 +80,10 @@ export const apiClient = {
     return this.request("/orders");
   },
 
-  async getOrderLineItems(orderId) {
-    return this.request(`/orders/session/${orderId}/line-items`);
-  },
-
-  async getTimeSlotAvailability() {
-    return this.request("/orders/timeslots/availability");
-  },
-
-  async createCheckoutSession(items, timeSlot) {
-    return this.request("/checkout", {
+  async createCheckoutSession(items) {
+    return this.request("/orders/checkout", {
       method: "POST",
-      data: { items, timeSlot },
+      data: { items },
     });
   },
 
@@ -93,14 +97,14 @@ export const apiClient = {
   },
 
   async makeUserAdmin(userId) {
-    return this.request("/auth/make-admin", {
+    return this.request("/admin/make-admin", {
       method: "POST",
       data: { userId },
     });
   },
 
   async removeAdmin(userId) {
-    return this.request("/auth/remove-admin", {
+    return this.request("/admin/remove-admin", {
       method: "POST",
       data: { userId },
     });
@@ -111,40 +115,21 @@ export const apiClient = {
       method: "DELETE",
     });
   },
-
-  async createManualUser(userData) {
-    return this.request("/auth/create-manual-user", {
+  // Auth API
+  async register(email, password) {
+    return this.request("/auth/register", {
       method: "POST",
-      data: userData,
+      data: { email, password },
     });
   },
 
-  async getSettings() {
-    return this.request("/admin/settings");
-  },
-
-  async toggleManualPayments(enabled) {
-    return this.request("/admin/manual-payments", {
-      method: "POST",
-      data: { enabled },
-    });
-  },
-
-  async isManualPaymentsEnabled() {
-    const { manualPaymentsEnabled } = await this.request("/admin/settings");
-    return manualPaymentsEnabled;
-  },
-
-  async createManualOrder(items, timeSlot) {
-    return this.request("/checkout/manual-order", {
-      method: "POST",
-      data: { items, timeSlot },
-    });
-  },
-
-  async confirmManualPayment(orderId) {
-    return this.request(`/orders/manual-order/${orderId}/confirm`, {
+  async ensureUser() {
+    return this.request("/auth/ensure-user", {
       method: "POST",
     });
+  },
+
+  async getAdminStatus() {
+    return this.request("/auth/admin-status");
   },
 };

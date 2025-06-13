@@ -8,8 +8,8 @@ import {
   GoogleAuthProvider,
   signInWithPopup,
   sendPasswordResetEmail,
-  sendEmailVerification,
 } from "firebase/auth";
+import { apiClient, setTokenProvider } from "@/services/api";
 
 export const useAuthStore = defineStore("auth", () => {
   const user = ref(null);
@@ -18,35 +18,31 @@ export const useAuthStore = defineStore("auth", () => {
   const error = ref(null);
   const isAdmin = ref(false);
 
+  // Simple token getter - Firebase handles validation and refresh
+  const getFirebaseToken = async () => {
+    if (!user.value) return null;
+
+    try {
+      // Firebase automatically checks validity and refreshes if needed
+      const token = await user.value.getIdToken();
+      return token;
+    } catch (error) {
+      console.error("Error getting Firebase token:", error);
+      return null;
+    }
+  };
+
+  // Set up the token provider for the API service to avoid circular dependency
+  setTokenProvider(getFirebaseToken);
+
   // Register a new user
   const register = async (email, password) => {
     try {
       error.value = null;
       loading.value = true;
 
-      const response = await fetch(
-        `${import.meta.env.VITE_SERVER_URL}/api/auth/register`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({ email, password }),
-        }
-      );
-
-      if (!response.ok) {
-        const data = await response.json();
-        throw new Error(data.error || "Registration failed");
-      }
-
-      const userCredential = await signInWithEmailAndPassword(
-        auth,
-        email,
-        password
-      );
-      await sendEmailVerification(userCredential.user);
-      await signOut(auth);
+      await apiClient.register(email, password);
+      await signInWithEmailAndPassword(auth, email, password);
     } catch (e) {
       error.value = e.message;
       throw e;
@@ -68,7 +64,7 @@ export const useAuthStore = defineStore("auth", () => {
       );
 
       user.value = userCredential.user;
-      token.value = await userCredential.user.getIdToken();
+      token.value = await getFirebaseToken();
     } catch (e) {
       error.value = e.message;
       throw e;
@@ -86,27 +82,10 @@ export const useAuthStore = defineStore("auth", () => {
       const provider = new GoogleAuthProvider();
       const userCredential = await signInWithPopup(auth, provider);
       user.value = userCredential.user;
-      token.value = await userCredential.user.getIdToken();
+      token.value = await getFirebaseToken();
 
       // Check if user is already in the database
-      const response = await fetch(
-        `${import.meta.env.VITE_SERVER_URL}/api/auth/ensure-user`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token.value}`,
-          },
-        }
-      );
-
-      if (!response.ok) {
-        const data = await response.json();
-        throw new Error(
-          data.error || "Failed to ensure user exists in backend."
-        );
-      }
-
+      await apiClient.ensureUser();
       await fetchAdminStatus();
     } catch (e) {
       error.value = e.message;
@@ -154,21 +133,7 @@ export const useAuthStore = defineStore("auth", () => {
   const fetchAdminStatus = async () => {
     if (!token.value) return;
     try {
-      const response = await fetch(
-        `${import.meta.env.VITE_SERVER_URL}/api/auth/admin-status`,
-        {
-          method: "GET",
-          headers: {
-            Authorization: `Bearer ${token.value}`,
-          },
-        }
-      );
-
-      if (!response.ok) {
-        throw new Error("Failed to fetch admin status");
-      }
-
-      const data = await response.json();
+      const data = await apiClient.getAdminStatus();
       isAdmin.value = data.isAdmin;
     } catch (e) {
       console.error("Error fetching admin status:", e.message);
@@ -182,23 +147,7 @@ export const useAuthStore = defineStore("auth", () => {
       error.value = null;
       loading.value = true;
 
-      const response = await fetch(
-        `${import.meta.env.VITE_SERVER_URL}/api/auth/make-admin`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token.value}`,
-          },
-          body: JSON.stringify({ email }),
-        }
-      );
-
-      if (!response.ok) {
-        const data = await response.json();
-        throw new Error(data.error || "Failed to make user admin");
-      }
-
+      await apiClient.makeUserAdminById(email);
       alert(`${email} is now an admin.`);
     } catch (e) {
       error.value = e.message;
@@ -213,7 +162,7 @@ export const useAuthStore = defineStore("auth", () => {
     auth.onIdTokenChanged(async (currentUser) => {
       if (currentUser) {
         user.value = currentUser;
-        token.value = await currentUser.getIdToken();
+        token.value = await getFirebaseToken();
         await fetchAdminStatus();
       } else {
         user.value = null;
@@ -230,6 +179,7 @@ export const useAuthStore = defineStore("auth", () => {
     loading,
     error,
     isAdmin,
+    getFirebaseToken,
     register,
     login: loginUser,
     loginWithGoogle,

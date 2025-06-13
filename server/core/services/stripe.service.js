@@ -1,89 +1,47 @@
-require('dotenv').config();
-const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY_TEST);
-const storageService = require('./storage.service');
-const userService = require('./user.service');
-const webhookService = require('./webhook.service');
+require("dotenv").config();
+const stripe = require("stripe")(process.env.STRIPE_SECRET_KEY_TEST);
+const webhookService = require("./webhook.service");
 class StripeService {
-
-  /**
-   * Creates a Stripe Checkout session for the given items and user.
-   *
-   * @param {Array} items - The items to be purchased. Each item should have a productId and quantity.
-   * @param {string} userId - The ID of the user making the purchase.
-   * @param {string} timeSlot - The selected time slot for the purchase.
-   * @returns {Promise<Object>} - The created Stripe Checkout session.
-   * @throws {Error} - Throws an error if the user is not found or if any product is not found.
-   */
-  async createCheckoutSession(items, userId, timeSlot) {
+  // Maak een nieuwe StripeService instantie
+  async createCheckoutSession(items, userId, stripeCustomerId) {
     try {
-      // Get user from SQLite database 
-      const user = await userService.getUserByFirebaseId(userId);
-      if (!user) {
-        throw new Error('User not found');
-      }
-  
-      // Get products from storage
-      const products = await storageService.getAllProducts();
-      const productMap = products.reduce((map, product) => {
-        map[product.id] = product;
-        return map;
-      }, {});
-  
-      // Check if any selected product requires a time slot
-      const requiresTimeSlot = items.some(item => 
-        productMap[item.productId]?.requires_timeslot
-      );
-  
-      if (requiresTimeSlot && !timeSlot) {
-        throw new Error('Time slot required for some items in cart');
-      }
-  
-      // Create line items
-      const lineItems = items.map(item => {
-        const product = productMap[item.productId];
-        if (!product) {
-          throw new Error(`Product not found: ${item.productId}`);
-        }
-  
-        return {
-          price_data: {
-            currency: 'eur',
-            unit_amount: Math.round(product.price * 100),
-            product_data: {
-              name: product.name,
-              description: product.description,
-            },
-          },
-          quantity: item.quantity,
-        };
-      });
-  
       const baseUrl = process.env.APP_URL || process.env.VITE_APP_URL;
-  
-      // Only include timeSlot in metadata if required
+
+      // Transform items into Stripe line_items format
+      const lineItems = await Promise.all(
+        items.map(async (item) => {
+          // Get product from Stripe to find the default price
+          const product = await stripe.products.retrieve(item.productId, {
+            expand: ["default_price"],
+          });
+
+          return {
+            price: product.default_price.id,
+            quantity: item.quantity,
+          };
+        })
+      );
+
       const metadata = {
         userId,
-        items: JSON.stringify(items)
+        items: JSON.stringify(items),
       };
-      if (requiresTimeSlot) {
-        metadata.timeSlot = timeSlot;
-      }
-  
+
       return stripe.checkout.sessions.create({
         payment_method_types: [
-          'card',           // Credit/debit cards
-          'ideal',          // iDEAL for Netherlands
-          'bancontact',     // Bancontact for Belgium
+          "card", // Credit/debit cards
+          "ideal", // iDEAL for Netherlands
+          "bancontact", // Bancontact for Belgium
         ],
         line_items: lineItems,
-        mode: 'payment',
-        customer: user.stripe_customer_id,
+        mode: "payment",
+        customer: stripeCustomerId,
         success_url: `${baseUrl}/success`,
         cancel_url: `${baseUrl}/`,
-        metadata
+        metadata,
       });
     } catch (error) {
-      console.error('Error creating checkout session:', error);
+      console.error("Error creating checkout session:", error);
       throw error;
     }
   }
@@ -93,7 +51,7 @@ class StripeService {
    */
   async getProducts() {
     return stripe.products.list({
-      expand: ['data.default_price'],
+      expand: ["data.default_price"],
       active: true,
     });
   }
@@ -114,44 +72,74 @@ class StripeService {
    */
   async createProduct(productData) {
     try {
+      // Destructure the productData object
+      const { name, description, price, imageUrl } = productData;
+
+      // Prepare product creation data
+      const productCreationData = {
+        name,
+        description,
+      };
+
+      // Add images array if imageUrl is provided
+      if (imageUrl) {
+        productCreationData.images = [imageUrl];
+      }
+
       // Creëer Stripe-product
-      const product = await stripe.products.create({
-        name: productData.name,
-        description: productData.description
-      });
+      const product = await stripe.products.create(productCreationData);
 
       // Maak prijs aan in centen
-      const priceInCents = Math.round(parseFloat(productData.price) * 100);
-      const price = await stripe.prices.create({
+      const priceInCents = Math.round(parseFloat(price) * 100);
+      const stripePrice = await stripe.prices.create({
         product: product.id,
         unit_amount: priceInCents,
-        currency: 'eur',
+        currency: "eur",
       });
 
       // Stel standaardprijs in
       await stripe.products.update(product.id, {
-        default_price: price.id,
+        default_price: stripePrice.id,
       });
 
-      return { product, price };
+      return { product, price: stripePrice };
     } catch (error) {
-      console.error('Error creating product:', error);
+      console.error("Error creating product:", error);
       throw error;
     }
   }
 
   /**
-   * Creëer een Stripe-klant.
+   * Controleer of een Stripe-klant met het opgegeven e-mailadres bestaat.
+   * Als de klant niet bestaat, maak dan een nieuwe aan.
    * @param {string} email - Het e-mailadres van de gebruiker
-   * @param {string} uid - De UID van de Firebase-gebruiker
-   * @returns {object} - Het aangemaakte Stripe-klantobject
+   * @param {string} uid - De UID van de Firebase-gebruiker (optioneel, voor metadata)
+   * @returns {object} - Het Stripe-klantobject (bestaand of nieuw aangemaakt)
    */
-  async createCustomer(email, uid) {
+  async findOrCreateCustomer(email, uid = null) {
     try {
-      const customer = await stripe.customers.create({ email });
+      // Zoek naar bestaande klanten met dit e-mailadres
+      const existingCustomers = await stripe.customers.list({
+        email: email,
+        limit: 1,
+      });
+
+      // Als er al een klant bestaat met dit e-mailadres, retourneer deze
+      if (existingCustomers.data.length > 0) {
+        console.log(`Found existing Stripe customer for email: ${email}`);
+        return existingCustomers.data[0];
+      }
+
+      // Geen bestaande klant gevonden, maak een nieuwe aan
+      console.log(`Creating new Stripe customer for email: ${email}`);
+      const customer = await stripe.customers.create({
+        email: email,
+        metadata: uid ? { firebaseUid: uid } : undefined,
+      });
+
       return customer;
     } catch (error) {
-      console.error('Error creating Stripe customer:', error);
+      console.error("Error finding or creating Stripe customer:", error);
       throw error;
     }
   }
@@ -170,7 +158,7 @@ class StripeService {
 
       return sessions.data;
     } catch (error) {
-      console.error('Error fetching Checkout Sessions:', error);
+      console.error("Error fetching Checkout Sessions:", error);
       throw error;
     }
   }
@@ -178,17 +166,22 @@ class StripeService {
   async handleWebhookEvent(rawBody, signature) {
     let event;
     try {
-      event = stripe.webhooks.constructEvent(rawBody, signature, process.env.STRIPE_WEBHOOK_SECRET);
+      event = stripe.webhooks.constructEvent(
+        rawBody,
+        signature,
+        process.env.STRIPE_WEBHOOK_SECRET
+      );
     } catch (err) {
-      console.error('Webhook signature verification failed:', err.message);
+      console.error("Webhook signature verification failed:", err.message);
       throw err;
     }
 
     try {
       switch (event.type) {
-        case 'checkout.session.completed':
+        case "checkout.session.completed":
           const session = await this.getCheckoutSession(event.data.object.id);
-          await webhookService.handleCheckoutSession(session);
+          console.log("Checkout session completed:", session.id);
+          await webhookService.createOrderFromSession(session);
           break;
 
         default:
@@ -208,10 +201,12 @@ class StripeService {
    */
   async getSessionLineItems(sessionId) {
     try {
-      const items = await stripe.checkout.sessions.listLineItems(sessionId, { limit: 100 });
+      const items = await stripe.checkout.sessions.listLineItems(sessionId, {
+        limit: 100,
+      });
       return items.data;
     } catch (error) {
-      console.error('Error fetching session line items:', error);
+      console.error("Error fetching session line items:", error);
       throw error;
     }
   }
@@ -224,11 +219,11 @@ class StripeService {
   async getCheckoutSession(sessionId) {
     try {
       const session = await stripe.checkout.sessions.retrieve(sessionId, {
-        expand: ['line_items.data.price.product']
+        expand: ["line_items.data.price.product"],
       });
       return session;
     } catch (error) {
-      console.error('Error retrieving checkout session:', error);
+      console.error("Error retrieving checkout session:", error);
       throw error;
     }
   }
@@ -252,9 +247,8 @@ class StripeService {
       for (const price of prices.data) {
         await stripe.prices.update(price.id, { active: false });
       }
-
     } catch (error) {
-      console.error('Error deactivating product:', error);
+      console.error("Error deactivating product:", error);
       throw error;
     }
   }

@@ -26,20 +26,14 @@ async function startServer() {
 
     // Middleware setup
     app.use(cors());
-    // Important: Use raw body parser for webhook route
-    app.use("/webhook/stripe", express.raw({ type: "application/json" }));
+
+    app.use("/api/webhooks", require("./core/routes/webhook.routes"));
+
     // Parse JSON bodies for all other routes
     app.use(express.json());
-
     app.use(express.static(path.join(__dirname, "../client/dist")));
 
-    // Routes for webshop
-    app.use("/api/products", require("./routes/webshop/product.routes"));
-    app.use("/api/checkout", require("./routes/webshop/checkout.routes"));
-    app.use("/api/auth", require("./routes/auth.routes"));
-    app.use("/api/orders", require("./routes/webshop/order.routes"));
-    app.use("/webhook", require("./routes/webshop/webhook.routes"));
-    app.use("/api/admin", require("./routes/admin.routes"));
+    app.use("/api", require("./core/routes/api.routes"));
 
     // Handle SPA routing - must be after API routes
     app.get("*", (req, res) => {
