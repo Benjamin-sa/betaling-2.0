@@ -5,7 +5,7 @@
     <Navigation />
 
     <!-- Main content -->
-    <main :class="isHomePage ? '' : 'pt-16'">
+    <main class="relative">
       <router-view v-slot="{ Component }">
         <transition name="page" mode="out-in">
           <div :key="$route.fullPath"> <!-- Add wrapper div -->
@@ -27,7 +27,6 @@ import Footer from './components/ui/Footer.vue'
 import NotificationContainer from './components/ui/NotificationContainer.vue'
 
 const route = useRoute()
-const isHomePage = computed(() => route.name === 'Home')
 </script>
 
 <style>

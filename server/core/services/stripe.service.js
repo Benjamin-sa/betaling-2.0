@@ -21,12 +21,24 @@ class StripeService {
         })
       );
 
-      // Prepare session metadata
+      // Enhanced session metadata to preserve individual item shift information
       const sessionMetadata = {
         userId,
-        items: JSON.stringify(items),
-        ...metadata, // Include any additional metadata like eventId, shiftId
+        items: JSON.stringify(items), // Includes individual shiftIds
+        ...metadata, // Include any additional metadata like eventId
       };
+
+      // Create individual shift mapping for order processing
+      const shiftMappings = items
+        .filter((item) => item.shiftId)
+        .reduce((acc, item, index) => {
+          acc[`item_${index}_shift`] = item.shiftId;
+          acc[`item_${index}_product`] = item.productId;
+          return acc;
+        }, {});
+
+      // Merge shift mappings into metadata
+      Object.assign(sessionMetadata, shiftMappings);
 
       return stripe.checkout.sessions.create({
         payment_method_types: [
@@ -37,7 +49,7 @@ class StripeService {
         line_items: lineItems,
         mode: "payment",
         customer: stripeCustomerId,
-        success_url: `${baseUrl}/success`,
+        success_url: `${baseUrl}/success?session_id={CHECKOUT_SESSION_ID}`,
         cancel_url: `${baseUrl}/`,
         metadata: sessionMetadata,
       });
@@ -169,10 +181,6 @@ class StripeService {
       throw error;
     }
   }
-
-  /**
-   * Deactiveer een Stripe-product en update lokale opslag
-   */
   /**
    * Deactivates a product and all associated prices in Stripe.
    *

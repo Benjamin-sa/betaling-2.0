@@ -71,26 +71,6 @@ class BaseController {
   }
 
   /**
-   * Validate required fields in request body
-   * @protected
-   * @param {Object} body - Request body
-   * @param {Array} requiredFields - Array of required field names
-   * @returns {Object|null} - Returns error object if validation fails, null if success
-   */
-  _validateRequiredFields(body, requiredFields) {
-    const missingFields = requiredFields.filter((field) => !body[field]);
-
-    if (missingFields.length > 0) {
-      return {
-        isValid: false,
-        message: `Missing required fields: ${missingFields.join(", ")}`,
-      };
-    }
-
-    return { isValid: true };
-  }
-
-  /**
    * Handle async controller methods with automatic error handling
    * @protected
    * @param {Function} controllerMethod - The controller method to execute

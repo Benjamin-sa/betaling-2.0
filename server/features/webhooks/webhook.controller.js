@@ -2,7 +2,11 @@
 const BaseController = require("../../core/controllers/base.controller");
 const stripeService = require("../../core/services/stripe.service");
 const firebaseService = require("../../core/services/firebase.service");
-const { OrderFields, OrderItemFields } = require("../../models/webstore.model");
+const {
+  OrderFields,
+  OrderItemFields,
+  createOrderItemData,
+} = require("../../models/webstore.model");
 
 // Constants for better maintainability
 const STRIPE_EVENT_TYPES = {
@@ -114,21 +118,39 @@ class WebhookController extends BaseController {
         throw new Error(errorMessage);
       }
 
-      // 3. Transform session line items to order items using model constants
+      // 3. Parse original items from metadata to get shift information
+      const originalItems = session.metadata?.items
+        ? JSON.parse(session.metadata.items)
+        : [];
+
+      // 4. Transform session line items to order items with shift information
       const orderItems = this._transformLineItemsToOrderItems(
-        session.line_items.data
+        session.line_items.data,
+        originalItems
       );
 
-      // 4. Create order data object using model constants
-      const orderData = this._createOrderDataFromSession(
-        session,
-        user,
-        orderItems
-      );
+      // 5. Get eventId from metadata (should always be present)
+      const eventId = session.metadata?.eventId;
 
-      // 5. Save order to Firebase
+      // 6. Create order data object with proper structure for firebase service
+      const orderData = {
+        orderId: session.id,
+        [OrderFields.USER_ID]: user.id,
+        items: orderItems,
+        [OrderFields.AMOUNT_TOTAL]: this._convertCentsToEuros(
+          session.amount_total
+        ),
+        [OrderFields.CURRENCY]: session.currency.toUpperCase(),
+        [OrderFields.PAYMENT_METHOD]: PAYMENT_METHODS.STRIPE,
+        // EventId should always be present from metadata
+        [OrderFields.EVENT_ID]: eventId,
+      };
+
+      // 6. Save order to Firebase (factory function validation happens inside firebaseService)
       await firebaseService.createOrder(orderData);
-      this._logAction("Order uploaded to Firebase", { sessionId: session.id });
+      this._logAction("Order uploaded to Firebase", {
+        sessionId: session.id,
+      });
 
       this._logAction("Successfully processed checkout session", {
         sessionId: session.id,
@@ -142,53 +164,27 @@ class WebhookController extends BaseController {
   }
 
   /**
-   * Transform Stripe line items to order items with proper field mapping
+   * Transform Stripe line items to order items with proper field mapping and shift information
    * @private
    */
-  _transformLineItemsToOrderItems(lineItemsData) {
-    return lineItemsData.map((lineItem) => ({
-      [OrderItemFields.PRODUCT_NAME]: lineItem.description,
-      [OrderItemFields.QUANTITY]: lineItem.quantity,
-      [OrderItemFields.AMOUNT_TOTAL]: this._convertCentsToEuros(
-        lineItem.amount_total
-      ),
-      [OrderItemFields.UNIT_PRICE]: this._convertCentsToEuros(
-        lineItem.price.unit_amount
-      ),
-    }));
-  }
+  _transformLineItemsToOrderItems(lineItemsData, originalItems = []) {
+    return lineItemsData.map((lineItem, index) => {
+      // Find corresponding original item to get shift information
+      const originalItem = originalItems[index];
 
-  /**
-   * Create order data object from Stripe session
-   * @private
-   */
-  _createOrderDataFromSession(session, user, orderItems) {
-    const orderData = {
-      orderId: session.id, // Stripe session ID as order ID
-      [OrderFields.USER_ID]: user.id, // Use user.id (document ID which is the Firebase UID)
-      items: orderItems,
-      [OrderFields.AMOUNT_TOTAL]: this._convertCentsToEuros(
-        session.amount_total
-      ),
-      [OrderFields.CURRENCY]: session.currency.toUpperCase(),
-      [OrderFields.PAYMENT_METHOD]: PAYMENT_METHODS.STRIPE,
-      [OrderFields.CREATED_AT]: new Date().toISOString(),
-    };
-
-    // Add event and shift metadata if present
-    if (session.metadata?.eventId) {
-      orderData[OrderFields.EVENT_ID] = session.metadata.eventId;
-    }
-
-    if (session.metadata?.shiftId) {
-      orderData[OrderFields.SHIFT_ID] = session.metadata.shiftId;
-      // Optionally include shift name if it's in metadata
-      if (session.metadata?.shiftName) {
-        orderData[OrderFields.SHIFT_NAME] = session.metadata.shiftName;
-      }
-    }
-
-    return orderData;
+      return createOrderItemData({
+        [OrderItemFields.PRODUCT_NAME]: lineItem.description,
+        [OrderItemFields.QUANTITY]: lineItem.quantity,
+        [OrderItemFields.AMOUNT_TOTAL]: this._convertCentsToEuros(
+          lineItem.amount_total
+        ),
+        [OrderItemFields.UNIT_PRICE]: this._convertCentsToEuros(
+          lineItem.price.unit_amount
+        ),
+        // Include shift information from original item if available
+        [OrderItemFields.SHIFT_ID]: originalItem?.shiftId || "",
+      });
+    });
   }
 
   /**

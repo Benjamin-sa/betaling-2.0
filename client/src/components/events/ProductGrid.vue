@@ -78,41 +78,26 @@
             <!-- Section Header -->
             <div class="text-center mb-12">
                 <h2 class="text-3xl font-bold text-gray-900 mb-4">
-                    {{ selectedEvent?.type === 'shift_event' ? 'Kies je tijdslot en producten' : 'Beschikbare producten'
+                    {{ selectedEvent?.type === 'shift_event' ? 'Selecteer producten en tijdsloten' :
+                        'Beschikbare producten'
                     }}
                 </h2>
                 <p class="text-lg text-gray-600 max-w-2xl mx-auto">
                     {{ selectedEvent?.type === 'shift_event'
-                        ? 'Selecteer eerst je tijdslot en kies daarna welke producten je wilt bestellen.'
-                        : 'Bekijk onze selectie en voeg je favoriete items toe aan je winkelmandje.'
+                        ? 'Selecteer het juiste tijdslot voor elk product.'
+                        : 'Bekijk alle beschikbare producten en voeg ze toe aan je winkelmandje.'
                     }}
                 </p>
             </div>
 
-            <!-- Shift Selector for shift events -->
-            <div v-if="selectedEvent?.type === 'shift_event'">
-                <ShiftSelector :selected-event="selectedEvent" :selected-shifts="selectedShifts"
-                    @update:selected-shifts="updateSelectedShifts" />
-            </div>
-
             <!-- Products Grid - show for all events that have products -->
-            <div v-if="products.length > 0" :class="selectedEvent?.type === 'shift_event' ? 'mt-12' : ''"
-                class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                <!-- Products Header for shift events -->
-                <div v-if="selectedEvent?.type === 'shift_event'" class="col-span-full mb-8">
-                    <div class="text-center">
-                        <h3 class="text-2xl font-bold text-gray-900 mb-3">Kies je producten</h3>
-                        <p class="text-lg text-gray-600">Selecteer welke producten je wilt bestellen voor je gekozen
-                            tijdslot.
-                        </p>
-                    </div>
-                </div>
-
+            <div v-if="products.length > 0" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
                 <div v-for="product in products" :key="product.id"
                     class="transform transition-all duration-300 hover:scale-105">
-                    <ProductCard :product="product" :quantity="quantities[product.id] || 0"
-                        :selected-event="selectedEvent" @update:quantity="updateQuantity"
-                        @image-error="handleImageError" />
+                    <ProductCard :product="product" :cart-items="cartItems" :selected-event="selectedEvent"
+                        :available-shifts="availableShifts" :product-shift-selection="productShiftSelection"
+                        @update:cart-item="updateCartItem" @image-error="handleImageError"
+                        @update:product-shift="updateProductShift" />
                 </div>
             </div>
 
@@ -138,7 +123,7 @@
                             <!-- Show both shifts and products count for shift events -->
                             <div class="space-y-1">
                                 <div>{{ availableShiftsCount }} {{ availableShiftsCount === 1 ? 'tijdslot' : 'tijdslots'
-                                }} beschikbaar</div>
+                                    }} beschikbaar</div>
                                 <div v-if="products.length > 0" class="text-lg">
                                     {{ products.length }} {{ products.length === 1 ? 'product' : 'producten' }}
                                     beschikbaar
@@ -151,7 +136,8 @@
                     </h3>
                     <p class="text-gray-600">
                         <span v-if="selectedEvent?.type === 'shift_event'">
-                            Selecteer eerst een tijdslot en kies daarna je gewenste producten om af te rekenen.
+                            Producten met tijdslotvereiste tonen een blauw tijdslot-icoon. Selecteer eerst het gewenste
+                            tijdslot voordat je het product toevoegt.
                         </span>
                         <span v-else">
                             Scroll omhoog om je selectie te bevestigen en af te rekenen.
@@ -166,7 +152,6 @@
 <script setup>
 import { computed } from 'vue';
 import ProductCard from '@/components/products/ProductCard.vue';
-import ShiftSelector from '@/components/events/ShiftSelector.vue';
 
 const props = defineProps({
     loading: {
@@ -177,8 +162,8 @@ const props = defineProps({
         type: Array,
         required: true
     },
-    quantities: {
-        type: Object,
+    cartItems: {
+        type: Array,
         required: true
     },
     activeEvents: {
@@ -193,28 +178,33 @@ const props = defineProps({
         type: Object,
         default: null
     },
-    selectedShifts: {
-        type: Array,
-        default: () => []
+    productShiftSelection: {
+        type: Object,
+        default: () => ({})
     }
 });
 
-const emit = defineEmits(['update:quantity', 'image-error', 'update:selected-shifts']);
+const emit = defineEmits(['update:cart-item', 'image-error', 'update:product-shift']);
 
 const availableShiftsCount = computed(() => {
     if (!props.selectedEvent?.shifts) return 0;
     return props.selectedEvent.shifts.filter(shift => shift.isActive).length;
 });
 
-const updateQuantity = (productId, newQuantity) => {
-    emit('update:quantity', productId, newQuantity);
+const availableShifts = computed(() => {
+    if (!props.selectedEvent?.shifts) return [];
+    return props.selectedEvent.shifts.filter(shift => shift.isActive);
+});
+
+const updateCartItem = (productId, shiftId, newQuantity) => {
+    emit('update:cart-item', productId, shiftId, newQuantity);
 };
 
 const handleImageError = (product) => {
     emit('image-error', product);
 };
 
-const updateSelectedShifts = (shifts) => {
-    emit('update:selected-shifts', shifts);
+const updateProductShift = (productId, shiftId) => {
+    emit('update:product-shift', productId, shiftId);
 };
 </script>

@@ -4,6 +4,10 @@ const {
   UserFields,
   OrderFields,
   OrderItemFields,
+  EventFields,
+  createUserData,
+  createOrderData,
+  createOrderItemData,
 } = require("../../models/webstore.model");
 
 class FirebaseService {
@@ -19,13 +23,13 @@ class FirebaseService {
 
   // User operations
   async createUser({ firebaseUid, email, stripeCustomerId, isAdmin = false }) {
-    const userData = {
+    const userData = createUserData({
       [UserFields.FIREBASE_UID]: firebaseUid,
       [UserFields.EMAIL]: email,
       [UserFields.STRIPE_CUSTOMER_ID]: stripeCustomerId,
       [UserFields.IS_ADMIN]: isAdmin,
-      [UserFields.CREATED_AT]: admin.firestore.FieldValue.serverTimestamp(),
-    };
+    });
+
     await this.db.collection("users").doc(firebaseUid).set(userData);
     return { id: firebaseUid, ...userData };
   }
@@ -65,28 +69,14 @@ class FirebaseService {
 
   // Product operations
   async createProduct(productData) {
+    // Product data is already validated and formatted by the factory function
     if (!productData[ProductFields.STRIPE_PRODUCT_ID]) {
       throw new Error("stripeProductId is required");
     }
 
     const id = productData[ProductFields.STRIPE_PRODUCT_ID];
-    const product = {
-      [ProductFields.NAME]: productData[ProductFields.NAME],
-      [ProductFields.DESCRIPTION]: productData[ProductFields.DESCRIPTION],
-      [ProductFields.PRICE]: productData[ProductFields.PRICE],
-      [ProductFields.EVENT_ID]: productData[ProductFields.EVENT_ID],
-      [ProductFields.STRIPE_PRODUCT_ID]:
-        productData[ProductFields.STRIPE_PRODUCT_ID],
-      [ProductFields.STRIPE_PRICE_ID]:
-        productData[ProductFields.STRIPE_PRICE_ID] || "",
-      [ProductFields.IMAGE]: productData[ProductFields.IMAGE] || "",
-      [ProductFields.REQUIRES_TIMESLOT]:
-        productData[ProductFields.REQUIRES_TIMESLOT] || false,
-      [ProductFields.CREATED_AT]: admin.firestore.FieldValue.serverTimestamp(),
-    };
-
-    await this.db.collection("products").doc(id).set(product);
-    return { id, ...product };
+    await this.db.collection("products").doc(id).set(productData);
+    return { id, ...productData };
   }
 
   async getProduct(productId) {
@@ -115,28 +105,26 @@ class FirebaseService {
   }) {
     const batch = this.db.batch();
 
-    // Create order document
+    // Create order document using factory function
     const orderRef = this.db.collection("orders").doc(orderId);
-    const orderData = {
+    const orderData = createOrderData({
       [OrderFields.USER_ID]: userId,
       [OrderFields.AMOUNT_TOTAL]: amountTotal,
       [OrderFields.CURRENCY]: currency,
       [OrderFields.PAYMENT_METHOD]: paymentMethod,
-      [OrderFields.MANUAL_PAYMENT_CONFIRMED_AT]: null,
-      [OrderFields.MANUAL_PAYMENT_CONFIRMED_BY]: "",
-      [OrderFields.CREATED_AT]: admin.firestore.FieldValue.serverTimestamp(),
-    };
+    });
     batch.set(orderRef, orderData);
 
-    // Add order items as subcollection
+    // Add order items as subcollection using factory function
     items.forEach((item) => {
       const itemRef = orderRef.collection("items").doc();
-      const itemData = {
+      const itemData = createOrderItemData({
         [OrderItemFields.PRODUCT_NAME]: item.description || item.productName,
         [OrderItemFields.QUANTITY]: item.quantity,
         [OrderItemFields.AMOUNT_TOTAL]: item.amount || item.amountTotal,
         [OrderItemFields.UNIT_PRICE]: item.unit_price || item.unitPrice,
-      };
+        [OrderItemFields.SHIFT_ID]: item.shiftId || "",
+      });
       batch.set(itemRef, itemData);
     });
 
@@ -214,7 +202,7 @@ class FirebaseService {
   async getAllEvents() {
     const snapshot = await this.db
       .collection("events")
-      .orderBy("createdAt", "desc")
+      .orderBy(EventFields.CREATED_AT, "desc")
       .get();
     return snapshot.docs.map((doc) => this._docToObject(doc));
   }
@@ -222,8 +210,8 @@ class FirebaseService {
   async getActiveEvents() {
     const snapshot = await this.db
       .collection("events")
-      .where("isActive", "==", true)
-      .orderBy("createdAt", "desc")
+      .where(EventFields.ISACTIVE, "==", true)
+      .orderBy(EventFields.CREATED_AT, "desc")
       .get();
     return snapshot.docs.map((doc) => this._docToObject(doc));
   }
@@ -250,7 +238,7 @@ class FirebaseService {
   async getProductsByEvent(eventId) {
     const snapshot = await this.db
       .collection("products")
-      .where("eventId", "==", eventId)
+      .where(ProductFields.EVENT_ID, "==", eventId)
       .get();
     return snapshot.docs.map((doc) => this._docToObject(doc));
   }

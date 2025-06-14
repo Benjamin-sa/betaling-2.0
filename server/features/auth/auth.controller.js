@@ -3,7 +3,7 @@ const BaseController = require("../../core/controllers/base.controller");
 const admin = require("../../config/firebaseAdmin");
 const stripeService = require("../../core/services/stripe.service");
 const firebaseService = require("../../core/services/firebase-cached.service");
-const { UserFields } = require("../../models/webstore.model");
+const { UserFields, createUserData } = require("../../models/webstore.model");
 
 // Auth-specific error messages
 const AUTH_ERROR_MESSAGES = {
@@ -30,15 +30,11 @@ class AuthController extends BaseController {
   async _registerHandler(req, res) {
     const { email, password } = req.body;
 
-    // Validate required fields
-    const validation = this._validateRequiredFields(req.body, [
-      "email",
-      "password",
-    ]);
-    if (!validation.isValid) {
+    // Basic validation for auth-specific fields
+    if (!email || !password) {
       return this._sendErrorResponse(
         res,
-        validation.message,
+        "Email and password are required",
         this.HTTP_STATUS.BAD_REQUEST
       );
     }
@@ -54,8 +50,13 @@ class AuthController extends BaseController {
       userRecord.uid
     );
 
-    // 3. Create user in database with proper field mapping
-    const userData = this._createUserData(userRecord.uid, email, customer.id);
+    // 3. Create user in database using factory function
+    const userData = createUserData({
+      [UserFields.FIREBASE_UID]: userRecord.uid,
+      [UserFields.EMAIL]: email,
+      [UserFields.STRIPE_CUSTOMER_ID]: customer.id,
+      [UserFields.IS_ADMIN]: false,
+    });
     const user = await firebaseService.createUser(userData);
 
     this._logAction("User registered successfully", { userId: userRecord.uid });
@@ -84,52 +85,30 @@ class AuthController extends BaseController {
     const firebaseUid = req.user.uid;
     const email = req.user.email;
 
-    // Validate required fields
-    const validation = this._validateRequiredFields(req.user, ["uid", "email"]);
-    if (!validation.isValid) {
-      return this._sendErrorResponse(
-        res,
-        "Invalid user data",
-        this.HTTP_STATUS.BAD_REQUEST
-      );
-    }
-
+    // Auth middleware already validates req.user, so uid and email are guaranteed to exist
     this._logAction("Ensuring user exists", { firebaseUid, email });
 
     // 1. Check if user already exists in database
     let user = await firebaseService.getUser(firebaseUid);
 
     if (!user) {
-      // 2. User doesn't exist, create with Stripe customer
+      // 2. User doesn't exist, create with Stripe customer using factory function
       const customer = await stripeService.findOrCreateCustomer(
         email,
         firebaseUid
       );
-      const userData = this._createUserData(firebaseUid, email, customer.id);
+      const userData = createUserData({
+        [UserFields.FIREBASE_UID]: firebaseUid,
+        [UserFields.EMAIL]: email,
+        [UserFields.STRIPE_CUSTOMER_ID]: customer.id,
+        [UserFields.IS_ADMIN]: false,
+      });
       user = await firebaseService.createUser(userData);
 
       this._logAction("Created new user in database", { firebaseUid });
     }
 
     this._sendSuccessResponse(res, { user }, "User authenticated successfully");
-  }
-
-  /**
-   * Create user data object with proper field mapping
-   * @private
-   * @param {string} firebaseUid - Firebase user ID
-   * @param {string} email - User email
-   * @param {string} stripeCustomerId - Stripe customer ID
-   * @returns {Object} - User data object
-   */
-  _createUserData(firebaseUid, email, stripeCustomerId) {
-    return {
-      [UserFields.FIREBASE_UID]: firebaseUid,
-      [UserFields.EMAIL]: email,
-      [UserFields.STRIPE_CUSTOMER_ID]: stripeCustomerId,
-      [UserFields.IS_ADMIN]: false,
-      [UserFields.CREATED_AT]: new Date().toISOString(),
-    };
   }
 
   /**
@@ -148,16 +127,7 @@ class AuthController extends BaseController {
   async _getAdminStatusHandler(req, res) {
     const firebaseUid = req.user.uid;
 
-    // Validate required fields
-    const validation = this._validateRequiredFields(req.user, ["uid"]);
-    if (!validation.isValid) {
-      return this._sendErrorResponse(
-        res,
-        "Invalid user ID",
-        this.HTTP_STATUS.BAD_REQUEST
-      );
-    }
-
+    // Auth middleware already validates req.user.uid
     this._logAction("Getting admin status", { firebaseUid });
 
     // Use cached admin status check

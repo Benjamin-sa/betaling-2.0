@@ -22,14 +22,21 @@ const routes = [
     meta: { requiresAuth: true, requiresAdmin: true },
   },
   {
+    path: "/success",
+    name: "Success",
+    component: () => import("@/views/Success.vue"),
+    meta: { requiresAuth: true },
+  },
+  {
+    path: "/bestellingen",
+    name: "Orders",
+    component: () => import("@/views/Orders.vue"),
+    meta: { requiresAuth: true },
+  },
+  {
     path: "/",
     name: "Home",
     component: () => import("@/views/Home.vue"),
-  },
-  {
-    path: "/orders",
-    name: "Orders",
-    component: () => import("@/views/OrderDashboard.vue"),
   },
 ];
 

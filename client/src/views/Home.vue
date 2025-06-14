@@ -1,333 +1,224 @@
 <template>
   <div class="home-container">
     <!-- Hero Section -->
-    <HeroSection :selected-event="selectedEvent" @scroll-to-products="scrollToProducts" />
+    <HeroSection :selected-event="eventManager.selectedEvent.value" @scroll-to-products="scrollToProducts" />
 
     <!-- Main Content -->
     <div id="products-section" class="bg-gray-50 py-16">
       <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-32">
-        <!-- Event Selector -->
-        <EventSelector :active-events="activeEvents" :selected-event-id="selectedEventId"
-          :selected-event="selectedEvent" @update:selected-event-id="onEventChange" />
+        <!-- Conditional Event Display -->
+        <!-- Simple aesthetic divider when there's only one event -->
+        <div v-if="!eventManager.shouldShowEventSelector.value" class="mb-12">
+          <div class="flex items-center justify-center">
+            <div class="flex-1 h-px bg-gradient-to-r from-transparent via-gray-300 to-transparent"></div>
+            <div class="mx-6 text-gray-500 font-medium text-sm uppercase tracking-wider">
+              Onze Producten
+            </div>
+            <div class="flex-1 h-px bg-gradient-to-r from-transparent via-gray-300 to-transparent"></div>
+          </div>
+        </div>
+
+        <!-- Show Event Selector when there are multiple events -->
+        <EventSelector v-if="eventManager.shouldShowEventSelector.value"
+          :active-events="eventManager.activeEvents.value" :selected-event-id="eventManager.selectedEventId.value"
+          :selected-event="eventManager.selectedEvent.value" @update:selected-event-id="onEventChange" />
 
         <!-- Product Grid -->
-        <ProductGrid :loading="loading" :products="products" :quantities="quantities" :active-events="activeEvents"
-          :selected-event-id="selectedEventId" :selected-event="selectedEvent" :selected-shifts="selectedShifts"
-          @update:quantity="updateQuantity" @image-error="handleImageError"
-          @update:selected-shifts="updateSelectedShifts" />
+        <ProductGrid :loading="productManager.loading.value" :products="productManager.products.value"
+          :cart-items="cartItemsStorage.cartItems.value" :active-events="eventManager.activeEvents.value"
+          :selected-event-id="eventManager.selectedEventId.value" :selected-event="eventManager.selectedEvent.value"
+          :product-shift-selection="productShiftStorage.productShiftSelection.value" @update:cart-item="updateCartItem"
+          @image-error="handleImageError" @update:product-shift="updateProductShift" />
       </div>
 
-      <!-- Shopping Cart -->
-      <ShoppingCart :has-items="hasItems" :total-items="totalItems" :total="total" :selected-products="selectedProducts"
-        :selected-shifts="selectedShifts" :quantities="quantities" :loading="checkoutLoading"
-        :selected-event="selectedEvent" @checkout="handleCheckout" />
-
       <!-- Event Details -->
-      <EventDetails :selected-event="selectedEvent" />
+      <EventDetails :selected-event="eventManager.selectedEvent.value" />
     </div>
+
+    <!-- New Floating Cart System -->
+    <FloatingCartWidget :has-items="productManager.hasSelectedProducts.value"
+      :total-items="productManager.totalItems.value" :total="productManager.totalPrice.value"
+      @toggle-cart="isCartOpen = !isCartOpen" />
+
+    <CartDrawer :is-open="isCartOpen" :selected-products="productManager.selectedProducts.value"
+      :product-shift-selection="productShiftStorage.productShiftSelection.value"
+      :cart-items="cartItemsStorage.cartItems.value" :loading="checkout.loading.value"
+      :selected-event="eventManager.selectedEvent.value" :total-items="productManager.totalItems.value"
+      :total="productManager.totalPrice.value" :has-valid-items="productManager.hasValidCartItems.value"
+      @close="isCartOpen = false" @checkout="handleCheckout" @update-cart-item="updateCartItem"
+      @remove-product="removeProduct" @clear-cart="clearCart" />
+
+    <!-- Confirmation Modal -->
+    <ConfirmationModal v-model="confirmation.isOpen.value" :title="confirmation.config.value.title"
+      :message="confirmation.config.value.message" :type="confirmation.config.value.type"
+      :confirm-text="confirmation.config.value.confirmText" :cancel-text="confirmation.config.value.cancelText"
+      @confirm="confirmation.confirm" @cancel="confirmation.cancel" @close="confirmation.close" />
   </div>
 </template>
 
 <script setup>
-import { ref, computed, onMounted, watch } from 'vue';
-import { loadStripe } from '@stripe/stripe-js';
-import { apiClient } from '@/services/api';
-import { useAuthStore } from '@/stores/auth';
-import { useNotificationStore } from '@/stores/notifications';
+import { ref, watch, onMounted, onUnmounted } from 'vue';
+import { UI_CONSTANTS } from '@/config/constants';
 
-// Import new components
+// Import composables
+import { useEventManager } from '@/composables/useEventManager';
+import { useProductManager } from '@/composables/useProductManager';
+import { useCartItemsStorage, useProductShiftStorage } from '@/composables/useLocalStorage';
+import { useCheckout } from '@/composables/useCheckout';
+import { useConfirmation } from '@/composables/useConfirmation';
+
+// Import components
 import HeroSection from '@/components/events/HeroSection.vue';
 import EventSelector from '@/components/events/EventSelector.vue';
 import ProductGrid from '@/components/events/ProductGrid.vue';
-import ShoppingCart from '@/components/events/ShoppingCart.vue';
 import EventDetails from '@/components/events/EventDetails.vue';
+import FloatingCartWidget from '@/components/shoppingcart/FloatingCartWidget.vue';
+import CartDrawer from '@/components/shoppingcart/CartDrawer.vue';
+import ConfirmationModal from '@/components/ui/ConfirmationModal.vue';
 
-const auth = useAuthStore();
-const notifications = useNotificationStore();
-const stripePromise = loadStripe('pk_test_51Q2YysK7LyHlGaLs1KaOcD1Gk6A8b8l45LVF3q9URgskNKwgFHBEIPRKtMXGZEu0kFn9Iq0yWGcJ0Aatm5XCMsiK00SWythWSu');
+// Cart state
+const isCartOpen = ref(false);
 
-// State variables
-const products = ref([]);
-const quantities = ref({});
-const selectedShifts = ref([]);
-const loading = ref(false);
-const checkoutLoading = ref(false);
-const activeEvents = ref([]);
-const selectedEventId = ref(null);
+// Initialize composables
+const eventManager = useEventManager();
+const cartItemsStorage = useCartItemsStorage();
+const productShiftStorage = useProductShiftStorage();
+const confirmation = useConfirmation();
 
-// Computed property for selected event
-const selectedEvent = computed(() => {
-  return activeEvents.value.find(event => event.id === selectedEventId.value);
-});
+// Product manager with validation integrated
+const productManager = useProductManager(
+  cartItemsStorage.cartItems,
+  eventManager.selectedEvent
+);
 
-// Load active events
-const loadActiveEvents = async () => {
-  try {
-    const data = await apiClient.getActiveEvents();
-    activeEvents.value = data.events;
+// Checkout functionality
+const checkout = useCheckout(
+  productManager.products,
+  cartItemsStorage.cartItems,
+  eventManager.selectedEvent
+);
 
-    // Auto-select the first active event if available
-    if (activeEvents.value.length > 0 && !selectedEventId.value) {
-      selectedEventId.value = activeEvents.value[0].id;
-    }
-  } catch (error) {
-    console.error('Error loading active events:', error);
-    notifications.error('Laadprobleem', 'Er is een fout opgetreden bij het laden van de events.');
-  }
-};
-
-// Load products for a specific event
-const loadProductsForEvent = async (eventId) => {
-  if (!eventId) {
-    products.value = [];
-    return;
-  }
-
-  loading.value = true;
-  try {
-    const data = await apiClient.getProducts(eventId);
-    products.value = data.products;
-
-    // Initialize quantities from localStorage for this event
-    const savedQuantities = JSON.parse(localStorage.getItem(`quantities_${eventId}`)) || {};
-    const newQuantities = {};
-    products.value.forEach((product) => {
-      newQuantities[product.id] = savedQuantities[product.id] || 0;
-    });
-    quantities.value = newQuantities;
-  } catch (error) {
-    console.error('Error loading products:', error);
-    notifications.error('Laadprobleem', 'Er is een fout opgetreden bij het laden van de producten.');
-    products.value = [];
-  } finally {
-    loading.value = false;
-  }
-};
-
-// Handle event change
+// Handle event change with proper cleanup and state management
 const onEventChange = (newEventId) => {
-  if (selectedEventId.value !== newEventId) {
-    // Save current quantities and shifts to localStorage before switching
-    saveQuantitiesToStorage();
-    saveShiftsToStorage();
+  if (eventManager.selectedEventId.value !== newEventId) {
+    // Save current state before switching
+    cartItemsStorage.saveCartItems(eventManager.selectedEventId.value);
+    productShiftStorage.saveProductShiftSelection(eventManager.selectedEventId.value);
 
-    selectedEventId.value = newEventId;
+    // Switch to new event
+    eventManager.selectEvent(newEventId);
 
-    // Load products and shifts for new event
+    // Load state for new event
     if (newEventId) {
-      loadProductsForEvent(newEventId);
-      loadShiftsFromStorage();
+      productManager.loadProductsForEvent(newEventId);
+      cartItemsStorage.loadCartItems(newEventId);
+      productShiftStorage.loadProductShiftSelection(newEventId);
     } else {
       // Clear selections when no event is selected
-      selectedShifts.value = [];
+      cartItemsStorage.clearCartItems();
+      productShiftStorage.clearProductShiftSelection();
+      productManager.clearProducts();
     }
   }
 };
 
-// Save quantities to localStorage with event-specific key
-const saveQuantitiesToStorage = () => {
-  if (selectedEventId.value) {
-    localStorage.setItem(`quantities_${selectedEventId.value}`, JSON.stringify(quantities.value));
-  }
+// Handle cart item updates (replaces updateQuantity)
+const updateCartItem = (productId, shiftId, newQuantity) => {
+  cartItemsStorage.updateCartItem(productId, shiftId, newQuantity, eventManager.selectedEventId.value);
 };
 
-// Watch for changes in selectedEventId
-watch(selectedEventId, (newEventId) => {
-  if (newEventId) {
-    loadProductsForEvent(newEventId);
-    loadShiftsFromStorage();
-  }
-});
-
-const selectedProducts = computed(() => {
-  return products.value.filter(product => quantities.value[product.id] > 0)
-});
-
-// For shift events, we need products and potentially a shift (only if products require timeslots)
-const hasItems = computed(() => {
-  const hasProducts = Object.values(quantities.value).some(quantity => quantity > 0);
-
-  if (selectedEvent.value?.type === 'shift_event') {
-    if (!hasProducts) return false;
-    
-    // Check if any selected products require timeslots
-    const selectedProducts = products.value.filter(product => 
-      quantities.value[product.id] > 0
-    );
-    
-    const hasTimeslotRequiredProducts = selectedProducts.some(product => 
-      product.requiresTimeslot === true
-    );
-
-    // If any product requires timeslot, need shift selection
-    if (hasTimeslotRequiredProducts) {
-      return hasProducts && selectedShifts.value.length > 0;
-    } else {
-      // If no products require timeslots, just need products
-      return hasProducts;
-    }
-  } else {
-    // For regular events, only need products
-    return hasProducts;
-  }
-});
-
-const total = computed(() => {
-  // Total is always based on products only
-  // Shifts are just metadata for linking products to time slots
-  return products.value.reduce((sum, product) => {
-    return sum + (product.price * (quantities.value[product.id] || 0));
-  }, 0);
-});
-
-const totalItems = computed(() => {
-  // Count only product quantities, shifts are just linking metadata
-  return Object.values(quantities.value).reduce((sum, quantity) => sum + quantity, 0);
-});
-
-const updateQuantity = (productId, newQuantity) => {
-  quantities.value[productId] = Math.max(0, newQuantity);
-  // Save to localStorage whenever quantities change
-  saveQuantitiesToStorage();
+// Handle shift selection updates
+const updateProductShift = (productId, shiftId) => {
+  productShiftStorage.updateProductShift(productId, shiftId, eventManager.selectedEventId.value);
 };
 
-const updateSelectedShifts = (shifts) => {
-  selectedShifts.value = shifts;
-  // Save shifts to localStorage
-  saveShiftsToStorage();
+// Handle image errors
+const handleImageError = (product) => {
+  productManager.handleImageError(product);
 };
 
-// Save shifts to localStorage with event-specific key
-const saveShiftsToStorage = () => {
-  if (selectedEventId.value) {
-    localStorage.setItem(`shifts_${selectedEventId.value}`, JSON.stringify(selectedShifts.value));
-  }
-};
-
-// Load shifts from localStorage for the current event
-const loadShiftsFromStorage = () => {
-  if (selectedEventId.value) {
-    const savedShifts = JSON.parse(localStorage.getItem(`shifts_${selectedEventId.value}`)) || [];
-    selectedShifts.value = savedShifts;
-  }
-};
-
-const handleCheckout = async () => {
-  checkoutLoading.value = true;
-
-  if (!auth.token) {
-    notifications.warning('Authenticatie', 'Log in om af te rekenen.');
-    checkoutLoading.value = false;
-    return;
-  }
+// Cart management functions
+const removeProduct = async (productId, shiftId = null) => {
+  const product = productManager.getProductById(productId);
+  const productName = product?.name || 'dit product';
+  const shiftText = shiftId ? ' (voor geselecteerd tijdslot)' : '';
 
   try {
-    // Prepare product items - ALWAYS include products in the checkout
-    const productItems = products.value
-      .filter(product => quantities.value[product.id] > 0)
-      .map(product => ({
-        productId: product.id,
-        quantity: quantities.value[product.id],
-        type: 'product'
-      }));
+    await confirmation.show({
+      title: 'Product verwijderen',
+      message: `Weet je zeker dat je "${productName}${shiftText}" uit je winkelmandje wilt verwijderen?`,
+      type: 'warning',
+      confirmText: 'Verwijderen',
+      cancelText: 'Behouden'
+    });
 
-    if (productItems.length === 0) {
-      notifications.warning('Controleer je invoer', 'Selecteer ten minste één product om af te rekenen.');
-      return;
-    }
-
-    // For shift events, check if any selected products require timeslots
-    if (selectedEvent.value?.type === 'shift_event') {
-      const selectedProducts = products.value.filter(product => 
-        quantities.value[product.id] > 0
-      );
-      
-      const hasTimeslotRequiredProducts = selectedProducts.some(product => 
-        product.requiresTimeslot === true
-      );
-
-      // Only require shift selection if products require timeslots
-      if (hasTimeslotRequiredProducts) {
-        if (selectedShifts.value.length === 0) {
-          notifications.warning('Controleer je invoer', 'Selecteer een tijdslot voor producten die een tijdslot vereisen.');
-          return;
-        }
-
-        if (selectedShifts.value.length > 1) {
-          notifications.warning('Controleer je invoer', 'Selecteer slechts één tijdslot per bestelling.');
-          return;
-        }
-      }
-
-      // For shift events, products are linked to the selected shift (if one is selected)
-      const response = await apiClient.createCheckoutSession(
-        productItems,
-        selectedEventId.value,
-        selectedShifts.value.length > 0 ? selectedShifts.value[0].id : null
-      );
-
-      const stripe = await stripePromise;
-      if (!stripe) {
-        throw new Error('Failed to load Stripe');
-      }
-
-      const { error } = await stripe.redirectToCheckout({
-        sessionId: response.sessionId
-      });
-      if (error) {
-        throw new Error(error.message);
-      }
-    } else {
-      // For regular events, just products without shift requirement
-      const response = await apiClient.createCheckoutSession(
-        productItems,
-        selectedEventId.value
-      );
-
-      const stripe = await stripePromise;
-      if (!stripe) {
-        throw new Error('Failed to load Stripe');
-      }
-
-      const { error } = await stripe.redirectToCheckout({
-        sessionId: response.sessionId
-      });
-      if (error) {
-        throw new Error(error.message);
-      }
-    }
-  } catch (error) {
-    console.error('Error during checkout:', error);
-    notifications.error(
-      'Afrekenfout',
-      error.message || 'Er is een fout opgetreden tijdens het afrekenen.'
-    );
-  } finally {
-    checkoutLoading.value = false;
+    // User confirmed - remove the product
+    cartItemsStorage.updateCartItem(productId, shiftId, 0, eventManager.selectedEventId.value);
+  } catch {
+    // User cancelled - do nothing
   }
 };
 
+const clearCart = async () => {
+  try {
+    await confirmation.show({
+      title: 'Winkelmandje legen',
+      message: 'Weet je zeker dat je alle items uit je winkelmandje wilt verwijderen?',
+      type: 'warning',
+      confirmText: 'Alles verwijderen',
+      cancelText: 'Annuleren'
+    });
+
+    // User confirmed - clear the cart
+    cartItemsStorage.clearCart(eventManager.selectedEventId.value);
+    isCartOpen.value = false;
+  } catch {
+    // User cancelled - do nothing
+  }
+};
+
+const handleCheckout = () => {
+  checkout.handleCheckout();
+};
+
+// Scroll to products section
 const scrollToProducts = () => {
   const productsSection = document.getElementById('products-section');
   if (productsSection) {
     productsSection.scrollIntoView({
-      behavior: 'smooth',
+      behavior: UI_CONSTANTS.SCROLL_BEHAVIOR,
       block: 'start'
     });
   }
 };
 
-const handleImageError = (product) => {
-  // Simply remove the imageUrl without any error handling visual feedback
-  product.imageUrl = null;
-};
+// Watch for event changes and load products accordingly
+watch(eventManager.selectedEventId, (newEventId) => {
+  if (newEventId) {
+    productManager.loadProductsForEvent(newEventId).then(() => {
+      // Initialize cart items after products are loaded
+      cartItemsStorage.initializeCartItems(productManager.products.value, newEventId);
+      // Initialize product-shift selections
+      productShiftStorage.initializeProductShiftSelection(productManager.products.value, newEventId);
+    });
+    cartItemsStorage.loadCartItems(newEventId);
+    productShiftStorage.loadProductShiftSelection(newEventId);
+  }
+});
 
+// Initialize on mount
 onMounted(async () => {
   try {
-    await loadActiveEvents();
+    await eventManager.loadActiveEvents();
   } catch (error) {
     console.error('Error during initialization:', error);
   }
+});
+
+// Cleanup on unmount
+onUnmounted(() => {
+  cartItemsStorage.cleanup();
+  productShiftStorage.cleanup();
 });
 </script>
 

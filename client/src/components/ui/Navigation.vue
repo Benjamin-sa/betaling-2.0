@@ -23,7 +23,7 @@
                             :class="isHomePage ? 'text-white/90 drop-shadow-sm' : 'text-gray-700'">
                             Welkom, {{ auth.user.email }}
                         </span>
-                        <router-link to="/orders"
+                        <router-link to="/bestellingen"
                             class="flex items-center space-x-2 font-medium transition-all duration-300 hover:scale-105"
                             :class="isHomePage
                                 ? 'text-white/80 hover:text-white drop-shadow-sm px-4 py-2 rounded-xl hover:bg-white/10 backdrop-blur-sm'
@@ -98,7 +98,7 @@
                             :class="isHomePage ? 'text-white/90' : 'text-gray-700'">
                             Welkom, {{ auth.user.email }}
                         </span>
-                        <router-link to="/orders" class="block px-4 py-2 font-medium transition-all duration-300"
+                        <router-link to="/bestellingen" class="block px-4 py-2 font-medium transition-all duration-300"
                             :class="isHomePage
                                 ? 'text-white/80 hover:bg-white/10 hover:text-white'
                                 : 'text-gray-600 hover:bg-gray-50 hover:text-primary'" @click="closeMenu">

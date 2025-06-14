@@ -72,6 +72,7 @@ export const useAuthStore = defineStore("auth", () => {
         password
       );
 
+      await apiClient.ensureUser();
       user.value = userCredential.user;
       // Get fresh token and cache it
       token.value = await user.value.getIdToken();

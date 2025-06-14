@@ -1,21 +1,7 @@
 <template>
-  <div class="py-4 px-4 sm:py-8">
-    <h1 class="text-2xl sm:text-3xl font-bold text-center text-text">Admin Dashboard</h1>
-
-    <!-- Event Management Section -->
-    <div class="mt-4 sm:mt-8">
-      <EventManagement :events="events" @events-updated="loadEvents" />
-    </div>
-
-    <!-- Product Management Section -->
-    <div class="mt-8">
-      <ProductManagement :events="events" @products-updated="loadProducts" />
-    </div>
-
-    <!-- Users Management Section -->
-    <div class="mt-8">
-      <UserManagement :users="users" @users-updated="loadUsers" />
-    </div>
+  <div class="pt-24 pb-8 px-4 sm:pt-28 sm:pb-12 min-h-screen bg-gray-50">
+    <!-- Admin Dashboard with Tab Layout -->
+    <AdminTabs :events="events" @events-updated="loadEvents" @products-updated="loadProducts" />
 
     <!-- Confirmation Modal -->
     <ConfirmationModal v-model="confirmation.isOpen.value" :title="confirmation.config.value.title"
@@ -30,22 +16,10 @@ import { ref, onMounted } from 'vue';
 import { useConfirmation } from '@/composables/useConfirmation';
 import { apiClient } from '@/services/api';
 import ConfirmationModal from '@/components/ui/ConfirmationModal.vue';
-import EventManagement from '@/components/admin/EventManagement.vue';
-import ProductManagement from '@/components/admin/ProductManagement.vue';
-import UserManagement from '@/components/admin/UserManagement.vue';
+import AdminTabs from '@/components/admin/AdminTabs.vue';
 
 const confirmation = useConfirmation();
-const users = ref([]);
 const events = ref([]);
-
-const loadUsers = async () => {
-  try {
-    const data = await apiClient.getAdminUsers();
-    users.value = data.users;
-  } catch (error) {
-    console.error('Error loading users:', error);
-  }
-};
 
 const loadEvents = async () => {
   try {
@@ -62,7 +36,6 @@ const loadProducts = async () => {
 };
 
 onMounted(() => {
-  loadUsers();
   loadEvents();
 });
 </script>

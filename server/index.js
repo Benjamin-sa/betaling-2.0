@@ -27,7 +27,7 @@ async function startServer() {
     // Middleware setup
     app.use(cors());
 
-    app.use("/api/webhooks", require("./core/routes/webhook.routes"));
+    app.use("/api/webhooks", require("./features/webhooks/webhook.routes"));
 
     // Parse JSON bodies for all other routes
     app.use(express.json());

@@ -49,18 +49,8 @@ class OrderController extends BaseController {
     const { items, eventId, shiftId } = req.body;
     const userId = req.user.uid;
 
-    // Validate required fields
-    const validation = this._validateRequiredFields(req.body, ["items"]);
-    if (!validation.isValid) {
-      return this._sendErrorResponse(
-        res,
-        validation.message,
-        this.HTTP_STATUS.BAD_REQUEST
-      );
-    }
-
     // Validate items array - products are always required
-    if (!Array.isArray(items) || items.length === 0) {
+    if (!items || !Array.isArray(items) || items.length === 0) {
       return this._sendErrorResponse(
         res,
         "At least one product must be selected",
@@ -79,42 +69,58 @@ class OrderController extends BaseController {
         );
       }
 
-      // New validation logic based on event type and product requirements
+      // New validation logic for multi-shift support
       if (event.type === "shift_event") {
         // For shift events, check if any products require timeslots
         const products = await firebaseService.getProductsByEvent(eventId);
-        const selectedProductIds = items.map(item => item.productId);
-        const selectedProducts = products.filter(product => 
+        const selectedProductIds = items.map((item) => item.productId);
+        const selectedProducts = products.filter((product) =>
           selectedProductIds.includes(product.id)
         );
-        
-        const hasTimeslotRequiredProducts = selectedProducts.some(product => 
-          product.requiresTimeslot === true
+
+        const hasTimeslotRequiredProducts = selectedProducts.some(
+          (product) => product.requiresTimeslot === true
         );
 
-        // If any product requires timeslot, shiftId is required
-        if (hasTimeslotRequiredProducts && !shiftId) {
-          return this._sendErrorResponse(
-            res,
-            "Shift selection is required for products that require timeslots",
-            this.HTTP_STATUS.BAD_REQUEST
-          );
-        }
+        // If any product requires timeslot, all items with those products must have shiftId
+        if (hasTimeslotRequiredProducts) {
+          const itemsRequiringTimeslot = items.filter((item) => {
+            const product = selectedProducts.find(
+              (p) => p.id === item.productId
+            );
+            return product && product.requiresTimeslot === true;
+          });
 
-        // Validate shift exists (but no capacity restrictions)
-        if (shiftId) {
-          const shift = event.shifts?.find((s) => s.id === shiftId);
-          if (!shift) {
+          const missingShifts = itemsRequiringTimeslot.filter(
+            (item) => !item.shiftId
+          );
+          if (missingShifts.length > 0) {
             return this._sendErrorResponse(
               res,
-              "Selected shift not found",
+              "Shift selection is required for products that require timeslots",
               this.HTTP_STATUS.BAD_REQUEST
             );
+          }
+
+          // Validate all provided shifts exist
+          const allShiftIds = [
+            ...new Set(items.map((item) => item.shiftId).filter(Boolean)),
+          ];
+          for (const shiftId of allShiftIds) {
+            const shift = event.shifts?.find((s) => s.id === shiftId);
+            if (!shift) {
+              return this._sendErrorResponse(
+                res,
+                `Selected shift ${shiftId} not found`,
+                this.HTTP_STATUS.BAD_REQUEST
+              );
+            }
           }
         }
       } else if (event.type === "product_sale") {
         // For product_sale events, shift selection is not allowed
-        if (shiftId) {
+        const itemsWithShifts = items.filter((item) => item.shiftId);
+        if (itemsWithShifts.length > 0) {
           return this._sendErrorResponse(
             res,
             "Shift selection is not allowed for product sale events",
@@ -139,12 +145,12 @@ class OrderController extends BaseController {
       throw new Error(ORDER_ERROR_MESSAGES.NO_STRIPE_CUSTOMER);
     }
 
-    // 3. Create checkout session with event context
+    // 3. Create checkout session with event context (remove top-level shiftId)
     const session = await stripeService.createCheckoutSession(
       items,
       userId,
       user.stripeCustomerId,
-      { eventId, shiftId }
+      { eventId }
     );
 
     this._logAction("Checkout session created", { sessionId: session.id });

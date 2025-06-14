@@ -131,8 +131,13 @@ class CachedFirebaseService {
   async createProduct(productData) {
     const result = await this.firebase.createProduct(productData);
 
-    // Only clear the "all products" list since it's now outdated
+    // Clear the "all products" list since it's now outdated
     this.cache.del("products", "all");
+
+    // Also clear the event-specific cache if the product has an eventId
+    if (productData && productData.eventId) {
+      this.cache.del("products", `event:${productData.eventId}`);
+    }
 
     return result;
   }
@@ -161,11 +166,19 @@ class CachedFirebaseService {
   }
 
   async deleteProduct(productId) {
+    // Get product data before deletion to clear event-specific cache
+    const productToDelete = await this.getProduct(productId);
+
     const result = await this.firebase.deleteProduct(productId);
 
     // Clear specific product caches
     this.cache.del("products", productId);
     this.cache.del("products", "all"); // All products list is also outdated
+
+    // Also clear the event-specific cache if the product had an eventId
+    if (productToDelete && productToDelete.eventId) {
+      this.cache.del("products", `event:${productToDelete.eventId}`);
+    }
 
     return result;
   }

@@ -1,131 +1,249 @@
 <template>
-    <div class="bg-cardBackground rounded-lg shadow-lg p-6">
-        <h2 class="text-2xl font-semibold text-primary mb-4">Event Beheer</h2>
+    <div class="bg-white rounded-2xl shadow-lg border border-gray-200">
+        <!-- Header -->
+        <div class="bg-gradient-to-r from-primary to-secondary px-8 py-6 rounded-t-2xl">
+            <h2 class="text-2xl lg:text-3xl font-bold text-white mb-2">Event Beheer</h2>
+            <p class="text-emerald-100">Maak en beheer events en shifts</p>
+        </div>
 
-        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <!-- Create Event Form -->
-            <div>
-                <h3 class="text-lg font-medium mb-4">Nieuw Event Aanmaken</h3>
-                <form @submit.prevent="handleCreateEvent" class="space-y-4">
-                    <div class="form-group">
-                        <label for="eventName" class="block text-sm font-medium text-text">Event Naam</label>
-                        <input id="eventName" v-model="newEvent.name" type="text" required
-                            placeholder="Bijv. Spaghetti Avond 2025"
-                            class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary focus:border-primary" />
-                    </div>
+        <!-- Content -->
+        <div class="p-8">
+            <div class="grid grid-cols-1 xl:grid-cols-2 gap-8">
+                <!-- Create Event Form -->
+                <div class="bg-gradient-to-br from-gray-50 to-gray-100 border border-gray-200 rounded-2xl p-6">
+                    <h3 class="text-xl font-bold text-gray-900 mb-6 flex items-center">
+                        <svg class="w-6 h-6 mr-3 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                        </svg>
+                        Nieuw Event Aanmaken
+                    </h3>
 
-                    <div class="form-group">
-                        <label for="eventDescription" class="block text-sm font-medium text-text">Beschrijving</label>
-                        <textarea id="eventDescription" v-model="newEvent.description" required
-                            placeholder="Event beschrijving"
-                            class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary focus:border-primary"></textarea>
-                    </div>
+                    <form @submit.prevent="handleCreateEvent" class="space-y-6">
+                        <!-- Event Name -->
+                        <div>
+                            <label for="eventName" class="block text-sm font-semibold text-gray-700 mb-2">Event
+                                Naam</label>
+                            <input id="eventName" v-model="newEvent.name" type="text" required
+                                placeholder="Bijv. Spaghetti Avond 2025"
+                                class="w-full px-4 py-3 text-lg border-2 border-gray-200 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary transition-all duration-200" />
+                        </div>
 
-                    <div class="form-group">
-                        <label for="eventType" class="block text-sm font-medium text-text">Event Type</label>
-                        <select id="eventType" v-model="newEvent.type" required
-                            class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary focus:border-primary">
-                            <option value="product_sale">Product Verkoop</option>
-                            <option value="shift_event">Shift Event</option>
-                        </select>
-                    </div>
+                        <!-- Event Description -->
+                        <div>
+                            <label for="eventDescription"
+                                class="block text-sm font-semibold text-gray-700 mb-2">Beschrijving</label>
+                            <textarea id="eventDescription" v-model="newEvent.description" required rows="3"
+                                placeholder="Event beschrijving"
+                                class="w-full px-4 py-3 text-lg border-2 border-gray-200 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary transition-all duration-200"></textarea>
+                        </div>
 
-                    <!-- Shift Configuration (only for shift events) -->
-                    <div v-if="newEvent.type === 'shift_event'" class="space-y-3">
-                        <h4 class="text-md font-medium text-text">Shifts Configureren</h4>
+                        <!-- Event Type -->
+                        <div>
+                            <label for="eventType" class="block text-sm font-semibold text-gray-700 mb-2">Event
+                                Type</label>
+                            <select id="eventType" v-model="newEvent.type" required
+                                class="w-full px-4 py-3 text-lg border-2 border-gray-200 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary transition-all duration-200 bg-white appearance-none cursor-pointer">
+                                <option value="product_sale">Product Verkoop</option>
+                                <option value="shift_event">Shift Event</option>
+                            </select>
+                        </div>
 
-                        <div v-for="(shift, index) in newEvent.shifts" :key="index"
-                            class="border border-gray-200 rounded-lg p-3 space-y-2">
-                            <div class="flex justify-between items-center">
-                                <span class="font-medium">Shift {{ index + 1 }}</span>
-                                <button type="button" @click="removeShift(index)"
-                                    class="text-red-500 hover:text-red-700" :disabled="newEvent.shifts.length === 1">
-                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                            d="M6 18L18 6M6 6l12 12"></path>
-                                    </svg>
+                        <!-- Shift Configuration (only for shift events) -->
+                        <div v-if="newEvent.type === 'shift_event'" class="space-y-4">
+                            <div class="flex items-center justify-between">
+                                <h4 class="text-lg font-bold text-gray-900">Shifts Configureren</h4>
+                                <button type="button" @click="addShift"
+                                    class="bg-white text-primary border-2 border-primary px-4 py-2 rounded-xl font-semibold hover:bg-primary hover:text-white transition-all duration-200">
+                                    + Shift Toevoegen
                                 </button>
                             </div>
 
-                            <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
-                                <input v-model="shift.name" placeholder="Shift naam (bijv. 17:00-18:00)" required
-                                    class="px-2 py-1 border border-gray-300 rounded text-sm" />
-                                <input v-model="shift.startTime" type="time" required
-                                    class="px-2 py-1 border border-gray-300 rounded text-sm" />
-                                <input v-model="shift.endTime" type="time" required
-                                    class="px-2 py-1 border border-gray-300 rounded text-sm" />
-                            </div>
+                            <div v-for="(shift, index) in newEvent.shifts" :key="index"
+                                class="bg-white border-2 border-gray-200 rounded-xl p-4 space-y-3">
+                                <div class="flex justify-between items-center">
+                                    <span class="font-bold text-gray-900">Shift {{ index + 1 }}</span>
+                                    <button type="button" @click="removeShift(index)"
+                                        :disabled="newEvent.shifts.length === 1"
+                                        class="text-error hover:text-red-700 disabled:text-gray-400 disabled:cursor-not-allowed transition-colors duration-200">
+                                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                d="M6 18L18 6M6 6l12 12"></path>
+                                        </svg>
+                                    </button>
+                                </div>
 
-                            <input v-model.number="shift.maxCapacity" type="number" min="1" placeholder="Max capaciteit"
-                                required class="w-full px-2 py-1 border border-gray-300 rounded text-sm" />
+                                <div class="space-y-3">
+                                    <input v-model="shift.name" placeholder="Shift naam (bijv. 17:00-18:00)" required
+                                        class="w-full px-3 py-2 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary transition-all duration-200" />
+                                    <div class="grid grid-cols-2 gap-3">
+                                        <div>
+                                            <label class="block text-xs font-medium text-gray-500 mb-1">Start
+                                                tijd</label>
+                                            <input v-model="shift.startTime" type="time" required
+                                                class="w-full px-3 py-2 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary transition-all duration-200" />
+                                        </div>
+                                        <div>
+                                            <label class="block text-xs font-medium text-gray-500 mb-1">Eind
+                                                tijd</label>
+                                            <input v-model="shift.endTime" type="time" required
+                                                class="w-full px-3 py-2 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary transition-all duration-200" />
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <label class="block text-xs font-medium text-gray-500 mb-1">Max
+                                            capaciteit</label>
+                                        <input v-model.number="shift.maxCapacity" type="number" min="1" placeholder="50"
+                                            required
+                                            class="w-full px-3 py-2 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary transition-all duration-200" />
+                                    </div>
+                                </div>
+                            </div>
                         </div>
 
-                        <button type="button" @click="addShift"
-                            class="w-full bg-gray-200 text-gray-700 px-3 py-2 rounded hover:bg-gray-300 transition duration-300">
-                            + Shift Toevoegen
+                        <!-- Submit Button -->
+                        <button type="submit" :disabled="loading"
+                            class="w-full bg-gradient-to-r from-primary to-secondary text-white px-8 py-4 rounded-xl font-bold text-lg shadow-xl hover:shadow-2xl transition-all duration-300 transform hover:scale-105 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none">
+                            <span v-if="loading" class="flex items-center justify-center">
+                                <svg class="animate-spin -ml-1 mr-3 h-5 w-5 text-white"
+                                    xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor"
+                                        stroke-width="4"></circle>
+                                    <path class="opacity-75" fill="currentColor"
+                                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z">
+                                    </path>
+                                </svg>
+                                Event aanmaken...
+                            </span>
+                            <span v-else>Event Aanmaken</span>
                         </button>
-                    </div>
+                    </form>
+                </div>
 
-                    <button type="submit" :disabled="loading"
-                        class="w-full bg-primary text-white px-4 py-2 rounded hover:bg-green-700 disabled:bg-gray-400 transition duration-300">
-                        {{ loading ? 'Event aanmaken...' : 'Event Aanmaken' }}
-                    </button>
-                </form>
-            </div>
+                <!-- Events List -->
+                <div class="bg-gradient-to-br from-gray-50 to-gray-100 border border-gray-200 rounded-2xl p-6">
+                    <h3 class="text-xl font-bold text-gray-900 mb-6 flex items-center">
+                        <svg class="w-6 h-6 mr-3 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                        </svg>
+                        Bestaande Events
+                    </h3>
 
-            <!-- Events List -->
-            <div>
-                <h3 class="text-lg font-medium mb-4">Bestaande Events</h3>
-                <div class="space-y-3 max-h-96 overflow-y-auto">
-                    <div v-for="event in events" :key="event.id"
-                        class="border border-gray-200 rounded-lg p-4 space-y-2">
-                        <div class="flex justify-between items-start">
-                            <div class="flex-1">
-                                <h4 class="font-medium text-text">{{ event.name }}</h4>
-                                <p class="text-sm text-gray-600">{{ event.description }}</p>
+                    <div v-if="events.length > 0" class="space-y-4 max-h-[500px] overflow-y-auto">
+                        <div v-for="event in events" :key="event.id"
+                            class="bg-white border-2 border-gray-200 rounded-xl p-6 hover:shadow-lg transition-all duration-300 transform hover:-translate-y-1">
+                            <div
+                                class="flex flex-col lg:flex-row lg:items-start justify-between space-y-4 lg:space-y-0">
+                                <!-- Event Info -->
+                                <div class="flex-1">
+                                    <h4 class="text-lg font-bold text-gray-900 mb-2">{{ event.name }}</h4>
+                                    <p class="text-gray-600 mb-3">{{ event.description }}</p>
 
-                                <!-- Event Type & Status Badges -->
-                                <div class="flex items-center space-x-2 mt-2">
-                                    <span class="text-xs px-2 py-1 rounded-full"
-                                        :class="event.type === 'shift_event' ? 'bg-blue-100 text-blue-800' : 'bg-green-100 text-green-800'">
-                                        {{ event.type === 'shift_event' ? 'Shift Event' : 'Product Verkoop' }}
-                                    </span>
-                                    <span class="text-xs px-2 py-1 rounded-full"
-                                        :class="event.isActive ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'">
-                                        {{ event.isActive ? 'Actief' : 'Inactief' }}
-                                    </span>
+                                    <!-- Event Type & Status Badges -->
+                                    <div class="flex flex-wrap items-center gap-2 mb-3">
+                                        <span :class="[
+                                            'inline-flex items-center px-3 py-1 rounded-full text-sm font-medium',
+                                            event.type === 'shift_event'
+                                                ? 'bg-info-bg text-info border border-info/20'
+                                                : 'bg-success-bg text-success border border-success/20'
+                                        ]">
+                                            <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor"
+                                                viewBox="0 0 24 24">
+                                                <path v-if="event.type === 'shift_event'" stroke-linecap="round"
+                                                    stroke-linejoin="round" stroke-width="2"
+                                                    d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                                <path v-else stroke-linecap="round" stroke-linejoin="round"
+                                                    stroke-width="2"
+                                                    d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+                                            </svg>
+                                            {{ event.type === 'shift_event' ? 'Shift Event' : 'Product Verkoop' }}
+                                        </span>
+
+                                        <span :class="[
+                                            'inline-flex items-center px-3 py-1 rounded-full text-sm font-medium',
+                                            event.isActive
+                                                ? 'bg-success-bg text-success border border-success/20'
+                                                : 'bg-gray-100 text-gray-600 border border-gray-200'
+                                        ]">
+                                            <div :class="[
+                                                'w-2 h-2 rounded-full mr-2',
+                                                event.isActive ? 'bg-success' : 'bg-gray-400'
+                                            ]"></div>
+                                            {{ event.isActive ? 'Actief' : 'Inactief' }}
+                                        </span>
+                                    </div>
+
+                                    <!-- Shifts Info for Shift Events -->
+                                    <div v-if="event.type === 'shift_event' && event.shifts"
+                                        class="bg-gray-50 rounded-lg p-3">
+                                        <div class="flex items-center space-x-2">
+                                            <svg class="w-4 h-4 text-gray-500" fill="none" stroke="currentColor"
+                                                viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                    d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                                            </svg>
+                                            <span class="text-sm font-medium text-gray-700">
+                                                {{ event.shifts.length }} shift{{ event.shifts.length !== 1 ? 's' : ''
+                                                }} geconfigureerd
+                                            </span>
+                                        </div>
+                                    </div>
                                 </div>
 
-                                <!-- Shifts Info for Shift Events -->
-                                <div v-if="event.type === 'shift_event' && event.shifts" class="mt-2">
-                                    <p class="text-xs text-gray-500">
-                                        {{ event.shifts.length }} shift{{ event.shifts.length !== 1 ? 's' : '' }}
-                                    </p>
+                                <!-- Action Button -->
+                                <div class="lg:ml-6">
+                                    <button @click="toggleEventStatus(event.id, !event.isActive)" :class="[
+                                        'px-6 py-3 rounded-xl font-semibold transition-all duration-200 transform hover:scale-105 active:scale-95',
+                                        event.isActive
+                                            ? 'bg-white text-warning border-2 border-warning hover:bg-warning hover:text-white'
+                                            : 'bg-gradient-to-r from-primary to-secondary text-white hover:shadow-lg'
+                                    ]">
+                                        <div class="flex items-center space-x-2">
+                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path v-if="event.isActive" stroke-linecap="round"
+                                                    stroke-linejoin="round" stroke-width="2"
+                                                    d="M10 9v6m4-6v6m7-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                                <path v-else stroke-linecap="round" stroke-linejoin="round"
+                                                    stroke-width="2"
+                                                    d="M14.828 14.828a4 4 0 01-5.656 0M9 10h1m4 0h1m-6 4h.01M19 10a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                            </svg>
+                                            <span>{{ event.isActive ? 'Deactiveren' : 'Activeren' }}</span>
+                                        </div>
+                                    </button>
                                 </div>
-                            </div>
-
-                            <div class="flex space-x-1">
-                                <button @click="toggleEventStatus(event.id, !event.isActive)"
-                                    class="text-sm px-2 py-1 rounded transition duration-300"
-                                    :class="event.isActive ? 'bg-red-100 text-red-700 hover:bg-red-200' : 'bg-green-100 text-green-700 hover:bg-green-200'">
-                                    {{ event.isActive ? 'Deactiveren' : 'Activeren' }}
-                                </button>
                             </div>
                         </div>
                     </div>
 
-                    <div v-if="events.length === 0" class="text-center text-gray-500 py-8">
-                        Geen events gevonden.
+                    <!-- Empty State -->
+                    <div v-else class="text-center py-16">
+                        <div
+                            class="w-24 h-24 mx-auto mb-6 bg-gradient-to-br from-gray-100 to-gray-200 rounded-full flex items-center justify-center">
+                            <svg class="w-12 h-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                            </svg>
+                        </div>
+                        <h3 class="text-xl font-semibold text-gray-900 mb-2">Geen events gevonden</h3>
+                        <p class="text-gray-600">Maak je eerste event aan om te beginnen.</p>
                     </div>
                 </div>
             </div>
         </div>
 
         <!-- Confirmation Modal -->
-        <ConfirmationModal v-model="confirmation.isOpen.value" :title="confirmation.config.value.title"
-            :message="confirmation.config.value.message" :type="confirmation.config.value.type"
-            :confirm-text="confirmation.config.value.confirmText" :cancel-text="confirmation.config.value.cancelText"
-            @confirm="confirmation.confirm" @cancel="confirmation.cancel" @close="confirmation.close" />
+        <ConfirmationModal 
+            v-model="confirmation.isOpen.value" 
+            :title="confirmation.config.value.title"
+            :message="confirmation.config.value.message" 
+            :type="confirmation.config.value.type"
+            :confirm-text="confirmation.config.value.confirmText" 
+            :cancel-text="confirmation.config.value.cancelText"
+            @confirm="confirmation.confirm" 
+            @cancel="confirmation.cancel" 
+            @close="confirmation.close" 
+        />
     </div>
 </template>
 
@@ -240,7 +358,7 @@ const toggleEventStatus = async (eventId, isActive) => {
     try {
         console.log(`Toggling event ${eventId} status to ${isActive ? 'active' : 'inactive'}`);
         const action = isActive ? 'activeer' : 'deactiveer';
-        
+
         try {
             await confirmation.show({
                 title: `${action.charAt(0).toUpperCase() + action.slice(1)} evenement`,

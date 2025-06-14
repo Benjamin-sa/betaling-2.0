@@ -1,111 +1,99 @@
-# Copilot Instructions for Scouts Payment System
+# Copilot Instructions
 
-This document provides context and instructions for GitHub Copilot to better assist in the development of the "Scouts Payment System" project.
+## General Project Context
 
-## 1. Project Overview
+This project is a web application for selling products and/or products linked to a shift of an event (e.g., product "large spaghetti" for shift 1).
 
-The project is a web application for managing product sales and payments for a Scouts group ("Scouts Lod Lavki"). It's a full-stack JavaScript application with a Vue.js frontend and a Node.js (Express) backend.
+- **Technical Stack**:
+  - **Frontend**: Vue.js 3 (Composition API) with Vite.
+  - **Backend**: Node.js with Express.js.
+  - **Database & Authentication**: Firebase (Firestore & Authentication).
+  - **Payments**: Stripe.
+- **Code Style**:
+  - Use camelCase for variables and function names.
+  - Follow the existing project structure for new files.
+  - Write clear and concise comments where the code is complex.
+  - Adhere to the ESLint rules configured in the project.
 
-The primary goal is to allow users to order products (like for a spaghetti night fundraiser), pay for them securely online, and for admins to manage these products, orders, and users.
+## Backend (Server) Instructions
 
-- **Frontend**: A Single Page Application (SPA) built with Vue.js 3 (Composition API), Vite, Pinia for state management, and Tailwind CSS for styling.
-- **Backend**: A RESTful API built with Express.js.
-- **Authentication**: Handled by Firebase Authentication (both email/password and Google OAuth).
-- **Payments**: Processed through Stripe, including credit cards, iDEAL, and Bancontact.
-- **Database**: User, product, and order data is stored in Firebase Firestore.
-- **Image Storage**: Product images are uploaded to Firebase Storage.
+- **Framework**: Node.js with Express.js.
+- **Architecture**: The logic is split into `features`. Each feature (e.g., `products`, `events`) has its own `controller` and `routes`.
+- **Database**: All interactions with Firestore must go through the **`FirebaseCachedService`** (`/server/core/services/firebase-cached.service.js`). This service adds a caching layer on top of the standard `FirebaseService` to improve performance.
+- **Authentication**: Secured routes use the `isAuthenticated` and `isAdmin` middleware found in `/server/middleware/auth.js`.
+- **Services**: Use the existing services in `/server/core/services` for interactions with external systems like Stripe (`stripe.service.js`).
 
-## 2. Core Technologies & Libraries
+---
 
-When generating code, please adhere to the patterns and styles of these technologies:
+## Field Constants and Data Models
 
-- **Frontend**:
+This is the core of our application. Understand these models well when generating code.
 
-  - **Vue.js 3**: Use the `<script setup>` syntax (Composition API).
-  - **Pinia**: For global state management (`auth`, `notifications`). Stores are located in `client/src/stores/`.
-  - **Vue Router**: For navigation. Routes are defined in `client/src/router/index.js`.
-  - **Axios/fetch**: The `client/src/services/api.js` file uses `fetch` for API communication. Continue using this pattern.
-  - **Tailwind CSS**: For all styling. Custom theme colors are defined in `client/tailwind.config.js`.
+### Field Constants (from webstore.model.js)
 
-- **Backend**:
-  - **Node.js / Express.js**: The server framework.
-  - **Firebase Admin SDK**: Used for authentication verification and database access (`server/config/firebaseAdmin.js`, `server/core/services/firebase.service.js`).
-  - **Stripe Node.js Library**: Used for creating products, customers, and checkout sessions (`server/core/services/stripe.service.js`).
-  - **Multer**: For handling file uploads in memory (`server/features/products/product.routes.js`).
+Use these constants when working with data fields. Always use these field constants instead of hardcoded strings to ensure consistency across the application. Data validation and transformation is handled by factory functions in `webstore.model.js`.
 
-## 3. Project Structure
+**ProductFields:**
 
-The project is a monorepo with `client` and `server` workspaces.
+- `NAME` (string), `DESCRIPTION` (string), `PRICE` (number), `STRIPE_PRODUCT_ID` (string), `STRIPE_PRICE_ID` (string), `REQUIRES_TIMESLOT` (boolean), `IMAGE` (string), `EVENT_ID` (string), `CREATED_AT` (timestamp)
 
-```
-/
-├── client/              # Vue.js frontend
-│   ├── src/
-│   │   ├── components/  # Reusable UI components (auth, products, ui, etc.)
-│   │   ├── views/       # Page-level components (Home, Admin, Orders)
-│   │   ├── stores/      # Pinia state management (auth.js, notifications.js)
-│   │   ├── services/    # API client (api.js)
-│   │   ├── router/      # Vue Router configuration
-│   │   └── config/      # Firebase client configuration
-│   └── vite.config.js   # Vite config with proxy to the backend
-├── server/              # Express backend
-│   ├── features/        # Feature-sliced structure (admin, auth, products, orders)
-│   │   ├── [feature]/
-│   │   │   ├── [feature].controller.js
-│   │   │   └── [feature].routes.js
-│   ├── core/
-│   │   ├── services/    # Core services (firebase.service.js, stripe.service.js)
-│   │   └── routes/      # Main API and webhook routers
-│   ├── middleware/      # Authentication middleware (auth.js)
-│   ├── config/          # Firebase Admin SDK configuration
-│   └── index.js         # Server entry point
-└── README.md
-```
+**UserFields:**
 
-## 4. Key Features & Logic
+- `FIREBASE_UID` (string), `EMAIL` (string), `STRIPE_CUSTOMER_ID` (string), `IS_ADMIN` (boolean), `CREATED_AT` (timestamp)
 
-### 4.1. Authentication
+**OrderFields:**
 
-- **Flow**: User registers/logs in on the client -> Firebase Auth handles it -> Client sends ID token to backend -> Backend verifies token (`server/middleware/auth.js`) -> Backend creates a corresponding user entry in Firestore with a Stripe Customer ID (`server/features/auth/auth.controller.js`).
-- **State Management**: The `auth.js` Pinia store (`client/src/stores/auth.js`) manages the user's authentication state, token, and admin status.
-- **Admin Access**: Admin routes on both client and server are protected. The backend middleware `authorizeAdmin` checks the `isAdmin` flag in the user's Firestore document.
+- `USER_ID` (string), `AMOUNT_TOTAL` (number), `CURRENCY` (string), `PAYMENT_METHOD` (string), `TIME_SLOT` (string), `EVENT_ID` (string), `SHIFT_ID` (string), `SHIFT_NAME` (string), `MANUAL_PAYMENT_CONFIRMED_AT` (timestamp), `MANUAL_PAYMENT_CONFIRMED_BY` (string), `CREATED_AT` (timestamp)
 
-### 4.2. Product Management
+**OrderItemFields:**
 
-- Products are created by admins in the "Admin Dashboard".
-- Creating a product involves:
-  1.  (Optional) Uploading an image to Firebase Storage via `imageManager.service.js`.
-  2.  Creating a corresponding product and price object in Stripe via `stripe.service.js`.
-  3.  Saving the product details, including the Stripe product/price IDs and public image URL, to Firestore via `firebase.service.js`.
-- This logic is orchestrated in `server/features/products/product.controller.js`.
+- `PRODUCT_NAME` (string), `QUANTITY` (number), `AMOUNT_TOTAL` (number), `UNIT_PRICE` (number)
 
-### 4.3. Ordering & Checkout
+**EventFields:**
 
-- Unauthenticated users can add items to their cart, but they must log in to check out.
-- The user's cart (quantities) is maintained on the client.
-- On checkout, the client sends the selected items to the backend (`/api/orders/checkout`).
-- The backend creates a Stripe Checkout session, linking it to the user's Stripe Customer ID.
-- Stripe handles the payment flow and redirects the user to a success/cancel page.
-- A Stripe webhook (`/api/webhooks/stripe`) listens for the `checkout.session.completed` event to finalize the order.
+- `ID` (string), `TYPE` (string), `NAME` (string), `DESCRIPTION` (string), `ISACTIVE` (boolean), `START_DATE` (timestamp), `END_DATE` (timestamp), `CREATED_AT` (timestamp), `CREATED_BY` (string)
 
-### 4.4. Webhooks
+**ShiftFields:**
 
-- The Stripe webhook is crucial. When a payment succeeds, it triggers the `webhook.service.js`.
-- This service takes the session data, finds the corresponding user (via Stripe Customer ID), and creates a new order document in the `orders` collection in Firestore.
+- `ID` (string), `NAME` (string), `START_TIME` (timestamp), `END_TIME` (timestamp), `MAX_CAPACITY` (number), `AVAILABLE` (number)
 
-## 5. Environment & Configuration
+---
 
-- The project uses `.env` files for environment variables (`README.md`).
-- **Client-side**: Vite uses `VITE_` prefixed variables (e.g., `VITE_FIREBASE_API_KEY`).
-- **Server-side**: The Express server uses standard variables (e.g., `STRIPE_SECRET_KEY_TEST`).
-- The backend has separate Firebase configurations for authentication (`firebaseAdmin.js`) and image storage (`firebaseImages.js`), allowing for potentially different service accounts or buckets.
-- In production, Firebase service account keys are expected to be Base64 encoded environment variables, which are decoded by a utility function (`server/utils/utils.js`).
+## 🎨 Design & Styling Guidelines
 
-## 6. Coding Style and Conventions
+**IMPORTANT**: Before making any design or styling changes, always refer to the comprehensive **[Design Guide](../DESIGN_GUIDE.md)** located in the project root.
 
-- Use **Composition API** with `<script setup>` in Vue components.
-- Use **async/await** for all asynchronous operations.
-- Structure backend logic in a **feature-sliced** manner (routes -> controller -> service).
-- Use the provided field name constants from `server/models/webstore.model.js` when interacting with Firestore data to ensure consistency.
-- All user-facing text should be in **Dutch** (Nederlands), as seen in the Vue components. Comments and code can be in English.
-- Follow the existing formatting and ESLint/Prettier rules if they are set up.
+### Key Design Principles
+
+- **Professional First**: Every element should look trustworthy and polished
+- **Mobile-First**: Design for mobile, enhance for desktop
+- **User-Friendly**: Intuitive interactions with clear feedback
+- **Consistency**: Follow established patterns and components
+
+### Quick Reference
+
+- **Colors**: Use the established green theme (`--primary: #10b981`)
+- **Components**: Check existing components before creating new ones
+- **Spacing**: Follow Tailwind spacing scale (4, 6, 8, 12, 16)
+- **Animation**: Use `duration-200` for interactions, `duration-300` for transitions
+- **Typography**: Bold for headers, semibold for labels, normal for body text
+
+### Before Making Design Changes
+
+1. ✅ Check if existing components can be reused or extended
+2. ✅ Review the color palette and spacing guidelines
+3. ✅ Ensure mobile-first responsive design
+4. ✅ Test accessibility (keyboard navigation, screen readers)
+5. ✅ Follow established animation and interaction patterns
+
+### Shopping Cart System
+
+The current cart system follows a professional slide-out drawer pattern:
+
+- **Floating Widget**: Bottom-right corner with bounce animation
+- **Cart Drawer**: Professional slide-out with item management
+- **Mobile Responsive**: Full-screen modal on mobile devices
+
+For detailed specifications, component examples, and best practices, see **[DESIGN_GUIDE.md](../DESIGN_GUIDE.md)**.
+
+---

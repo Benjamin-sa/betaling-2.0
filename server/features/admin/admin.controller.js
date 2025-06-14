@@ -52,11 +52,10 @@ class AdminController extends BaseController {
   async _makeUserAdminHandler(req, res) {
     const { userId } = req.body;
 
-    const validation = this._validateRequiredFields(req.body, ["userId"]);
-    if (!validation.isValid) {
+    if (!userId) {
       return this._sendErrorResponse(
         res,
-        validation.message,
+        "userId is required",
         this.HTTP_STATUS.BAD_REQUEST
       );
     }
@@ -84,11 +83,10 @@ class AdminController extends BaseController {
   async _removeUserAdminHandler(req, res) {
     const { userId } = req.body;
 
-    const validation = this._validateRequiredFields(req.body, ["userId"]);
-    if (!validation.isValid) {
+    if (!userId) {
       return this._sendErrorResponse(
         res,
-        validation.message,
+        "userId is required",
         this.HTTP_STATUS.BAD_REQUEST
       );
     }
@@ -111,17 +109,6 @@ class AdminController extends BaseController {
    */
   async _deleteUserHandler(req, res) {
     const { firebaseUid } = req.params;
-
-    const validation = this._validateRequiredFields(req.params, [
-      "firebaseUid",
-    ]);
-    if (!validation.isValid) {
-      return this._sendErrorResponse(
-        res,
-        validation.message,
-        this.HTTP_STATUS.BAD_REQUEST
-      );
-    }
 
     this._logAction("Deleting user", { firebaseUid });
 

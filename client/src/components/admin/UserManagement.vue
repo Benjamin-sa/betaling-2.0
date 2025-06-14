@@ -1,103 +1,191 @@
 <template>
-    <div class="bg-cardBackground rounded-lg shadow-lg p-6">
-        <h2 class="text-2xl font-semibold text-primary mb-4">Gebruikers Beheren</h2>
-        <div class="space-y-4">
-            <div v-for="user in users" :key="user.firebase_uid"
-                class="flex items-center justify-between p-4 bg-gray-100 rounded-lg">
-                <div class="flex-1">
-                    <h3 class="text-lg font-semibold text-primary">{{ user.email }}</h3>
-                    <p class="text-sm text-gray-600">Firebase UID: {{ user.firebase_uid }}</p>
-                    <p class="text-sm text-gray-600">Stripe Customer ID: {{ user.stripe_customer_id }}</p>
-                    <p class="text-sm font-medium" :class="user.is_admin ? 'text-green-600' : 'text-gray-500'">
-                        {{ user.is_admin ? 'Administrator' : 'Gewone gebruiker' }}
-                    </p>
-                </div>
-                <div class="flex space-x-2">
-                    <button v-if="!user.is_admin" @click="makeAdmin(user.firebase_uid)"
-                        class="bg-green-500 text-white px-3 py-1 rounded hover:bg-green-600 transition duration-300">
-                        Maak Admin
-                    </button>
-                    <button v-if="user.is_admin" @click="removeAdmin(user.firebase_uid)"
-                        class="bg-yellow-500 text-white px-3 py-1 rounded hover:bg-yellow-600 transition duration-300">
-                        Verwijder Admin
-                    </button>
-                    <button @click="deleteUser(user.firebase_uid)"
-                        class="bg-secondary text-white px-3 py-1 rounded hover:bg-red-700 transition duration-300">
-                        Verwijder Gebruiker
-                    </button>
+    <div class="bg-white rounded-2xl shadow-lg border border-gray-200">
+        <!-- Header -->
+        <div class="bg-gradient-to-r from-primary to-secondary px-8 py-6 rounded-t-2xl">
+            <h2 class="text-2xl lg:text-3xl font-bold text-white mb-2">Gebruikers Beheren</h2>
+            <p class="text-emerald-100">Beheer admin rechten en gebruikersaccounts</p>
+        </div>
+
+        <!-- Content -->
+        <div class="p-8">
+            <!-- Loading State -->
+            <div v-if="loading" class="text-center py-16">
+                <div class="inline-flex items-center px-4 py-2 font-semibold leading-6 text-sm shadow rounded-md text-primary bg-white transition ease-in-out duration-150">
+                    <svg class="animate-spin -ml-1 mr-3 h-5 w-5 text-primary" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    Gebruikers laden...
                 </div>
             </div>
-            <div v-if="users.length === 0" class="text-center text-gray-500 py-8">
-                Geen gebruikers gevonden.
+
+            <div v-else-if="users.length > 0" class="space-y-4">
+                <div 
+                    v-for="user in users" 
+                    :key="user.id"
+                    class="bg-gradient-to-br from-gray-50 to-gray-100 border border-gray-200 rounded-2xl p-6 hover:shadow-lg transition-all duration-300 transform hover:-translate-y-1"
+                >
+                    <div class="flex flex-col lg:flex-row lg:items-center justify-between space-y-4 lg:space-y-0">
+                        <!-- User Info -->
+                        <div class="flex-1 space-y-2">
+                            <div class="flex items-center space-x-3">
+                                <div class="w-12 h-12 rounded-full bg-gradient-to-r from-primary to-secondary flex items-center justify-center">
+                                    <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                                    </svg>
+                                </div>
+                                <div>
+                                    <h3 class="text-xl font-bold text-gray-900">{{ user.email }}</h3>
+                                    <div class="flex items-center space-x-2">
+                                        <span 
+                                            :class="[
+                                                'inline-flex items-center px-3 py-1 rounded-full text-sm font-medium',
+                                                user.isAdmin 
+                                                    ? 'bg-success-bg text-success border border-success/20' 
+                                                    : 'bg-gray-100 text-gray-600 border border-gray-200'
+                                            ]"
+                                        >
+                                            <svg 
+                                                v-if="user.isAdmin" 
+                                                class="w-4 h-4 mr-1" 
+                                                fill="none" 
+                                                stroke="currentColor" 
+                                                viewBox="0 0 24 24"
+                                            >
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                            </svg>
+                                            {{ user.isAdmin ? 'Administrator' : 'Gebruiker' }}
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- User Details -->
+                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-4 text-sm">
+                                <div class="bg-white rounded-xl p-3 border border-gray-200">
+                                    <span class="font-medium text-gray-500">Firebase UID</span>
+                                    <p class="text-gray-900 font-mono text-xs break-all">{{ user.id }}</p>
+                                </div>
+                                <div class="bg-white rounded-xl p-3 border border-gray-200">
+                                    <span class="font-medium text-gray-500">Stripe Customer</span>
+                                    <p class="text-gray-900 font-mono text-xs break-all">{{ user.stripeCustomerId || 'Niet gevonden' }}</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Action Buttons -->
+                        <div class="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-3 lg:ml-6">
+                            <button 
+                                v-if="!user.isAdmin" 
+                                @click="makeAdmin(user.id)"
+                                class="bg-gradient-to-r from-primary to-secondary text-white px-6 py-3 rounded-xl font-semibold hover:shadow-lg transition-all duration-200 transform hover:scale-105 active:scale-95"
+                            >
+                                <div class="flex items-center space-x-2">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                                    </svg>
+                                    <span>Maak Admin</span>
+                                </div>
+                            </button>
+                            
+                            <button 
+                                v-if="user.isAdmin" 
+                                @click="removeAdmin(user.id)"
+                                class="bg-white text-warning border-2 border-warning px-6 py-3 rounded-xl font-semibold hover:bg-warning hover:text-white transition-all duration-200"
+                            >
+                                <div class="flex items-center space-x-2">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 12H4" />
+                                    </svg>
+                                    <span>Verwijder Admin</span>
+                                </div>
+                            </button>
+                            
+                            <button 
+                                @click="deleteUser(user.id)"
+                                class="bg-white text-error border-2 border-error px-6 py-3 rounded-xl font-semibold hover:bg-error hover:text-white transition-all duration-200"
+                            >
+                                <div class="flex items-center space-x-2">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                    </svg>
+                                    <span class="hidden sm:inline">Verwijder</span>
+                                </div>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Empty State -->
+            <div v-else class="text-center py-16">
+                <div
+                    class="w-24 h-24 mx-auto mb-6 bg-gradient-to-br from-gray-100 to-gray-200 rounded-full flex items-center justify-center">
+                    <svg class="w-12 h-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5 0a4 4 0 11-8 0" />
+                    </svg>
+                </div>
+                <h3 class="text-xl font-semibold text-gray-900 mb-2">Geen gebruikers gevonden</h3>
+                <p class="text-gray-600">Er zijn nog geen gebruikers geregistreerd in het systeem.</p>
             </div>
         </div>
+
+        <!-- Confirmation Modal -->
+        <ConfirmationModal 
+            v-model="confirmation.isOpen.value" 
+            :title="confirmation.config.value.title"
+            :message="confirmation.config.value.message" 
+            :type="confirmation.config.value.type"
+            :confirm-text="confirmation.config.value.confirmText" 
+            :cancel-text="confirmation.config.value.cancelText"
+            @confirm="confirmation.confirm" 
+            @cancel="confirmation.cancel" 
+            @close="confirmation.close" 
+        />
     </div>
 </template>
 
 <script setup>
+import { ref, onMounted } from 'vue';
 import { useNotificationStore } from '@/stores/notifications';
 import { useConfirmation } from '@/composables/useConfirmation';
 import { apiClient } from '@/services/api';
+import ConfirmationModal from '@/components/ui/ConfirmationModal.vue';
 
 const notifications = useNotificationStore();
 const confirmation = useConfirmation();
 
-const props = defineProps({
-    users: {
-        type: Array,
-        default: () => []
-    }
-});
-
 const emit = defineEmits(['users-updated']);
 
-const deleteUser = async (firebaseUid) => {
-    try {
-        await confirmation.confirmDelete('deze gebruiker');
+const loading = ref(false);
+const users = ref([]);
 
-        await apiClient.deleteUser(firebaseUid);
-        emit('users-updated');
-        notifications.success('Verwijderd!', 'Gebruiker is succesvol verwijderd.');
+const loadUsers = async () => {
+    try {
+        loading.value = true;
+        const data = await apiClient.getAdminUsers();
+        users.value = data.users;
     } catch (error) {
-        if (error.name !== 'UserCancelledError') {
-            console.error('Error deleting user:', error);
-            notifications.error('Gebruiker verwijderen mislukt', 'Er is een fout opgetreden bij het verwijderen van de gebruiker.');
-        }
+        console.error('Error loading users:', error);
+        notifications.error('Gebruikers laden mislukt', 'Er is een fout opgetreden bij het laden van de gebruikers.');
+    } finally {
+        loading.value = false;
     }
 };
 
-const removeAdmin = async (firebaseUid) => {
+const makeAdmin = async (userId) => {
     try {
         await confirmation.show({
-            title: 'Admin rechten verwijderen',
-            message: 'Weet je zeker dat je de admin rechten wilt verwijderen van deze gebruiker?',
-            type: 'warning',
-            confirmText: 'Rechten verwijderen',
-            cancelText: 'Annuleren'
-        });
-
-        await apiClient.removeAdmin(firebaseUid);
-        emit('users-updated');
-        notifications.success('Rechten aangepast', 'Admin rechten zijn succesvol verwijderd.');
-    } catch (error) {
-        if (error.name !== 'UserCancelledError') {
-            console.error('Error removing admin:', error);
-            notifications.error('Rechten aanpassen mislukt', 'Er is een fout opgetreden bij het verwijderen van admin rechten.');
-        }
-    }
-};
-
-const makeAdmin = async (firebaseUid) => {
-    try {
-        await confirmation.show({
-            title: 'Admin rechten toekennen',
+            title: 'Admin rechten toewijzen',
             message: 'Weet je zeker dat je deze gebruiker admin rechten wilt geven?',
             type: 'info',
-            confirmText: 'Admin maken',
+            confirmText: 'Ja, maak admin',
             cancelText: 'Annuleren'
         });
 
-        await apiClient.makeUserAdmin(firebaseUid);
+        await apiClient.makeUserAdmin(userId);
+        await loadUsers(); // Reload users
         emit('users-updated');
         notifications.success('Admin aangemaakt', 'Gebruiker heeft nu admin rechten.');
     } catch (error) {
@@ -107,4 +195,46 @@ const makeAdmin = async (firebaseUid) => {
         }
     }
 };
+
+const removeAdmin = async (userId) => {
+    try {
+        await confirmation.show({
+            title: 'Admin rechten verwijderen',
+            message: 'Weet je zeker dat je de admin rechten van deze gebruiker wilt verwijderen?',
+            type: 'warning',
+            confirmText: 'Ja, verwijder admin',
+            cancelText: 'Annuleren'
+        });
+
+        await apiClient.removeAdmin(userId);
+        await loadUsers(); // Reload users
+        emit('users-updated');
+        notifications.success('Admin rechten verwijderd', 'Gebruiker heeft geen admin rechten meer.');
+    } catch (error) {
+        if (error.name !== 'UserCancelledError') {
+            console.error('Error removing admin:', error);
+            notifications.error('Admin verwijderen mislukt', 'Er is een fout opgetreden bij het verwijderen van admin rechten.');
+        }
+    }
+};
+
+const deleteUser = async (userId) => {
+    try {
+        await confirmation.confirmDelete('deze gebruiker');
+        
+        await apiClient.deleteUser(userId);
+        await loadUsers(); // Reload users
+        emit('users-updated');
+        notifications.success('Verwijderd!', 'Gebruiker is succesvol verwijderd.');
+    } catch (error) {
+        if (error.name !== 'UserCancelledError') {
+            console.error('Error deleting user:', error);
+            notifications.error('Verwijderen mislukt', 'Er is een fout opgetreden bij het verwijderen van de gebruiker.');
+        }
+    }
+};
+
+onMounted(() => {
+    loadUsers();
+});
 </script>

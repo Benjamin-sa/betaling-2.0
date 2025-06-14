@@ -99,18 +99,6 @@
                                     </svg>
                                 </span>
                             </button>
-
-                            <button
-                                class="group px-6 py-3 sm:px-8 sm:py-4 md:px-12 md:py-6 border-2 border-white/30 text-white text-base sm:text-lg md:text-xl font-bold rounded-xl sm:rounded-2xl backdrop-blur-xl hover:bg-white/10 hover:border-white/60 transition-all duration-300 transform hover:scale-105 hover:-translate-y-1 w-full sm:w-auto max-w-xs sm:max-w-none">
-                                <span class="flex items-center justify-center">
-                                    <svg class="w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:h-6 mr-2 sm:mr-3 group-hover:rotate-12 transition-transform duration-300"
-                                        fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                            d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                    </svg>
-                                    Over Ons
-                                </span>
-                            </button>
                         </div>
                     </div>
                 </div>

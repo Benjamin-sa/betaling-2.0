@@ -3,7 +3,11 @@ const BaseController = require("../../core/controllers/base.controller");
 const firebaseService = require("../../core/services/firebase-cached.service");
 const stripeService = require("../../core/services/stripe.service");
 const imageManager = require("../../core/services/imageManager.service");
-const { ProductFields } = require("../../models/webstore.model");
+const {
+  ProductFields,
+  createProductData,
+  createProductUpdateData,
+} = require("../../models/webstore.model");
 
 // Product-specific error messages
 const PRODUCT_ERROR_MESSAGES = {
@@ -89,21 +93,9 @@ class ProductController extends BaseController {
     const { name, description, price, eventId, requiresTimeslot } = req.body;
     const image = req.file;
 
-    // Validate required fields
-    const validation = this._validateRequiredFields(req.body, [
-      "name",
-      "price",
-      "eventId",
-    ]);
-    if (!validation.isValid) {
-      return this._sendErrorResponse(
-        res,
-        validation.message,
-        this.HTTP_STATUS.BAD_REQUEST
-      );
-    }
+    this._logAction("Creating new product", { name, price, eventId });
 
-    // Verify event exists
+    // Get event data for validation
     const event = await firebaseService.getEvent(eventId);
     if (!event) {
       return this._sendErrorResponse(
@@ -112,25 +104,6 @@ class ProductController extends BaseController {
         this.HTTP_STATUS.BAD_REQUEST
       );
     }
-
-    // Validate requiresTimeslot based on event type
-    const requiresTimeslotBool = requiresTimeslot === "true" || requiresTimeslot === true;
-    
-    if (event.type === "shift_event" && requiresTimeslotBool) {
-      // For shift events: products with requiresTimeslot=true are valid (they MUST have shifts)
-    } else if (event.type === "shift_event" && !requiresTimeslotBool) {
-      // For shift events: products with requiresTimeslot=false are also valid
-    } else if (event.type === "product_sale" && requiresTimeslotBool) {
-      // For product_sale events: products with requiresTimeslot=true are NOT allowed
-      return this._sendErrorResponse(
-        res,
-        "Products in product_sale events cannot require timeslots",
-        this.HTTP_STATUS.BAD_REQUEST
-      );
-    }
-    // For product_sale events with requiresTimeslot=false: always valid
-
-    this._logAction("Creating new product", { name, price, eventId });
 
     let imageUrl = null;
     let stripeProduct = null;
@@ -149,15 +122,21 @@ class ProductController extends BaseController {
         imageUrl,
       });
 
-      // 3. Create product data for database
-      const productData = this._createProductData(
-        name,
-        description,
-        price,
-        eventId,
-        imageUrl,
-        stripeProduct,
-        requiresTimeslot
+      // 3. Create product data using factory function with validation
+      const productData = createProductData(
+        {
+          [ProductFields.NAME]: name,
+          [ProductFields.DESCRIPTION]: description,
+          [ProductFields.PRICE]: price,
+          [ProductFields.EVENT_ID]: eventId,
+          [ProductFields.IMAGE]: imageUrl,
+          [ProductFields.STRIPE_PRODUCT_ID]: stripeProduct.product.id,
+          [ProductFields.STRIPE_PRICE_ID]: stripeProduct.price.id,
+          [ProductFields.REQUIRES_TIMESLOT]: requiresTimeslot,
+        },
+        {
+          event, // Pass event for business logic validation
+        }
       );
 
       // 4. Save to Firebase
@@ -198,11 +177,10 @@ class ProductController extends BaseController {
     const { productId } = req.params;
 
     // Validate required fields
-    const validation = this._validateRequiredFields(req.params, ["productId"]);
-    if (!validation.isValid) {
+    if (!productId) {
       return this._sendErrorResponse(
         res,
-        validation.message,
+        "Product ID is required",
         this.HTTP_STATUS.BAD_REQUEST
       );
     }
@@ -263,33 +241,6 @@ class ProductController extends BaseController {
       });
       // Continue with product deletion even if image deletion fails
     }
-  }
-
-  /**
-   * Create product data object with proper field mapping
-   * @private
-   */
-  _createProductData(
-    name,
-    description,
-    price,
-    eventId,
-    imageUrl,
-    stripeResult,
-    requiresTimeslot = false
-  ) {
-    return {
-      [ProductFields.NAME]: name,
-      [ProductFields.DESCRIPTION]: description,
-      [ProductFields.PRICE]: parseFloat(price),
-      [ProductFields.EVENT_ID]: eventId,
-      [ProductFields.IMAGE]: imageUrl,
-      [ProductFields.STRIPE_PRODUCT_ID]: stripeResult.product.id,
-      [ProductFields.STRIPE_PRICE_ID]: stripeResult.price.id,
-      [ProductFields.REQUIRES_TIMESLOT]:
-        requiresTimeslot === "true" || requiresTimeslot === true,
-      [ProductFields.CREATED_AT]: new Date().toISOString(),
-    };
   }
 }
 

@@ -1,6 +1,11 @@
 // server/features/events/event.controller.js
 const BaseController = require("../../core/controllers/base.controller");
 const firebaseService = require("../../core/services/firebase-cached.service");
+const {
+  createEventData,
+  validateShifts,
+  EventFields,
+} = require("../../models/webstore.model");
 
 class EventController extends BaseController {
   /**
@@ -51,19 +56,6 @@ class EventController extends BaseController {
   async _createEventHandler(req, res) {
     const { name, description, type, shifts } = req.body;
 
-    const validation = this._validateRequiredFields(req.body, [
-      "name",
-      "description",
-      "type",
-    ]);
-    if (!validation.isValid) {
-      return this._sendErrorResponse(
-        res,
-        validation.message,
-        this.HTTP_STATUS.BAD_REQUEST
-      );
-    }
-
     // Validate event type
     if (!["product_sale", "shift_event"].includes(type)) {
       return this._sendErrorResponse(
@@ -73,43 +65,28 @@ class EventController extends BaseController {
       );
     }
 
-    // For shift events, validate shifts
+    // For shift events, validate shifts using factory function
     if (type === "shift_event") {
-      if (!shifts || !Array.isArray(shifts) || shifts.length === 0) {
+      try {
+        validateShifts(shifts);
+      } catch (error) {
         return this._sendErrorResponse(
           res,
-          "Shift events must have at least one shift",
+          error.message,
           this.HTTP_STATUS.BAD_REQUEST
         );
       }
-
-      // Validate each shift
-      for (const shift of shifts) {
-        const shiftValidation = this._validateRequiredFields(shift, [
-          "name",
-          "startTime",
-          "endTime",
-          "maxCapacity",
-        ]);
-        if (!shiftValidation.isValid) {
-          return this._sendErrorResponse(
-            res,
-            `Invalid shift data: ${shiftValidation.message}`,
-            this.HTTP_STATUS.BAD_REQUEST
-          );
-        }
-      }
     }
 
-    const eventData = {
-      name,
-      description,
-      type,
-      isActive: false, // Events start inactive
-      createdAt: new Date().toISOString(),
-      createdBy: req.user.uid,
-      shifts: type === "shift_event" ? shifts : [],
-    };
+    // Create event data using factory function with validation
+    const eventData = createEventData({
+      [EventFields.NAME]: name,
+      [EventFields.DESCRIPTION]: description,
+      [EventFields.TYPE]: type,
+      [EventFields.ISACTIVE]: false, // Events start inactive
+      [EventFields.CREATED_BY]: req.user.uid,
+      [EventFields.SHIFTS]: type === "shift_event" ? shifts : [],
+    });
 
     this._logAction("Creating new event", { name, type });
     const eventId = await firebaseService.createEvent(eventData);
@@ -135,15 +112,6 @@ class EventController extends BaseController {
   async _updateEventHandler(req, res) {
     const { eventId } = req.params;
     const updateData = req.body;
-
-    const validation = this._validateRequiredFields(req.params, ["eventId"]);
-    if (!validation.isValid) {
-      return this._sendErrorResponse(
-        res,
-        validation.message,
-        this.HTTP_STATUS.BAD_REQUEST
-      );
-    }
 
     // Don't allow changing event type after creation
     if (updateData.type) {
@@ -174,15 +142,6 @@ class EventController extends BaseController {
   async _toggleEventStatusHandler(req, res) {
     const { eventId } = req.params;
     const { isActive } = req.body;
-
-    const validation = this._validateRequiredFields(req.params, ["eventId"]);
-    if (!validation.isValid) {
-      return this._sendErrorResponse(
-        res,
-        validation.message,
-        this.HTTP_STATUS.BAD_REQUEST
-      );
-    }
 
     if (typeof isActive !== "boolean") {
       return this._sendErrorResponse(
@@ -216,15 +175,6 @@ class EventController extends BaseController {
   async _deleteEventHandler(req, res) {
     const { eventId } = req.params;
 
-    const validation = this._validateRequiredFields(req.params, ["eventId"]);
-    if (!validation.isValid) {
-      return this._sendErrorResponse(
-        res,
-        validation.message,
-        this.HTTP_STATUS.BAD_REQUEST
-      );
-    }
-
     // Check if event has associated products
     const products = await firebaseService.getProductsByEvent(eventId);
     if (products && products.length > 0) {
@@ -254,15 +204,6 @@ class EventController extends BaseController {
    */
   async _getEventShiftAvailabilityHandler(req, res) {
     const { eventId } = req.params;
-
-    const validation = this._validateRequiredFields(req.params, ["eventId"]);
-    if (!validation.isValid) {
-      return this._sendErrorResponse(
-        res,
-        validation.message,
-        this.HTTP_STATUS.BAD_REQUEST
-      );
-    }
 
     this._logAction("Fetching event shift availability", { eventId });
     const availability = await firebaseService.getEventShiftAvailability(
