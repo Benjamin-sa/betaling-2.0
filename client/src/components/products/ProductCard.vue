@@ -2,7 +2,7 @@
   <div
     class="group bg-white rounded-lg shadow-lg overflow-hidden transform transition-all duration-300 hover:-translate-y-1 hover:shadow-xl">
     <div class="relative aspect-w-4 aspect-h-3">
-      <img v-if="product.imageUrl" :src="product.imageUrl" :alt="product.name" @error="handleImageError"
+      <img v-if="product.image" :src="product.image" :alt="product.name" @error="handleImageError"
         class="w-full h-full object-cover transform transition-transform group-hover:scale-105" />
       <div v-else
         class="w-full h-full bg-gradient-to-br from-primary/10 to-primary/5 flex flex-col items-center justify-center p-4">

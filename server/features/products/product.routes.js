@@ -17,8 +17,9 @@ const upload = multer({
     }
   },
 });
+
 // Get all products
-router.get("/", productController.getAllProducts);
+router.get("/", (req, res) => productController.getAllProducts(req, res));
 
 // Create a new product
 router.post(
@@ -26,15 +27,12 @@ router.post(
   authenticate,
   authorizeAdmin,
   upload.single("image"),
-  productController.createProduct
+  (req, res) => productController.createProduct(req, res)
 );
 
 // Delete a product
-router.delete(
-  "/:productId",
-  authenticate,
-  authorizeAdmin,
-  productController.deleteProduct
+router.delete("/:productId", authenticate, authorizeAdmin, (req, res) =>
+  productController.deleteProduct(req, res)
 );
 
 module.exports = router;

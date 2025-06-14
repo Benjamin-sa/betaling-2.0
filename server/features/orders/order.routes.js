@@ -5,8 +5,12 @@ const orderController = require("./order.controller");
 const { authenticate } = require("../../middleware/auth");
 
 // Get user orders stripe
-router.get("/", authenticate, orderController.getUserOrders);
+router.get("/", authenticate, (req, res) =>
+  orderController.getUserOrders(req, res)
+);
 
-router.post("/checkout", authenticate, orderController.createCheckoutSession);
+router.post("/checkout", authenticate, (req, res) =>
+  orderController.createCheckoutSession(req, res)
+);
 
 module.exports = router;

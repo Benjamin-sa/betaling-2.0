@@ -31,11 +31,6 @@ const routes = [
     name: "Orders",
     component: () => import("@/views/OrderDashboard.vue"),
   },
-  {
-    path: "/success",
-    name: "success",
-    component: () => import("@/views/Success.vue"),
-  },
 ];
 
 const router = createRouter({

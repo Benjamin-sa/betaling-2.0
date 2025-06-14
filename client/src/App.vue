@@ -5,16 +5,14 @@
     <Navigation />
 
     <!-- Main content -->
-    <main class="pt-16">
-      <div class="container mx-auto px-4 py-8 max-w-7xl">
-        <router-view v-slot="{ Component }">
-          <transition name="page" mode="out-in">
-            <div :key="$route.fullPath"> <!-- Add wrapper div -->
-              <component :is="Component" />
-            </div>
-          </transition>
-        </router-view>
-      </div>
+    <main :class="isHomePage ? '' : 'pt-16'">
+      <router-view v-slot="{ Component }">
+        <transition name="page" mode="out-in">
+          <div :key="$route.fullPath"> <!-- Add wrapper div -->
+            <component :is="Component" />
+          </div>
+        </transition>
+      </router-view>
     </main>
   </div>
   <Footer />
@@ -22,9 +20,14 @@
 </template>
 
 <script setup>
+import { computed } from 'vue'
+import { useRoute } from 'vue-router'
 import Navigation from './components/ui/Navigation.vue'
 import Footer from './components/ui/Footer.vue'
 import NotificationContainer from './components/ui/NotificationContainer.vue'
+
+const route = useRoute()
+const isHomePage = computed(() => route.name === 'Home')
 </script>
 
 <style>

@@ -74,11 +74,14 @@ class FirebaseService {
       [ProductFields.NAME]: productData[ProductFields.NAME],
       [ProductFields.DESCRIPTION]: productData[ProductFields.DESCRIPTION],
       [ProductFields.PRICE]: productData[ProductFields.PRICE],
+      [ProductFields.EVENT_ID]: productData[ProductFields.EVENT_ID],
       [ProductFields.STRIPE_PRODUCT_ID]:
         productData[ProductFields.STRIPE_PRODUCT_ID],
       [ProductFields.STRIPE_PRICE_ID]:
         productData[ProductFields.STRIPE_PRICE_ID] || "",
-      [ProductFields.IMAGE]: productData[ProductFields.IMAGE_URL] || "",
+      [ProductFields.IMAGE]: productData[ProductFields.IMAGE] || "",
+      [ProductFields.REQUIRES_TIMESLOT]:
+        productData[ProductFields.REQUIRES_TIMESLOT] || false,
       [ProductFields.CREATED_AT]: admin.firestore.FieldValue.serverTimestamp(),
     };
 
@@ -148,7 +151,143 @@ class FirebaseService {
       .orderBy(OrderFields.CREATED_AT, "desc")
       .get();
 
+    // Fetch orders with their items subcollection
+    const ordersWithItems = await Promise.all(
+      snapshot.docs.map(async (doc) => {
+        const orderData = this._docToObject(doc);
+
+        // Fetch items subcollection for this order
+        const itemsSnapshot = await doc.ref.collection("items").get();
+        const items = itemsSnapshot.docs.map((itemDoc) =>
+          this._docToObject(itemDoc)
+        );
+
+        return {
+          ...orderData,
+          items,
+        };
+      })
+    );
+
+    return ordersWithItems;
+  }
+
+  async getAllOrdersWithItems() {
+    const snapshot = await this.db
+      .collection("orders")
+      .orderBy(OrderFields.CREATED_AT, "desc")
+      .get();
+
+    // Fetch orders with their items subcollection
+    const ordersWithItems = await Promise.all(
+      snapshot.docs.map(async (doc) => {
+        const orderData = this._docToObject(doc);
+
+        // Fetch items subcollection for this order
+        const itemsSnapshot = await doc.ref.collection("items").get();
+        const items = itemsSnapshot.docs.map((itemDoc) =>
+          this._docToObject(itemDoc)
+        );
+
+        return {
+          ...orderData,
+          items,
+        };
+      })
+    );
+
+    return ordersWithItems;
+  }
+
+  // ============================================================================
+  // EVENT OPERATIONS
+  // ============================================================================
+
+  async createEvent(eventData) {
+    const docRef = await this.db.collection("events").add({
+      ...eventData,
+      createdAt: admin.firestore.FieldValue.serverTimestamp(),
+    });
+    return docRef.id;
+  }
+
+  async getAllEvents() {
+    const snapshot = await this.db
+      .collection("events")
+      .orderBy("createdAt", "desc")
+      .get();
     return snapshot.docs.map((doc) => this._docToObject(doc));
+  }
+
+  async getActiveEvents() {
+    const snapshot = await this.db
+      .collection("events")
+      .where("isActive", "==", true)
+      .orderBy("createdAt", "desc")
+      .get();
+    return snapshot.docs.map((doc) => this._docToObject(doc));
+  }
+
+  async getEvent(eventId) {
+    const doc = await this.db.collection("events").doc(eventId).get();
+    return this._docToObject(doc);
+  }
+
+  async updateEvent(eventId, updateData) {
+    await this.db
+      .collection("events")
+      .doc(eventId)
+      .update({
+        ...updateData,
+        updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+      });
+  }
+
+  async deleteEvent(eventId) {
+    await this.db.collection("events").doc(eventId).delete();
+  }
+
+  async getProductsByEvent(eventId) {
+    const snapshot = await this.db
+      .collection("products")
+      .where("eventId", "==", eventId)
+      .get();
+    return snapshot.docs.map((doc) => this._docToObject(doc));
+  }
+
+  async getEventShiftAvailability(eventId) {
+    // Get the event to check if it's a shift event
+    const event = await this.getEvent(eventId);
+    if (!event || event.type !== "shift_event") {
+      throw new Error("Event not found or not a shift event");
+    }
+
+    // Get all orders for this event to calculate availability
+    const ordersSnapshot = await this.db
+      .collection("orders")
+      .where("eventId", "==", eventId)
+      .get();
+
+    const orders = ordersSnapshot.docs.map((doc) => this._docToObject(doc));
+
+    // Calculate availability for each shift
+    const availability = event.shifts.map((shift) => {
+      const shiftOrders = orders.filter((order) => order.shiftId === shift.id);
+      const occupied = shiftOrders.length;
+      const available = Math.max(0, shift.maxCapacity - occupied);
+
+      return {
+        shiftId: shift.id,
+        shiftName: shift.name,
+        timeSlot: `${shift.startTime}-${shift.endTime}`,
+        maxCapacity: shift.maxCapacity,
+        occupied,
+        available,
+        isFull: available === 0,
+      };
+    });
+
+    return availability;
   }
 }
 

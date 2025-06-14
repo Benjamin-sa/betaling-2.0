@@ -11,8 +11,7 @@ const ProductFields = {
   STRIPE_PRICE_ID: "stripePriceId",
   REQUIRES_TIMESLOT: "requiresTimeslot",
   IMAGE: "image",
-  IMAGE_TYPE: "imageType",
-  IMAGE_URL: "imageUrl", // For consistency with controller usage
+  EVENT_ID: "eventId",
   CREATED_AT: "createdAt",
 };
 
@@ -30,6 +29,9 @@ const OrderFields = {
   CURRENCY: "currency",
   PAYMENT_METHOD: "paymentMethod",
   TIME_SLOT: "timeSlot",
+  EVENT_ID: "eventId",
+  SHIFT_ID: "shiftId",
+  SHIFT_NAME: "shiftName",
   MANUAL_PAYMENT_CONFIRMED_AT: "manualPaymentConfirmedAt",
   MANUAL_PAYMENT_CONFIRMED_BY: "manualPaymentConfirmedBy",
   CREATED_AT: "createdAt",
@@ -42,9 +44,32 @@ const OrderItemFields = {
   UNIT_PRICE: "unitPrice",
 };
 
+const EventFields = {
+  ID: "id",
+  TYPE: "type",
+  NAME: "name",
+  DESCRIPTION: "description",
+  ISACTIVE: "isActive",
+  START_DATE: "startDate",
+  END_DATE: "endDate",
+  CREATED_AT: "createdAt",
+  CREATED_BY: "createdBy",
+};
+
+const ShiftFields = {
+  ID: "id",
+  NAME: "name",
+  START_TIME: "startTime",
+  END_TIME: "endTime",
+  MAX_CAPACITY: "maxCapacity",
+  AVAILABLE: "available",
+};
+
 module.exports = {
   ProductFields,
   UserFields,
   OrderFields,
   OrderItemFields,
+  EventFields,
+  ShiftFields,
 };

@@ -1,98 +1,156 @@
 // server/controllers/admin.controller.js
-const firebaseService = require("../../core/services/firebase.service");
+const BaseController = require("../../core/controllers/base.controller");
+const firebaseService = require("../../core/services/firebase-cached.service");
 const admin = require("../../config/firebaseAdmin");
 
-/**
- * Get all orders with items
- */
-const getAllOrders = async (req, res) => {
-  try {
+class AdminController extends BaseController {
+  /**
+   * Get all orders with items
+   */
+  async getAllOrders(req, res) {
+    await this._handleAsync(this._getAllOrdersHandler, req, res);
+  }
+
+  /**
+   * Internal handler for getting all orders
+   * @private
+   */
+  async _getAllOrdersHandler(req, res) {
+    this._logAction("Fetching all orders");
     const orders = await firebaseService.getAllOrdersWithItems();
-    res.json({ orders });
-  } catch (error) {
-    console.error("Error fetching orders:", error);
-    res.status(500).json({ error: "Internal Server Error" });
+    this._sendSuccessResponse(res, { orders });
   }
-};
 
-/**
- * Get all users
- */
-const getAllUsers = async (req, res) => {
-  try {
+  /**
+   * Get all users - return complete user data for admin
+   */
+  async getAllUsers(req, res) {
+    await this._handleAsync(this._getAllUsersHandler, req, res);
+  }
+
+  /**
+   * Internal handler for getting all users
+   * @private
+   */
+  async _getAllUsersHandler(req, res) {
+    this._logAction("Fetching all users");
     const users = await firebaseService.getAllUsers();
-    res.json({
-      users: users.map((user) => ({
-        firebase_uid: user.id,
-        email: user.email,
-        is_admin: user.isAdmin || false,
-      })),
-    });
-  } catch (error) {
-    console.error("Error fetching users:", error);
-    res.status(500).json({ error: "Failed to fetch users" });
+    this._sendSuccessResponse(res, { users });
   }
-};
 
-/**
- * Make a user admin
- */
-const makeUserAdmin = async (req, res) => {
-  const { userId } = req.body;
-
-  try {
-    await firebaseService.updateUserAdmin(userId, true);
-    res.json({ message: "User has been granted admin privileges" });
-  } catch (error) {
-    console.error("Make Admin error:", error);
-    res.status(500).json({ error: "Internal Server Error" });
+  /**
+   * Grant admin privileges to a user
+   */
+  async makeUserAdmin(req, res) {
+    await this._handleAsync(this._makeUserAdminHandler, req, res);
   }
-};
 
-/**
- * Remove admin privileges from a user
- */
-const removeUserAdmin = async (req, res) => {
-  const { userId } = req.body;
+  /**
+   * Internal handler for granting admin privileges
+   * @private
+   */
+  async _makeUserAdminHandler(req, res) {
+    const { userId } = req.body;
 
-  try {
-    await firebaseService.updateUserAdmin(userId, false);
-    res.json({ message: "Admin privileges removed successfully" });
-  } catch (error) {
-    console.error("Remove Admin error:", error);
-    res.status(500).json({ error: "Internal Server Error" });
-  }
-};
-
-/**
- * Delete a user
- */
-const deleteUser = async (req, res) => {
-  const { firebaseUid } = req.params;
-
-  try {
-    try {
-      // Try to delete user from Firebase Auth
-      await admin.auth().deleteUser(firebaseUid);
-    } catch (firebaseError) {
-      // Log the error but continue if user not found in Firebase
-      console.log("Firebase user not found:", firebaseError.message);
+    const validation = this._validateRequiredFields(req.body, ["userId"]);
+    if (!validation.isValid) {
+      return this._sendErrorResponse(
+        res,
+        validation.message,
+        this.HTTP_STATUS.BAD_REQUEST
+      );
     }
 
-    // Delete user from database regardless of Firebase result
+    this._logAction("Granting admin privileges", { userId });
+    await firebaseService.updateUserAdmin(userId, true);
+    this._sendSuccessResponse(
+      res,
+      {},
+      "User has been granted admin privileges"
+    );
+  }
+
+  /**
+   * Remove admin privileges from a user
+   */
+  async removeUserAdmin(req, res) {
+    await this._handleAsync(this._removeUserAdminHandler, req, res);
+  }
+
+  /**
+   * Internal handler for removing admin privileges
+   * @private
+   */
+  async _removeUserAdminHandler(req, res) {
+    const { userId } = req.body;
+
+    const validation = this._validateRequiredFields(req.body, ["userId"]);
+    if (!validation.isValid) {
+      return this._sendErrorResponse(
+        res,
+        validation.message,
+        this.HTTP_STATUS.BAD_REQUEST
+      );
+    }
+
+    this._logAction("Removing admin privileges", { userId });
+    await firebaseService.updateUserAdmin(userId, false);
+    this._sendSuccessResponse(res, {}, "Admin privileges removed successfully");
+  }
+
+  /**
+   * Delete a user from both Firebase Auth and database
+   */
+  async deleteUser(req, res) {
+    await this._handleAsync(this._deleteUserHandler, req, res);
+  }
+
+  /**
+   * Internal handler for deleting users
+   * @private
+   */
+  async _deleteUserHandler(req, res) {
+    const { firebaseUid } = req.params;
+
+    const validation = this._validateRequiredFields(req.params, [
+      "firebaseUid",
+    ]);
+    if (!validation.isValid) {
+      return this._sendErrorResponse(
+        res,
+        validation.message,
+        this.HTTP_STATUS.BAD_REQUEST
+      );
+    }
+
+    this._logAction("Deleting user", { firebaseUid });
+
+    // 1. Attempt to delete from Firebase Auth (non-blocking)
+    await this._deleteFromFirebaseAuth(firebaseUid);
+
+    // 2. Delete from database (always execute)
     await firebaseService.deleteUser(firebaseUid);
 
-    res.json({ message: "User deleted from database successfully" });
-  } catch (error) {
-    console.error("Error deleting user from database:", error);
-    res.status(500).json({ error: "Internal Server Error" });
+    this._logAction("User deleted successfully", { firebaseUid });
+    this._sendSuccessResponse(res, {}, "User deleted successfully");
   }
-};
 
-module.exports = {
-  getAllOrders,
-  getAllUsers,
-  makeUserAdmin,
-  removeUserAdmin,
-  deleteUser,
-};
+  /**
+   * Delete user from Firebase Auth with error handling
+   * @private
+   */
+  async _deleteFromFirebaseAuth(firebaseUid) {
+    try {
+      await admin.auth().deleteUser(firebaseUid);
+      this._logAction("Firebase Auth user deleted", { firebaseUid });
+    } catch (firebaseError) {
+      // Log but don't throw - user might not exist in Firebase Auth
+      this._logAction("Firebase user not found", {
+        firebaseUid,
+        error: firebaseError.message,
+      });
+    }
+  }
+}
+
+module.exports = new AdminController();

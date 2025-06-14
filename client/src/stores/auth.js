@@ -18,16 +18,25 @@ export const useAuthStore = defineStore("auth", () => {
   const error = ref(null);
   const isAdmin = ref(false);
 
-  // Simple token getter - Firebase handles validation and refresh
+  // Optimized token getter with caching
   const getFirebaseToken = async () => {
     if (!user.value) return null;
 
     try {
-      // Firebase automatically checks validity and refreshes if needed
-      const token = await user.value.getIdToken();
-      return token;
+      // Check if we have a cached token first
+      if (token.value) {
+        // Firebase tokens are valid for 1 hour, let's use cached token
+        // Firebase SDK automatically refreshes if needed
+        return token.value;
+      }
+
+      // Get fresh token from Firebase
+      const freshToken = await user.value.getIdToken();
+      token.value = freshToken; // Cache it
+      return freshToken;
     } catch (error) {
       console.error("Error getting Firebase token:", error);
+      token.value = null; // Clear invalid token
       return null;
     }
   };
@@ -64,7 +73,8 @@ export const useAuthStore = defineStore("auth", () => {
       );
 
       user.value = userCredential.user;
-      token.value = await getFirebaseToken();
+      // Get fresh token and cache it
+      token.value = await user.value.getIdToken();
     } catch (e) {
       error.value = e.message;
       throw e;
@@ -82,7 +92,8 @@ export const useAuthStore = defineStore("auth", () => {
       const provider = new GoogleAuthProvider();
       const userCredential = await signInWithPopup(auth, provider);
       user.value = userCredential.user;
-      token.value = await getFirebaseToken();
+      // Get fresh token and cache it
+      token.value = await user.value.getIdToken();
 
       // Check if user is already in the database
       await apiClient.ensureUser();
@@ -162,7 +173,8 @@ export const useAuthStore = defineStore("auth", () => {
     auth.onIdTokenChanged(async (currentUser) => {
       if (currentUser) {
         user.value = currentUser;
-        token.value = await getFirebaseToken();
+        // Get fresh token and cache it
+        token.value = await currentUser.getIdToken();
         await fetchAdminStatus();
       } else {
         user.value = null;

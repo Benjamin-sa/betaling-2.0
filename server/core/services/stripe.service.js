@@ -1,9 +1,8 @@
 require("dotenv").config();
 const stripe = require("stripe")(process.env.STRIPE_SECRET_KEY_TEST);
-const webhookService = require("./webhook.service");
 class StripeService {
   // Maak een nieuwe StripeService instantie
-  async createCheckoutSession(items, userId, stripeCustomerId) {
+  async createCheckoutSession(items, userId, stripeCustomerId, metadata = {}) {
     try {
       const baseUrl = process.env.APP_URL || process.env.VITE_APP_URL;
 
@@ -22,9 +21,11 @@ class StripeService {
         })
       );
 
-      const metadata = {
+      // Prepare session metadata
+      const sessionMetadata = {
         userId,
         items: JSON.stringify(items),
+        ...metadata, // Include any additional metadata like eventId, shiftId
       };
 
       return stripe.checkout.sessions.create({
@@ -38,24 +39,13 @@ class StripeService {
         customer: stripeCustomerId,
         success_url: `${baseUrl}/success`,
         cancel_url: `${baseUrl}/`,
-        metadata,
+        metadata: sessionMetadata,
       });
     } catch (error) {
       console.error("Error creating checkout session:", error);
       throw error;
     }
   }
-
-  /**
-   * Haal producten op uit Stripe
-   */
-  async getProducts() {
-    return stripe.products.list({
-      expand: ["data.default_price"],
-      active: true,
-    });
-  }
-
   /**
    * Maak een Stripe product en prijs aan
    */
@@ -143,71 +133,23 @@ class StripeService {
       throw error;
     }
   }
-
   /**
-   * Haal alle Checkout Sessions op voor een specifieke klant
-   * @param {string} customerId - De Stripe klant ID
-   * @returns {Array} - Een array van Checkout Sessions
+   * Validate Stripe webhook event and return the event object
+   * @param {Buffer} rawBody - The raw request body
+   * @param {string} signature - The Stripe signature header
+   * @returns {Object} - The validated Stripe event object
    */
-  async getCustomerCheckoutSessions(customerId) {
+  async validateWebhookEvent(rawBody, signature) {
     try {
-      const sessions = await stripe.checkout.sessions.list({
-        customer: customerId,
-        limit: 100, // Pas aan indien nodig
-      });
-
-      return sessions.data;
-    } catch (error) {
-      console.error("Error fetching Checkout Sessions:", error);
-      throw error;
-    }
-  }
-
-  async handleWebhookEvent(rawBody, signature) {
-    let event;
-    try {
-      event = stripe.webhooks.constructEvent(
+      const event = stripe.webhooks.constructEvent(
         rawBody,
         signature,
         process.env.STRIPE_WEBHOOK_SECRET
       );
+      return event;
     } catch (err) {
       console.error("Webhook signature verification failed:", err.message);
       throw err;
-    }
-
-    try {
-      switch (event.type) {
-        case "checkout.session.completed":
-          const session = await this.getCheckoutSession(event.data.object.id);
-          console.log("Checkout session completed:", session.id);
-          await webhookService.createOrderFromSession(session);
-          break;
-
-        default:
-          console.log(`Unhandled event type: ${event.type}`);
-          break;
-      }
-    } catch (error) {
-      console.error(`Error handling event ${event.type}:`, error);
-      throw error;
-    }
-  }
-
-  /**
-   * Haal line items op voor een specifieke Checkout Session
-   * @param {string} sessionId - De Stripe Checkout Session ID
-   * @returns {Array} - Een array van Line Items
-   */
-  async getSessionLineItems(sessionId) {
-    try {
-      const items = await stripe.checkout.sessions.listLineItems(sessionId, {
-        limit: 100,
-      });
-      return items.data;
-    } catch (error) {
-      console.error("Error fetching session line items:", error);
-      throw error;
     }
   }
 

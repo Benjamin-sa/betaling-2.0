@@ -1,6 +1,6 @@
 // server/middleware/auth.js
 const admin = require("../config/firebaseAdmin");
-const firebaseService = require("../core/services/firebase.service");
+const firebaseService = require("../core/services/firebase-cached.service");
 
 const authenticate = async (req, res, next) => {
   const authHeader = req.headers.authorization;
@@ -24,9 +24,9 @@ const authenticate = async (req, res, next) => {
 
 const authorizeAdmin = async (req, res, next) => {
   try {
-    const user = await firebaseService.getUser(req.user.uid);
+    const isAdmin = await firebaseService.isUserAdmin(req.user.uid);
 
-    if (!user || !user.isAdmin) {
+    if (!isAdmin) {
       return res.status(403).json({ error: "Forbidden: Admins only" });
     }
 

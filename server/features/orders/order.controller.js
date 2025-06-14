@@ -1,40 +1,154 @@
 // server/controllers/order.controller.js
-const firebaseService = require("../../core/services/firebase.service");
+const BaseController = require("../../core/controllers/base.controller");
+const firebaseService = require("../../core/services/firebase-cached.service");
 const stripeService = require("../../core/services/stripe.service");
-class OrderController {
+
+// Order-specific error messages
+const ORDER_ERROR_MESSAGES = {
+  FETCH_ORDERS_FAILED: "Failed to fetch user orders",
+  CHECKOUT_SESSION_FAILED: "Failed to create checkout session",
+  NO_STRIPE_CUSTOMER: "User does not have a Stripe customer ID",
+};
+
+class OrderController extends BaseController {
   /**
    * Get all orders for the authenticated user
+   * @param {Object} req - Express request object
+   * @param {Object} res - Express response object
    */
   async getUserOrders(req, res) {
-    try {
-      const userId = req.user.uid;
-      const orders = await firebaseService.getUserOrders(userId);
-
-      res.json({ orders });
-    } catch (error) {
-      console.error("Error fetching user orders:", error);
-      res.status(500).json({ error: "Internal Server Error" });
-    }
+    await this._handleAsync(this._getUserOrdersHandler, req, res);
   }
 
-  async createCheckoutSession(req, res) {
-    try {
-      const { items } = req.body;
-      const userId = req.user.uid;
-      console.log("Creating checkout session for user:", userId);
-      const user = await firebaseService.getUser(userId);
-      console.log("Creating checkout session for user:", user);
-      const session = await stripeService.createCheckoutSession(
-        items,
-        userId,
-        user.stripeCustomerId
-      );
+  /**
+   * Internal handler for getting user orders
+   * @private
+   */
+  async _getUserOrdersHandler(req, res) {
+    const userId = req.user.uid;
+    this._logAction("Fetching user orders", { userId });
 
-      res.json({ sessionId: session.id });
-    } catch (error) {
-      console.error("Checkout session error:", error);
-      res.status(500).json({ error: error.message });
+    const orders = await firebaseService.getUserOrders(userId);
+    this._sendSuccessResponse(res, { orders });
+  }
+
+  /**
+   * Create a Stripe checkout session for the user
+   * @param {Object} req - Express request object
+   * @param {Object} res - Express response object
+   */
+  async createCheckoutSession(req, res) {
+    await this._handleAsync(this._createCheckoutSessionHandler, req, res);
+  }
+
+  /**
+   * Internal handler for creating checkout session
+   * @private
+   */
+  async _createCheckoutSessionHandler(req, res) {
+    const { items, eventId, shiftId } = req.body;
+    const userId = req.user.uid;
+
+    // Validate required fields
+    const validation = this._validateRequiredFields(req.body, ["items"]);
+    if (!validation.isValid) {
+      return this._sendErrorResponse(
+        res,
+        validation.message,
+        this.HTTP_STATUS.BAD_REQUEST
+      );
     }
+
+    // Validate items array - products are always required
+    if (!Array.isArray(items) || items.length === 0) {
+      return this._sendErrorResponse(
+        res,
+        "At least one product must be selected",
+        this.HTTP_STATUS.BAD_REQUEST
+      );
+    }
+
+    // Validate event if provided
+    if (eventId) {
+      const event = await firebaseService.getEvent(eventId);
+      if (!event) {
+        return this._sendErrorResponse(
+          res,
+          "Event not found",
+          this.HTTP_STATUS.BAD_REQUEST
+        );
+      }
+
+      // New validation logic based on event type and product requirements
+      if (event.type === "shift_event") {
+        // For shift events, check if any products require timeslots
+        const products = await firebaseService.getProductsByEvent(eventId);
+        const selectedProductIds = items.map(item => item.productId);
+        const selectedProducts = products.filter(product => 
+          selectedProductIds.includes(product.id)
+        );
+        
+        const hasTimeslotRequiredProducts = selectedProducts.some(product => 
+          product.requiresTimeslot === true
+        );
+
+        // If any product requires timeslot, shiftId is required
+        if (hasTimeslotRequiredProducts && !shiftId) {
+          return this._sendErrorResponse(
+            res,
+            "Shift selection is required for products that require timeslots",
+            this.HTTP_STATUS.BAD_REQUEST
+          );
+        }
+
+        // Validate shift exists (but no capacity restrictions)
+        if (shiftId) {
+          const shift = event.shifts?.find((s) => s.id === shiftId);
+          if (!shift) {
+            return this._sendErrorResponse(
+              res,
+              "Selected shift not found",
+              this.HTTP_STATUS.BAD_REQUEST
+            );
+          }
+        }
+      } else if (event.type === "product_sale") {
+        // For product_sale events, shift selection is not allowed
+        if (shiftId) {
+          return this._sendErrorResponse(
+            res,
+            "Shift selection is not allowed for product sale events",
+            this.HTTP_STATUS.BAD_REQUEST
+          );
+        }
+      }
+    }
+
+    this._logAction("Creating checkout session", {
+      userId,
+      itemCount: items.length,
+      eventId,
+      shiftId,
+    });
+
+    // 1. Get user details
+    const user = await firebaseService.getUser(userId);
+
+    // 2. Validate user has Stripe customer ID
+    if (!user.stripeCustomerId) {
+      throw new Error(ORDER_ERROR_MESSAGES.NO_STRIPE_CUSTOMER);
+    }
+
+    // 3. Create checkout session with event context
+    const session = await stripeService.createCheckoutSession(
+      items,
+      userId,
+      user.stripeCustomerId,
+      { eventId, shiftId }
+    );
+
+    this._logAction("Checkout session created", { sessionId: session.id });
+    this._sendSuccessResponse(res, { sessionId: session.id });
   }
 }
 
