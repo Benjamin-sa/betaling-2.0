@@ -1,0 +1,56 @@
+steps:
+  # Build the Docker image
+  - name: "gcr.io/cloud-builders/docker"
+    args:
+      [
+        "build",
+        "--no-cache",
+        "--tag",
+        "gcr.io/$PROJECT_ID/scouts-webshop:$COMMIT_SHA",
+        "--tag",
+        "gcr.io/$PROJECT_ID/scouts-webshop:latest",
+        ".",
+      ]
+
+  # Push the image to Container Registry
+  - name: "gcr.io/cloud-builders/docker"
+    args: ["push", "gcr.io/$PROJECT_ID/scouts-webshop:$COMMIT_SHA"]
+
+  # Deploy to Cloud Run
+  - name: "gcr.io/google.com/cloudsdktool/cloud-sdk"
+    entrypoint: gcloud
+    args:
+      [
+        "run",
+        "deploy",
+        "scouts-webshop",
+        "--image",
+        "gcr.io/$PROJECT_ID/scouts-webshop:$COMMIT_SHA",
+        "--region",
+        "europe-west1",
+        "--platform",
+        "managed",
+        "--allow-unauthenticated",
+        "--memory",
+        "512Mi",
+        "--cpu",
+        "1",
+        "--concurrency",
+        "100",
+        "--max-instances",
+        "5",
+        "--min-instances",
+        "0",
+        "--cpu-throttling",
+        "--execution-environment",
+        "gen2",
+        "--port",
+        "8080",
+      ]
+
+# Use smaller machine type for cost optimization
+options:
+  machineType: "E2_HIGHCPU_8"
+  diskSizeGb: "100"
+
+timeout: "1200s"

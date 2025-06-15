@@ -10,7 +10,6 @@ Dit project is een volledige webapplicatie voor de verkoop van producten voor ee
 - **Productbeheer**: Admins kunnen producten toevoegen, verwijderen en koppelen aan evenementen, inclusief afbeeldingen.
 - **Authenticatie & Beveiliging**:
   - Gebruikers kunnen zich registreren en inloggen met e-mail/wachtwoord of via Google (Firebase Auth)
-  - **2FA (Twee-Factor Authenticatie)**: Extra beveiligingslaag met SMS of app-gebaseerde verificatie
   - **E-mail Verificatie**: Automatische verificatie van nieuwe gebruikersaccounts
 - **Bevestiging Email Systeem**:
   - **Gmail API Integratie**: Professionele e-mails verzonden via Gmail met OAuth2 authenticatie
