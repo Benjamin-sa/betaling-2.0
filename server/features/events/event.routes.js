@@ -12,6 +12,11 @@ router.get("/:eventId/availability", (req, res) =>
   eventController.getEventShiftAvailability(req, res)
 );
 
+// Get shift information by ID (public route since it's for displaying order info)
+router.get("/:eventId/shifts/:shiftId", (req, res) =>
+  eventController.getShiftById(req, res)
+);
+
 // Admin-only routes
 router.get("/", authenticate, authorizeAdmin, (req, res) =>
   eventController.getAllEvents(req, res)

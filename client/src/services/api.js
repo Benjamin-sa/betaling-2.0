@@ -114,9 +114,54 @@ export const apiClient = {
     });
   },
 
+  // Shift capacity checking API
+  async checkShiftCapacity(eventId, shiftId, quantity = 1) {
+    return this.request(
+      `/orders/capacity/${eventId}/${shiftId}?quantity=${quantity}`
+    );
+  },
+
+  async batchCheckShiftCapacity(shiftRequests) {
+    return this.request("/orders/capacity/batch", {
+      method: "POST",
+      data: { shiftRequests },
+    });
+  },
+
   // Admin API
   async getAdminOrders() {
     return this.request("/admin/orders");
+  },
+
+  async getAdminOrdersFiltered(filters = {}, options = {}) {
+    const params = new URLSearchParams();
+
+    // Add filters to params
+    Object.entries(filters).forEach(([key, value]) => {
+      if (value !== undefined && value !== null && value !== "") {
+        params.append(key, value);
+      }
+    });
+
+    // Add options to params
+    Object.entries(options).forEach(([key, value]) => {
+      if (value !== undefined && value !== null && value !== "") {
+        params.append(key, value);
+      }
+    });
+
+    return this.request(`/admin/orders/filtered?${params.toString()}`);
+  },
+
+  async getOrderStatistics(filters = {}) {
+    const params = new URLSearchParams();
+    Object.entries(filters).forEach(([key, value]) => {
+      if (value !== undefined && value !== null && value !== "") {
+        params.append(key, value);
+      }
+    });
+
+    return this.request(`/admin/orders/statistics?${params.toString()}`);
   },
 
   async getAdminUsers() {
@@ -197,6 +242,10 @@ export const apiClient = {
     return this.request(`/events/${eventId}/availability`);
   },
 
+  async getShiftById(eventId, shiftId) {
+    return this.request(`/events/${eventId}/shifts/${shiftId}`);
+  },
+
   // Auth API
   async register(email, password) {
     return this.request("/auth/register", {
@@ -213,5 +262,18 @@ export const apiClient = {
 
   async getAdminStatus() {
     return this.request("/auth/admin-status");
+  },
+
+  // Google Services API (Unified)
+  async getGoogleAuthStatus() {
+    return this.request("/admin/google/status");
+  },
+  async setupGoogleAuth() {
+    return this.request("/admin/google/setup");
+  },
+  async reloadGoogleTokens() {
+    return this.request("/admin/google/reload-tokens", {
+      method: "POST",
+    });
   },
 };

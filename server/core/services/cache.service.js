@@ -21,6 +21,10 @@ class CacheService {
       orders: { prefix: "orders:" },
       adminStatus: { prefix: "admin:" },
       events: { prefix: "events:" },
+      shifts: { prefix: "shifts:" },
+      orderStats: { prefix: "orderStats:" },
+      shiftAttendance: { prefix: "shiftAttendance:" },
+      shiftCapacity: { prefix: "shiftCapacity:" },
     };
 
     // Basic stats

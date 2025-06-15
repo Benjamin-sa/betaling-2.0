@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "description": "Scoutswinkel applicatie",
   "engines": {
-    "node": "18.x"
+    "node": "20.x"
   },
   "scripts": {
     "start": "npm run start --prefix server",
@@ -16,5 +16,8 @@
   "workspaces": [
     "client",
     "server"
-  ]
+  ],
+  "dependencies": {
+    "firebase": "^11.9.1"
+  }
 }

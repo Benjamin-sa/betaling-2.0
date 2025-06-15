@@ -116,6 +116,29 @@ class OrderController extends BaseController {
               );
             }
           }
+
+          // OPTIMIZED CAPACITY VALIDATION - Prevents overbooking with minimal Firebase reads
+          const capacityValidation =
+            await firebaseService.validateShiftCapacityForCheckout(
+              eventId,
+              items
+            );
+
+          if (!capacityValidation.success) {
+            const failedShifts = capacityValidation.failedShifts || [];
+            const shiftDetails = failedShifts
+              .map(
+                (shift) =>
+                  `Shift ${shift.shiftId}: requested ${shift.requested}, available ${shift.available}`
+              )
+              .join("; ");
+
+            return this._sendErrorResponse(
+              res,
+              `Insufficient capacity for selected shifts. ${shiftDetails}`,
+              this.HTTP_STATUS.BAD_REQUEST
+            );
+          }
         }
       } else if (event.type === "product_sale") {
         // For product_sale events, shift selection is not allowed
@@ -155,6 +178,65 @@ class OrderController extends BaseController {
 
     this._logAction("Checkout session created", { sessionId: session.id });
     this._sendSuccessResponse(res, { sessionId: session.id });
+  }
+
+  /**
+   * Check shift capacity in real-time (for UI updates)
+   */
+  async checkShiftCapacity(req, res) {
+    await this._handleAsync(this._checkShiftCapacityHandler, req, res);
+  }
+
+  /**
+   * Internal handler for checking shift capacity
+   * @private
+   */
+  async _checkShiftCapacityHandler(req, res) {
+    const { eventId, shiftId } = req.params;
+    const { quantity = 1 } = req.query;
+
+    this._logAction("Checking shift capacity", { eventId, shiftId, quantity });
+
+    const capacityCheck = await firebaseService.checkShiftCapacity(
+      eventId,
+      shiftId,
+      parseInt(quantity)
+    );
+
+    this._sendSuccessResponse(res, { capacity: capacityCheck });
+  }
+
+  /**
+   * Batch check shift capacity for multiple shifts
+   */
+  async batchCheckShiftCapacity(req, res) {
+    await this._handleAsync(this._batchCheckShiftCapacityHandler, req, res);
+  }
+
+  /**
+   * Internal handler for batch checking shift capacity
+   * @private
+   */
+  async _batchCheckShiftCapacityHandler(req, res) {
+    const { shiftRequests } = req.body;
+
+    if (!shiftRequests || !Array.isArray(shiftRequests)) {
+      return this._sendErrorResponse(
+        res,
+        "shiftRequests array is required",
+        this.HTTP_STATUS.BAD_REQUEST
+      );
+    }
+
+    this._logAction("Batch checking shift capacity", {
+      requestCount: shiftRequests.length,
+    });
+
+    const capacityResults = await firebaseService.batchCheckShiftCapacity(
+      shiftRequests
+    );
+
+    this._sendSuccessResponse(res, { results: capacityResults });
   }
 }
 

@@ -2,11 +2,20 @@ const express = require("express");
 const router = express.Router();
 const { authenticate, authorizeAdmin } = require("../../middleware/auth");
 const adminController = require("./admin.controller");
-const cacheController = require("./cache.controller");
 
 // Get all orders with items
 router.get("/orders", authenticate, authorizeAdmin, (req, res) =>
   adminController.getAllOrders(req, res)
+);
+
+// Get filtered orders with pagination and search
+router.get("/orders/filtered", authenticate, authorizeAdmin, (req, res) =>
+  adminController.getOrdersWithFilters(req, res)
+);
+
+// Get order statistics
+router.get("/orders/statistics", authenticate, authorizeAdmin, (req, res) =>
+  adminController.getOrderStatistics(req, res)
 );
 
 // Get all users
@@ -29,22 +38,17 @@ router.delete("/users/:firebaseUid", authenticate, authorizeAdmin, (req, res) =>
   adminController.deleteUser(req, res)
 );
 
-// Gmail setup route - generates OAuth2 authorization URL
-router.get("/gmail/setup", authenticate, authorizeAdmin, (req, res) =>
-  adminController.setupGmail(req, res)
+// Unified Google Services routes (recommended)
+router.get("/google/status", authenticate, authorizeAdmin, (req, res) =>
+  adminController.getGoogleAuthStatus(req, res)
 );
 
-// Cache management routes (basic only)
-router.get("/cache/stats", authenticate, authorizeAdmin, (req, res) =>
-  cacheController.getCacheStats(req, res)
+router.get("/google/setup", authenticate, authorizeAdmin, (req, res) =>
+  adminController.setupGoogleAuth(req, res)
 );
 
-router.post("/cache/clear", authenticate, authorizeAdmin, (req, res) =>
-  cacheController.clearAllCache(req, res)
-);
-
-router.post("/cache/clear/:type", authenticate, authorizeAdmin, (req, res) =>
-  cacheController.clearCacheType(req, res)
+router.post("/google/reload-tokens", authenticate, authorizeAdmin, (req, res) =>
+  adminController.reloadGoogleTokens(req, res)
 );
 
 module.exports = router;

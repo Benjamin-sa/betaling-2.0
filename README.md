@@ -8,7 +8,13 @@ Dit project is een volledige webapplicatie voor de verkoop van producten voor ee
   - **Product Verkoop**: Een standaard webshop voor de verkoop van producten.
   - **Shift Event**: Verkoop van producten gekoppeld aan specifieke tijdslots (bijv. een spaghetti-avond).
 - **Productbeheer**: Admins kunnen producten toevoegen, verwijderen en koppelen aan evenementen, inclusief afbeeldingen.
-- **Authenticatie**: Gebruikers kunnen zich registreren en inloggen met e-mail/wachtwoord of via Google (Firebase Auth).
+- **Authenticatie & Beveiliging**:
+  - Gebruikers kunnen zich registreren en inloggen met e-mail/wachtwoord of via Google (Firebase Auth)
+  - **2FA (Twee-Factor Authenticatie)**: Extra beveiligingslaag met SMS of app-gebaseerde verificatie
+  - **E-mail Verificatie**: Automatische verificatie van nieuwe gebruikersaccounts
+- **Bevestiging Email Systeem**:
+  - **Gmail API Integratie**: Professionele e-mails verzonden via Gmail met OAuth2 authenticatie
+  - **Bestelbevestigingen**: Automatische bevestigingsmails na succesvolle bestellingen
 - **Admin Dashboard**: Een beveiligde admin-sectie voor het beheren van events, producten, gebruikers en het bekijken van alle bestellingen.
 - **Winkelwagensysteem**: Een moderne, uitklapbare winkelwagen met een zwevende widget die het totaal aantal items toont.
 - **Stripe Integratie**: Veilige online betalingen via Stripe Checkout, met ondersteuning voor creditcard, iDEAL en Bancontact.
@@ -33,6 +39,8 @@ De applicatie is opgesplitst in een `client` en `server` directory.
 - **Framework**: [Node.js](https://nodejs.org/) met [Express.js](https://expressjs.com/)
 - **Database**: [Firebase Firestore](https://firebase.google.com/docs/firestore)
 - **Authenticatie**: [Firebase Authentication](https://firebase.google.com/docs/auth)
+- **2FA**: Firebase Multi-Factor Authentication met SMS en App-based authenticatie
+- **Email Service**: Gmail API met OAuth2 voor professionele e-mail verzending
 - **Betalingen**: [Stripe](https://stripe.com/)
 - **Afbeeldingenopslag**: [Firebase Storage](https://firebase.google.com/docs/storage)
 - **Middleware**: CORS, JSON-parser, en custom middleware voor authenticatie en autorisatie.

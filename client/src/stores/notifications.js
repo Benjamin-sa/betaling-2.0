@@ -15,10 +15,10 @@ export const useNotificationStore = defineStore("notifications", () => {
 
   // Default durations (in milliseconds)
   const DEFAULT_DURATIONS = {
-    [TYPES.SUCCESS]: 4000,
-    [TYPES.ERROR]: 6000,
-    [TYPES.WARNING]: 5000,
-    [TYPES.INFO]: 4000,
+    [TYPES.SUCCESS]: 2000,
+    [TYPES.ERROR]: 4000,
+    [TYPES.WARNING]: 3000,
+    [TYPES.INFO]: 2000,
   };
 
   /**

@@ -1,15 +1,15 @@
 <template>
   <!-- Overlay -->
   <div v-if="isOpen" class="fixed inset-0 bg-black bg-opacity-50 z-40 transition-opacity duration-300"
-    :class="{ 'opacity-100': isOpen, 'opacity-0': !isOpen }" @click="$emit('close')"></div>
+    :class="{ 'opacity-100': isOpen, 'opacity-0': !isOpen }" @click="$emit('close')" @touchmove.prevent></div>
 
   <!-- Cart Drawer -->
   <div
-    class="fixed top-0 right-0 h-full bg-white shadow-2xl z-50 transition-transform duration-300 ease-in-out flex flex-col"
+    class="fixed top-0 right-0 h-full bg-white shadow-2xl z-50 transition-transform duration-300 ease-in-out flex flex-col cart-drawer"
     :class="[
       isOpen ? 'translate-x-0' : 'translate-x-full',
       'w-full sm:w-96 lg:w-[28rem]'
-    ]">
+    ]" style="overscroll-behavior: contain;" @touchmove.stop>
     <!-- Header -->
     <div
       class="flex items-center justify-between p-6 border-b border-gray-200 bg-gradient-to-r from-primary/5 to-green-600/5">
@@ -34,7 +34,8 @@
     </div>
 
     <!-- Cart Items -->
-    <div class="flex-1 overflow-y-auto p-6">
+    <div class="flex-1 overflow-y-auto p-6 overscroll-behavior-contain cart-content"
+      style="-webkit-overflow-scrolling: touch;">
       <!-- Empty Cart -->
       <div v-if="selectedProducts.length === 0" class="text-center py-12">
         <div class="w-24 h-24 mx-auto mb-4 bg-gray-100 rounded-full flex items-center justify-center">
@@ -223,8 +224,28 @@
   </div>
 </template>
 
+<style scoped>
+/* Ensure smooth scrolling on mobile devices */
+.cart-content {
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+}
+
+/* Global styles for preventing background scroll when cart is open */
+:global(body.cart-open) {
+  overflow: hidden;
+  position: fixed;
+  width: 100%;
+}
+
+/* Ensure cart drawer can still scroll */
+.cart-drawer {
+  overscroll-behavior: contain;
+}
+</style>
+
 <script setup>
-import { computed } from 'vue'
+import { computed, watch, onUnmounted } from 'vue'
 
 const props = defineProps({
   isOpen: {
@@ -266,6 +287,31 @@ const props = defineProps({
 })
 
 const emit = defineEmits(['close', 'checkout', 'update-cart-item', 'remove-product', 'clear-cart'])
+
+// Manage body scroll class
+let originalScrollPosition = 0
+
+const toggleBodyClass = (isOpen) => {
+  if (isOpen) {
+    originalScrollPosition = window.scrollY
+    document.body.style.top = `-${originalScrollPosition}px`
+    document.body.classList.add('cart-open')
+  } else {
+    document.body.classList.remove('cart-open')
+    document.body.style.top = ''
+    window.scrollTo(0, originalScrollPosition)
+  }
+}
+
+// Watch for cart open/close
+watch(() => props.isOpen, toggleBodyClass)
+
+// Cleanup on unmount
+onUnmounted(() => {
+  if (props.isOpen) {
+    toggleBodyClass(false)
+  }
+})
 
 // Computed properties
 const hasProductsWithShifts = computed(() => {

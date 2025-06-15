@@ -41,6 +41,12 @@
           </option>
         </select>
 
+        <!-- Real-time Capacity Indicator -->
+        <div v-if="selectedShift && selectedEvent?.id" class="mt-2">
+          <ShiftCapacityIndicator :event-id="selectedEvent.id" :shift-id="selectedShift" :quantity="currentQuantity"
+            :show-badge="true" :show-details="false" size="small" />
+        </div>
+
         <!-- Show existing items in other shifts -->
         <div v-if="getOtherShiftItems().length > 0" class="mt-2 text-xs text-blue-600">
           <p class="font-medium">Al in winkelmandje:</p>
@@ -124,6 +130,7 @@
 import { computed, ref, watch } from 'vue'
 import { EVENT_TYPES } from '@/config/constants'
 import { useNotificationStore } from '@/stores/notifications'
+import ShiftCapacityIndicator from '@/components/events/ShiftCapacityIndicator.vue'
 
 const notifications = useNotificationStore()
 

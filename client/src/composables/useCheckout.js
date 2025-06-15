@@ -4,6 +4,7 @@ import { useAuthStore } from "@/stores/auth";
 import { useNotificationStore } from "@/stores/notifications";
 import { useStripe } from "./useStripe";
 import { useProductManager } from "./useProductManager";
+import { useShiftCapacity } from "./useShiftCapacity";
 import {
   EVENT_TYPES,
   ERROR_MESSAGES,
@@ -21,6 +22,7 @@ export function useCheckout(products, cartItems, selectedEvent) {
   const auth = useAuthStore();
   const notifications = useNotificationStore();
   const { redirectToCheckout } = useStripe();
+  const { validateCartCapacity } = useShiftCapacity();
 
   const loading = ref(false);
 
@@ -94,6 +96,33 @@ export function useCheckout(products, cartItems, selectedEvent) {
           validationError
         );
         return;
+      }
+
+      // OPTIMIZED: Validate shift capacity before proceeding to Stripe
+      if (selectedEvent.value?.type === EVENT_TYPES.SHIFT_EVENT) {
+        const selectedItems = cartItems.value.filter(
+          (item) => item.quantity > 0
+        );
+        const capacityValidation = await validateCartCapacity(
+          selectedEvent.value.id,
+          selectedItems
+        );
+
+        if (!capacityValidation.success) {
+          const failedShifts = capacityValidation.failedShifts || [];
+          const shiftDetails = failedShifts
+            .map(
+              (shift) =>
+                `${shift.shiftId}: ${shift.requested} gevraagd, ${shift.available} beschikbaar`
+            )
+            .join("; ");
+
+          notifications.error(
+            "Tijdslot Vol",
+            `Onvoldoende capaciteit: ${shiftDetails}`
+          );
+          return;
+        }
       }
 
       // Prepare checkout data

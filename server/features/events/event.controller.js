@@ -385,6 +385,43 @@ class EventController extends BaseController {
       "Shift updated successfully"
     );
   }
+
+  /**
+   * Get shift information by event ID and shift ID
+   */
+  async getShiftById(req, res) {
+    await this._handleAsync(this._getShiftByIdHandler, req, res);
+  }
+
+  /**
+   * Internal handler for getting shift by ID
+   * @private
+   */
+  async _getShiftByIdHandler(req, res) {
+    const { eventId, shiftId } = req.params;
+
+    if (!eventId || !shiftId) {
+      return this._sendErrorResponse(
+        res,
+        "Event ID and Shift ID are required",
+        this.HTTP_STATUS.BAD_REQUEST
+      );
+    }
+
+    this._logAction("Fetching shift information", { eventId, shiftId });
+
+    const shift = await firebaseService.getShiftById(eventId, shiftId);
+
+    if (!shift) {
+      return this._sendErrorResponse(
+        res,
+        "Shift not found",
+        this.HTTP_STATUS.NOT_FOUND
+      );
+    }
+
+    this._sendSuccessResponse(res, { shift });
+  }
 }
 
 module.exports = new EventController();

@@ -1,8 +1,10 @@
 // server/controllers/admin.controller.js
 const BaseController = require("../../core/controllers/base.controller");
 const firebaseService = require("../../core/services/firebase-cached.service");
-const emailService = require("../../core/services/email.service");
-const admin = require("../../config/firebaseAdmin");
+const gmailService = require("../../core/services/google-apis/gmail.service");
+const googleOAuth2Service = require("../../core/services/google-apis/google-oauth.service");
+const driveImageManager = require("../../core/services/google-apis/driveImageManager.service");
+const { admin } = require("../../config/firebaseAdmin");
 
 class AdminController extends BaseController {
   /**
@@ -141,53 +143,275 @@ class AdminController extends BaseController {
   }
 
   /**
-   * Setup Gmail OAuth2 - generate authorization URL
+   * Setup Google OAuth2 - generate authorization URL for Gmail and Drive
    */
-  async setupGmail(req, res) {
-    await this._handleAsync(this._setupGmailHandler, req, res);
+  async setupGoogleAuth(req, res) {
+    await this._handleAsync(this._setupGoogleAuthHandler, req, res);
   }
 
   /**
-   * Internal handler for Gmail setup
+   * Internal handler for Google OAuth2 setup
    * @private
    */
-  async _setupGmailHandler(req, res) {
-    this._logAction("Generating Gmail OAuth2 authorization URL");
+  async _setupGoogleAuthHandler(req, res) {
+    this._logAction("Setting up Google OAuth2 (Gmail + Drive)");
 
     try {
-      // Check if CLIENT_ID and CLIENT_SECRET are configured
-      if (!process.env.GMAIL_CLIENT_ID || !process.env.GMAIL_CLIENT_SECRET) {
-        return this._sendErrorResponse(
-          res,
-          "Gmail Client ID and Client Secret must be configured in environment variables",
-          this.HTTP_STATUS.BAD_REQUEST
-        );
-      }
+      const authUrl = googleOAuth2Service.generateAuthUrl();
+      this._logAction("Google authorization URL generated");
 
-      // Generate authorization URL
-      const authUrl = emailService.generateAuthUrl();
-
-      this._logAction("Gmail authorization URL generated");
-
-      this._sendSuccessResponse(res, {
+      return this._sendSuccessResponse(res, {
         authUrl,
-        callbackUrl: `${
-          process.env.APP_URL || process.env.VITE_APP_URL
-        }/api/webhooks/gmail/callback`,
         message:
-          "Visit the authUrl to authorize Gmail access. After authorization, you'll be redirected back to configure your refresh token.",
+          "Visit this URL to authorize Google services (Gmail + Drive) access",
+        scopes: ["Gmail", "Drive", "User Info"],
       });
     } catch (error) {
-      this._logAction("Failed to generate Gmail authorization URL", {
+      this._logAction("Failed to generate Google authorization URL", {
         error: error.message,
       });
 
       return this._sendErrorResponse(
         res,
-        `Gmail setup failed: ${error.message}`,
+        `Google OAuth2 setup failed: ${error.message}`,
         this.HTTP_STATUS.INTERNAL_SERVER_ERROR
       );
     }
+  }
+
+  /**
+   * Get comprehensive Google services authentication status
+   */
+  async getGoogleAuthStatus(req, res) {
+    await this._handleAsync(this._getGoogleAuthStatusHandler, req, res);
+  }
+
+  /**
+   * Internal handler for Google authentication status
+   * @private
+   */
+  async _getGoogleAuthStatusHandler(req, res) {
+    this._logAction("Checking Google services authentication status");
+
+    try {
+      const [authStatus] = await Promise.all([
+        googleOAuth2Service.getAuthStatus(),
+      ]);
+
+      const comprehensiveStatus = {
+        // Core OAuth2 status
+        oauth2: {
+          authenticated: authStatus.authenticated,
+          hasToken: authStatus.hasToken,
+          email: authStatus.email,
+          createdAt: authStatus.createdAt,
+          allowedEmail: authStatus.allowedEmail,
+        },
+
+        // Overall status
+        allServicesReady: authStatus.authenticated,
+      };
+
+      this._logAction("Google services status retrieved", {
+        oauth2Authenticated: authStatus.authenticated,
+      });
+
+      return this._sendSuccessResponse(res, comprehensiveStatus);
+    } catch (error) {
+      this._logAction("Failed to get Google services status", {
+        error: error.message,
+      });
+
+      return this._sendErrorResponse(
+        res,
+        `Failed to get Google services status: ${error.message}`,
+        this.HTTP_STATUS.INTERNAL_SERVER_ERROR
+      );
+    }
+  }
+
+  /**
+   * Get Gmail token status from centralized service
+   */
+  async getGmailTokenStatus(req, res) {
+    await this._handleAsync(this._getGmailTokenStatusHandler, req, res);
+  }
+
+  /**
+   * Internal handler for Gmail token status using centralized service
+   * @private
+   */
+  async _getGmailTokenStatusHandler(req, res) {
+    this._logAction("Getting Google OAuth2 token status");
+
+    try {
+      const authStatus = await googleOAuth2Service.getAuthStatus();
+      const gmailStatus = await gmailService.getAuthStatus();
+
+      return this._sendSuccessResponse(res, {
+        hasToken: authStatus.hasToken,
+        email: authStatus.email,
+        createdAt: authStatus.createdAt,
+        allowedEmail: authStatus.allowedEmail,
+        authenticated: gmailStatus.authenticated,
+      });
+    } catch (error) {
+      this._logAction("Failed to get Google OAuth2 token status", {
+        error: error.message,
+      });
+
+      return this._sendErrorResponse(
+        res,
+        `Failed to get token status: ${error.message}`,
+        this.HTTP_STATUS.INTERNAL_SERVER_ERROR
+      );
+    }
+  }
+
+  /**
+   * Force reload Google OAuth2 tokens for all services
+   */
+  async reloadGoogleTokens(req, res) {
+    await this._handleAsync(this._reloadGoogleTokensHandler, req, res);
+  }
+
+  /**
+   * Internal handler for reloading Google OAuth2 tokens
+   * @private
+   */
+  async _reloadGoogleTokensHandler(req, res) {
+    this._logAction("Reloading Google OAuth2 tokens for all services");
+
+    try {
+      // Reload tokens from centralized service
+      const success = await googleOAuth2Service.reloadToken();
+
+      // Get updated status for all services
+      const [authStatus, gmailStatus, driveStatus] = await Promise.all([
+        googleOAuth2Service.getAuthStatus(),
+        gmailService.getAuthStatus(),
+        driveImageManager.getStatus(),
+      ]);
+
+      this._logAction("Google OAuth2 tokens reloaded", {
+        success,
+        gmailReady: gmailStatus.authenticated,
+        driveReady: driveStatus.authenticated,
+      });
+
+      return this._sendSuccessResponse(res, {
+        success,
+        oauth2: {
+          authenticated: authStatus.authenticated,
+          email: authStatus.email,
+        },
+        services: {
+          gmail: { authenticated: gmailStatus.authenticated },
+          drive: {
+            authenticated: driveStatus.authenticated,
+            initialized: driveStatus.initialized,
+          },
+        },
+        message: success
+          ? "Google OAuth2 tokens reloaded successfully for all services"
+          : "No valid tokens found - authentication required",
+      });
+    } catch (error) {
+      this._logAction("Failed to reload Google OAuth2 tokens", {
+        error: error.message,
+      });
+
+      return this._sendErrorResponse(
+        res,
+        `Failed to reload tokens: ${error.message}`,
+        this.HTTP_STATUS.INTERNAL_SERVER_ERROR
+      );
+    }
+  }
+
+  /**
+   * Get all orders with advanced filtering, sorting, and pagination
+   */
+  async getOrdersWithFilters(req, res) {
+    await this._handleAsync(this._getOrdersWithFiltersHandler, req, res);
+  }
+
+  /**
+   * Internal handler for getting filtered orders
+   * @private
+   */
+  async _getOrdersWithFiltersHandler(req, res) {
+    const {
+      eventId,
+      userId,
+      dateFrom,
+      dateTo,
+      paymentMethod,
+      search,
+      sortBy = "createdAt",
+      sortOrder = "desc",
+      page = 1,
+      limit = 50,
+    } = req.query;
+
+    // Build filters object
+    const filters = {};
+    if (eventId && eventId !== "all") filters.eventId = eventId;
+    if (userId) filters.userId = userId;
+    if (paymentMethod && paymentMethod !== "all")
+      filters.paymentMethod = paymentMethod;
+    if (dateFrom) filters.dateFrom = dateFrom;
+    if (dateTo) filters.dateTo = dateTo;
+    if (search) filters.search = search.trim();
+
+    // Build options object
+    const options = {
+      sortBy,
+      sortOrder,
+      page: parseInt(page),
+      limit: Math.min(parseInt(limit), 100), // Cap at 100 for performance
+    };
+
+    this._logAction("Fetching filtered orders", { filters, options });
+
+    const result = await firebaseService.getFilteredOrders(filters, options);
+
+    this._sendSuccessResponse(res, {
+      orders: result.orders,
+      pagination: {
+        currentPage: options.page,
+        totalPages: result.totalPages,
+        totalOrders: result.totalCount,
+        hasNext: result.hasNext,
+        hasPrev: result.hasPrev,
+      },
+      filters: filters,
+    });
+  }
+
+  /**
+   * Get order statistics for analytics
+   */
+  async getOrderStatistics(req, res) {
+    await this._handleAsync(this._getOrderStatisticsHandler, req, res);
+  }
+
+  /**
+   * Internal handler for getting order statistics
+   * @private
+   */
+  async _getOrderStatisticsHandler(req, res) {
+    const { eventId, dateFrom, dateTo } = req.query;
+
+    const filters = {};
+    if (eventId && eventId !== "all") filters.eventId = eventId;
+    if (dateFrom) filters.dateFrom = dateFrom;
+    if (dateTo) filters.dateTo = dateTo;
+
+    this._logAction("Fetching order statistics", { filters });
+
+    const statistics = await firebaseService.getOrderStatistics(filters);
+    this._sendSuccessResponse(res, { statistics });
   }
 }
 

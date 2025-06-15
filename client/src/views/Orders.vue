@@ -130,7 +130,7 @@
                                     </span>
                                     <span
                                         class="text-2xl font-bold bg-gradient-to-r from-gray-900 to-gray-700 bg-clip-text text-transparent">
-                                        €{{ (order.amountTotal / 100).toFixed(2) }}
+                                        €{{ (order.amountTotal).toFixed(2) }}
                                     </span>
                                 </div>
                             </div>
@@ -139,7 +139,7 @@
                         <!-- Order Details -->
                         <div class="p-8">
                             <!-- Event Info (if available) -->
-                            <div v-if="order.eventId || hasShiftItems(order)"
+                            <div v-if="hasEventInfo(order)"
                                 class="mb-6 p-6 bg-gradient-to-r from-blue-50 to-blue-100/50 rounded-2xl border border-blue-200/30">
                                 <div class="flex items-center space-x-3 mb-3">
                                     <div class="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center">
@@ -155,16 +155,13 @@
                                     <p v-if="order.eventName" class="font-medium">
                                         <span class="font-bold">Evenement:</span> {{ order.eventName }}
                                     </p>
-                                    <p v-else-if="order.eventId" class="font-medium">
+                                    <p v-else-if="order.eventId && order.eventId.trim() !== ''" class="font-medium">
                                         <span class="font-bold">Evenement ID:</span> {{ order.eventId }}
                                     </p>
-                                    <p v-if="order.shiftName" class="font-medium">
-                                        <span class="font-bold">Shift:</span> {{ order.shiftName }}
-                                    </p>
-                                    <p v-if="order.timeSlot" class="font-medium">
+                                    <p v-if="order.timeSlot && order.timeSlot.trim() !== ''" class="font-medium">
                                         <span class="font-bold">Tijdslot:</span> {{ order.timeSlot }}
                                     </p>
-                                    <p v-if="!order.eventName && !order.eventId && hasShiftItems(order)"
+                                    <p v-if="hasShiftItems(order) && !order.eventName && !order.eventId"
                                         class="text-blue-600 font-medium">
                                         <span class="font-bold">Opmerking:</span> Deze bestelling bevat items met shifts
                                     </p>
@@ -183,18 +180,28 @@
                                     <div class="flex-1">
                                         <h5 class="font-bold text-gray-900 text-lg mb-1">{{ item.productName }}</h5>
                                         <p class="text-gray-600 font-medium">
-                                            {{ item.quantity }}x à €{{ (item.unitPrice / 100).toFixed(2) }}
+                                            {{ item.quantity }}x à €{{ (item.unitPrice).toFixed(2) }}
                                         </p>
-                                        <p v-if="item.shiftId" class="text-xs text-blue-600 mt-2 font-medium">
-                                            <span class="font-bold">Shift ID:</span> {{ item.shiftId }}
-                                        </p>
-                                        <p v-if="item.shiftName" class="text-xs text-blue-600 mt-1 font-medium">
-                                            <span class="font-bold">Shift:</span> {{ item.shiftName }}
-                                        </p>
+                                        <!-- Show shift information if available -->
+                                        <ShiftInfo
+                                            v-if="item.shiftId && item.shiftId.trim() !== '' && order.eventId && order.eventId.trim() !== ''"
+                                            :event-id="order.eventId" :shift-id="item.shiftId" />
+                                        <div v-else-if="item.shiftId && item.shiftId.trim() !== ''" class="mt-2">
+                                            <p
+                                                class="text-xs text-blue-600 font-medium bg-blue-50 px-2 py-1 rounded-md inline-block">
+                                                <svg class="w-3 h-3 inline mr-1" fill="none" stroke="currentColor"
+                                                    viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round"
+                                                        stroke-width="2"
+                                                        d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                                </svg>
+                                                Shift ID: {{ item.shiftId }}
+                                            </p>
+                                        </div>
                                     </div>
                                     <div class="text-right ml-6">
                                         <span class="font-bold text-gray-900 text-xl">
-                                            €{{ (item.amountTotal / 100).toFixed(2) }}
+                                            €{{ (item.amountTotal).toFixed(2) }}
                                         </span>
                                     </div>
                                 </div>
@@ -206,7 +213,7 @@
                                     <div class="flex items-center justify-between text-gray-700">
                                         <span class="font-semibold">Betaalmethode:</span>
                                         <span class="capitalize font-bold">{{ order.paymentMethod || 'Online betaling'
-                                        }}</span>
+                                            }}</span>
                                     </div>
                                     <div v-if="order.currency" class="flex items-center justify-between text-gray-700">
                                         <span class="font-semibold">Valuta:</span>
@@ -227,6 +234,7 @@ import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useNotificationStore } from '@/stores/notifications'
 import { apiClient } from '@/services/api'
+import ShiftInfo from '@/components/orders/ShiftInfo.vue'
 
 const router = useRouter()
 const notifications = useNotificationStore()
@@ -262,15 +270,35 @@ const fetchOrders = async () => {
 }
 
 const formatDate = (timestamp) => {
-    if (!timestamp) return 'Datum niet beschikbaar'
+    if (!timestamp) return 'Datum onbekend'
 
     try {
-        // Handle Firestore timestamp
-        const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp)
+        // Handle different timestamp formats
+        let date;
+
+        if (timestamp && typeof timestamp === 'object' && timestamp.toDate) {
+            // Firestore Timestamp object
+            date = timestamp.toDate()
+        } else if (timestamp && typeof timestamp === 'object' && timestamp._seconds) {
+            // Firestore Timestamp-like object with _seconds (from API response)
+            date = new Date(timestamp._seconds * 1000)
+        } else if (timestamp && typeof timestamp === 'object' && timestamp.seconds) {
+            // Firestore Timestamp-like object with seconds
+            date = new Date(timestamp.seconds * 1000)
+        } else if (timestamp instanceof Date) {
+            // Already a Date object
+            date = timestamp
+        } else if (typeof timestamp === 'string' || typeof timestamp === 'number') {
+            // String or number timestamp
+            date = new Date(timestamp)
+        } else {
+            // Unknown format
+            return 'Datum onbekend'
+        }
 
         // Check if date is valid
         if (isNaN(date.getTime())) {
-            return 'Datum niet beschikbaar'
+            return 'Datum onbekend'
         }
 
         return date.toLocaleDateString('nl-NL', {
@@ -282,7 +310,7 @@ const formatDate = (timestamp) => {
         })
     } catch (err) {
         console.error('Error formatting date:', err)
-        return 'Datum niet beschikbaar'
+        return 'Datum onbekend'
     }
 }
 
@@ -306,8 +334,21 @@ const getStatusBadgeClass = (order) => {
     return 'bg-gradient-to-r from-yellow-100 to-yellow-200 text-yellow-800 border border-yellow-300'
 }
 
+const hasEventInfo = (order) => {
+    // Show event section if we have event name, event ID, shift info, or timeslot
+    return !!(
+        order.eventName ||
+        (order.eventId && order.eventId.trim() !== '') ||
+        order.timeSlot ||
+        hasShiftItems(order)
+    )
+}
+
 const hasShiftItems = (order) => {
-    return order.items && order.items.some(item => item.shiftId && item.shiftId.trim() !== '')
+    return order.items && order.items.some(item =>
+        (item.shiftId && item.shiftId.trim() !== '') ||
+        (item.shiftName && item.shiftName.trim() !== '')
+    )
 }
 
 const goBack = () => {

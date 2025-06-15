@@ -2,7 +2,7 @@
 const BaseController = require("../../core/controllers/base.controller");
 const firebaseService = require("../../core/services/firebase-cached.service");
 const stripeService = require("../../core/services/stripe.service");
-const imageManager = require("../../core/services/imageManager.service");
+const driveImageManager = require("../../core/services/google-apis/driveImageManager.service");
 const {
   ProductFields,
   createProductData,
@@ -26,7 +26,7 @@ class ProductController extends BaseController {
 
     if (imageUrl) {
       cleanupPromises.push(
-        imageManager
+        driveImageManager
           .deleteImage(imageUrl)
           .catch((error) =>
             console.error("Failed to cleanup uploaded image:", error)
@@ -219,7 +219,7 @@ class ProductController extends BaseController {
    * @private
    */
   async _uploadProductImage(image) {
-    return await imageManager.uploadImage(
+    return await driveImageManager.uploadImage(
       image.buffer,
       image.originalname,
       image.mimetype,
@@ -233,7 +233,7 @@ class ProductController extends BaseController {
    */
   async _deleteProductImage(image) {
     try {
-      await imageManager.deleteImage(image);
+      await driveImageManager.deleteImage(image);
       this._logAction("Product image deleted successfully");
     } catch (imageError) {
       this._logAction("Error deleting product image", {

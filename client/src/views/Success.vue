@@ -93,6 +93,7 @@
 import { onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useNotificationStore } from '@/stores/notifications'
+import { STORAGE_KEYS } from '@/config/constants'
 
 const router = useRouter()
 const notifications = useNotificationStore()
@@ -112,12 +113,16 @@ onMounted(() => {
             const keys = Object.keys(localStorage)
 
             keys.forEach(key => {
-                // Clear cart items for all events
-                if (key.startsWith('cartItems_')) {
+                // Clear cart items for all events (using correct storage key format)
+                if (key.startsWith('cart_items_')) {
                     localStorage.removeItem(key)
                 }
-                // Clear product-shift selections for all events
-                if (key.startsWith('productShiftSelection_')) {
+                // Clear product-shift selections for all events (using correct storage key format)
+                if (key.startsWith('product_shifts_')) {
+                    localStorage.removeItem(key)
+                }
+                // Also clear any legacy quantities and shifts storage
+                if (key.startsWith('quantities_') || key.startsWith('shifts_')) {
                     localStorage.removeItem(key)
                 }
             })

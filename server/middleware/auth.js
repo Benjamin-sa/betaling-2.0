@@ -1,5 +1,5 @@
 // server/middleware/auth.js
-const admin = require("../config/firebaseAdmin");
+const { admin } = require("../config/firebaseAdmin");
 const firebaseService = require("../core/services/firebase-cached.service");
 
 const authenticate = async (req, res, next) => {

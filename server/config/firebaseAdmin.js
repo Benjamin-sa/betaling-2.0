@@ -1,27 +1,22 @@
-// server/config/firebaseAdmin.js
 const admin = require("firebase-admin");
-const dotenv = require("dotenv");
-const { decodeBase64ServiceAccount } = require("../utils/utils");
 
-// Laad environment variables uit .env
-dotenv.config();
+if (!admin.apps.length) {
+  try {
+    const config = {
+      projectId: "lod-lavki-project",
+      storageBucket: "lod-lavki-scouts-images",
+      credential: admin.credential.applicationDefault(),
+    };
 
-if (process.env.env === "production") {
-  // Production: gebruik base64 service account
-  const serviceAccount = decodeBase64ServiceAccount(
-    process.env.FIREBASE_SERVICE_ACCOUNT_BASE64
-  );
-
-  admin.initializeApp({
-    credential: admin.credential.cert(serviceAccount),
-  });
-} else {
-  // Development: gebruik JSON bestand
-  const serviceAccount = require("./scoutswinkel-firebase-adminsdk.json");
-
-  admin.initializeApp({
-    credential: admin.credential.cert(serviceAccount),
-  });
+    admin.initializeApp(config);
+    console.log(
+      "✅ Firebase Admin initialized successfully with custom database"
+    );
+  } catch (error) {
+    console.error("❌ Failed to initialize Firebase Admin:", error.message);
+    throw error;
+  }
 }
 
-module.exports = admin;
+const bucket = admin.storage().bucket();
+module.exports = { admin, bucket };

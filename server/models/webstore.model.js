@@ -1,5 +1,5 @@
 // server/models/webstore.model.js
-const admin = require("../config/firebaseAdmin");
+const { admin } = require("../config/firebaseAdmin");
 
 /**
  * Field name constants for consistent usage across the project
@@ -422,7 +422,7 @@ function createOrderData(inputData) {
     ),
     [OrderFields.MANUAL_PAYMENT_CONFIRMED_AT]: null,
     [OrderFields.MANUAL_PAYMENT_CONFIRMED_BY]: "",
-    [OrderFields.CREATED_AT]: transformValue(null, "timestamp"),
+    [OrderFields.CREATED_AT]: admin.firestore.FieldValue.serverTimestamp(),
   };
 }
 
