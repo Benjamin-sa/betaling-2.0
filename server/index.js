@@ -27,22 +27,39 @@ async function startServer() {
     // Middleware setup
     app.use(cors());
 
+    // Webhook routes must be before express.json() to handle raw body
     app.use("/api/webhooks", require("./features/webhooks/webhook.routes"));
 
     // Parse JSON bodies for all other routes
     app.use(express.json());
-    app.use(express.static(path.join(__dirname, "../client/dist")));
 
+    // Serve static files from client build
+    app.use(express.static(path.join(__dirname, "client/dist")));
+
+    // API routes
     app.use("/api", require("./core/routes/api.routes"));
 
-    // Handle SPA routing - must be after API routes
+    // Health check endpoint for Docker
+    app.get("/api/health", (req, res) => {
+      res
+        .status(200)
+        .json({ status: "OK", timestamp: new Date().toISOString() });
+    });
+
+    // Handle SPA routing - serve Vue app for all non-API routes
     app.get("*", (req, res) => {
-      res.sendFile(path.join(__dirname, "../client/dist/index.html"));
+      // Don't serve the SPA for API routes
+      if (req.path.startsWith("/api")) {
+        return res.status(404).json({ error: "API endpoint not found" });
+      }
+
+      res.sendFile(path.join(__dirname, "client/dist", "index.html"));
     });
 
     // Start server
     app.listen(port, () => {
       console.log(`Server running at http://localhost:${port}`);
+      console.log(`Environment: ${process.env.NODE_ENV || "development"}`);
     });
   } catch (error) {
     console.error("Failed to start server:", error);
