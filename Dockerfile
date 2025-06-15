@@ -16,8 +16,22 @@ RUN npm ci --legacy-peer-deps
 COPY client ./client
 COPY server ./server
 
+# Debug: Check structure before build
+RUN echo "=== Files before build ===" && \
+  ls -la . && \
+  echo "=== Client files ===" && \
+  ls -la client/ && \
+  echo "=== Server files ===" && \
+  ls -la server/
+
 # Bouw de client-applicatie
 RUN npm run build:client
+
+# Debug: Check if build was successful
+RUN echo "=== Files after build ===" && \
+  ls -la client/ && \
+  echo "=== Client dist files ===" && \
+  ls -la client/dist/ || echo "No dist directory found"
 
 # Productie-stage
 FROM node:20-alpine AS production
@@ -35,6 +49,14 @@ COPY --from=builder --chown=nextjs:nodejs /app/server/package*.json ./server/
 
 # Kopieer de gebouwde client bestanden naar de server directory
 COPY --from=builder --chown=nextjs:nodejs /app/client/dist ./server/client/dist/
+
+# Debug: Check copied files
+RUN echo "=== Production stage files ===" && \
+  ls -la . && \
+  echo "=== Server files ===" && \
+  ls -la server/ && \
+  echo "=== Client dist in server ===" && \
+  ls -la server/client/dist/ || echo "No client dist found in server"
 
 # Installeer alleen productie dependencies voor de server
 WORKDIR /app/server

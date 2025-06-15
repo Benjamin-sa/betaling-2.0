@@ -10,8 +10,7 @@
     "dev": "npm run dev --prefix server",
     "dev:client": "npm run dev --prefix client",
     "build:client": "npm run build --prefix client",
-    "install:all": "npm install && npm install --prefix server && npm install --prefix client",
-    "heroku-postbuild": "NPM_CONFIG_PRODUCTION=false npm install --prefix client && npm run build --prefix client && npm install --prefix server"
+    "install:all": "npm install && npm install --prefix server && npm install --prefix client"
   },
   "workspaces": [
     "client",

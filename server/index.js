@@ -2,27 +2,26 @@ require("dotenv").config();
 const express = require("express");
 const cors = require("cors");
 const path = require("path");
-
-// Add HTTPS enforcement middleware
-const enforceHttps = (req, res, next) => {
-  const shouldForceHttps =
-    process.env.NODE_ENV === "production" || process.env.FORCE_HTTPS === "true";
-
-  if (shouldForceHttps) {
-    if (req.headers["x-forwarded-proto"] !== "https") {
-      // Handle both social media browsers and regular browsers
-      return res.redirect(301, `https://${req.headers.host}${req.url}`);
-    }
-  }
-  next();
-};
+const fs = require("fs");
 
 async function startServer() {
   try {
     const app = express();
-    const port = process.env.PORT || 3000;
+    const port = process.env.PORT || 8080; // Changed from 3000 to 8080
 
-    app.use(enforceHttps);
+    // Debug: Check if client files exist
+    const clientDistPath = path.join(__dirname, "client/dist");
+    const indexPath = path.join(clientDistPath, "index.html");
+
+    console.log("Client dist path:", clientDistPath);
+    console.log("Index.html path:", indexPath);
+    console.log("Client dist exists:", fs.existsSync(clientDistPath));
+    console.log("Index.html exists:", fs.existsSync(indexPath));
+
+    if (fs.existsSync(clientDistPath)) {
+      const files = fs.readdirSync(clientDistPath);
+      console.log("Files in client/dist:", files);
+    }
 
     // Middleware setup
     app.use(cors());
@@ -33,17 +32,31 @@ async function startServer() {
     // Parse JSON bodies for all other routes
     app.use(express.json());
 
-    // Serve static files from client build
-    app.use(express.static(path.join(__dirname, "client/dist")));
+    // Serve static files from client build with better error handling
+    app.use(
+      express.static(clientDistPath, {
+        dotfiles: "ignore",
+        etag: false,
+        extensions: ["htm", "html"],
+        index: false,
+        maxAge: "1d",
+        redirect: false,
+        setHeaders: function (res, path, stat) {
+          res.set("x-timestamp", Date.now());
+        },
+      })
+    );
 
     // API routes
     app.use("/api", require("./core/routes/api.routes"));
 
     // Health check endpoint for Docker
     app.get("/api/health", (req, res) => {
-      res
-        .status(200)
-        .json({ status: "OK", timestamp: new Date().toISOString() });
+      res.status(200).json({
+        status: "OK",
+        timestamp: new Date().toISOString(),
+        clientFilesExist: fs.existsSync(indexPath),
+      });
     });
 
     // Handle SPA routing - serve Vue app for all non-API routes
@@ -53,12 +66,25 @@ async function startServer() {
         return res.status(404).json({ error: "API endpoint not found" });
       }
 
-      res.sendFile(path.join(__dirname, "client/dist", "index.html"));
+      console.log("Serving SPA for path:", req.path);
+
+      // Check if index.html exists before serving
+      if (!fs.existsSync(indexPath)) {
+        console.error("index.html not found at:", indexPath);
+        return res.status(500).json({
+          error: "Client application not built",
+          path: indexPath,
+          exists: fs.existsSync(indexPath),
+        });
+      }
+
+      res.sendFile(indexPath);
     });
 
     // Start server
-    app.listen(port, () => {
-      console.log(`Server running at http://localhost:${port}`);
+    app.listen(port, "0.0.0.0", () => {
+      // Added '0.0.0.0' for Docker compatibility
+      console.log(`Server running at http://0.0.0.0:${port}`);
       console.log(`Environment: ${process.env.NODE_ENV || "development"}`);
     });
   } catch (error) {
