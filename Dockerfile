@@ -38,18 +38,9 @@ RUN addgroup -g 1001 -S nodejs && \
 # Stel working directory in op /app
 # Dit zal de basis zijn voor je server-applicatie.
 WORKDIR /app
-
-# Kopieer de volledige 'server' directory van de builder-stage.
-# Dit omvat:
-# - De server's JavaScript-bestanden (bijv. server/index.js)
-# - De server's 'node_modules' (alleen productie-afhankelijkheden)
-# - De gebouwde frontend 'client/dist' (die nu op server/client/dist staat)
+# Kopieer alleen de noodzakelijke bestanden van de builder stage
 COPY --from=builder --chown=nextjs:nodejs /app/server ./server/
 
-# De regel `COPY server/package*.json ./` en `RUN npm ci --only=production` uit je originele
-# productie-stage zijn nu overbodig, omdat de nodige 'node_modules' al gekopieerd zijn
-# als onderdeel van de '/app/server' map in de vorige stap, en deze al 'production-only' zijn.
-# Dit zorgt voor een kleinere en snellere productiestage.
 
 # Stel omgevingsvariabelen in voor optimalisatie
 ENV NODE_ENV=production
