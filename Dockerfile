@@ -1,58 +1,71 @@
 # Multi-stage build for minimal production image
 FROM node:20-alpine AS builder
 
-# Set working directory
+# Set working directory for the entire monorepo
 WORKDIR /app
 
-# Copy package files
-COPY package*.json ./
-COPY client/package*.json ./client/
-COPY server/package*.json ./server/
+# Copy package files for root, client, and server workspaces
+# Dit zorgt ervoor dat npm ci de workspace-structuur herkent
+COPY package.json package-lock.json ./
+COPY client/package.json client/package-lock.json ./client/
+COPY server/package.json server/package-lock.json ./server/
 
-# Install dependencies
+# Installeer afhankelijkheden voor alle workspaces.
+# - Voor de root: alleen productie-afhankelijkheden.
+# - Voor 'client': ALLE afhankelijkheden (inclusief devDependencies zoals 'vite')
+#   omdat 'vite build' ze nodig heeft.
+# - Voor 'server': alleen productie-afhankelijkheden.
 RUN npm ci --only=production && \
-  npm ci --only=production --prefix client && \
+  npm ci --prefix client && \
   npm ci --only=production --prefix server
 
-# Copy source code
+# Kopieer broncode voor zowel client als server
 COPY client ./client
 COPY server ./server
 
-# Build the client
+# Bouw de client-applicatie
+# Dit zal 'client/dist' creëren binnen de 'client' directory,
+# die later wordt gekopieerd als onderdeel van de server-directory structuur.
 RUN npm run build:client
 
-# Production stage
+# Productie-stage
 FROM node:20-alpine AS production
 
-# Create non-root user for security
+# Creëer non-root user voor veiligheid
 RUN addgroup -g 1001 -S nodejs && \
   adduser -S nextjs -u 1001
 
-# Set working directory
+# Stel working directory in op /app
+# Dit zal de basis zijn voor je server-applicatie.
 WORKDIR /app
 
-# Copy package files and install only production dependencies
-COPY server/package*.json ./
-RUN npm ci --only=production && npm cache clean --force
+# Kopieer de volledige 'server' directory van de builder-stage.
+# Dit omvat:
+# - De server's JavaScript-bestanden (bijv. server/index.js)
+# - De server's 'node_modules' (alleen productie-afhankelijkheden)
+# - De gebouwde frontend 'client/dist' (die nu op server/client/dist staat)
+COPY --from=builder --chown=nextjs:nodejs /app/server ./server/
 
-# Copy built application
-COPY --from=builder --chown=nextjs:nodejs /app/server ./
-COPY --from=builder --chown=nextjs:nodejs /app/client/dist ./public
+# De regel `COPY server/package*.json ./` en `RUN npm ci --only=production` uit je originele
+# productie-stage zijn nu overbodig, omdat de nodige 'node_modules' al gekopieerd zijn
+# als onderdeel van de '/app/server' map in de vorige stap, en deze al 'production-only' zijn.
+# Dit zorgt voor een kleinere en snellere productiestage.
 
-# Set environment variables for optimization
+# Stel omgevingsvariabelen in voor optimalisatie
 ENV NODE_ENV=production
 ENV PORT=8080
 ENV NPM_CONFIG_LOGLEVEL=warn
 
-# Switch to non-root user
+# Schakel over naar de non-root user
 USER nextjs
 
-# Expose port
+# Exposeer poort
 EXPOSE 8080
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
   CMD node -e "require('http').get('http://localhost:8080/api/health', (res) => { process.exit(res.statusCode === 200 ? 0 : 1) })"
 
-# Start the application
-CMD ["node", "index.js"]
+# Start de applicatie
+# Start de server's index.js vanuit de '/app' WORKDIR.
+CMD ["node", "./server/index.js"]
