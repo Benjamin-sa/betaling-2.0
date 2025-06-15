@@ -4,7 +4,7 @@ class StripeService {
   // Maak een nieuwe StripeService instantie
   async createCheckoutSession(items, userId, stripeCustomerId, metadata = {}) {
     try {
-      const baseUrl = process.env.APP_URL || process.env.VITE_APP_URL;
+      const baseUrl = process.env.VITE_APP_URL;
 
       // Transform items into Stripe line_items format
       const lineItems = await Promise.all(

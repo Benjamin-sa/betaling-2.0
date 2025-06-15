@@ -1,32 +1,34 @@
 <template>
     <div class="bg-white rounded-2xl shadow-lg border border-gray-200">
         <!-- Header -->
-        <div class="bg-gradient-to-r from-primary to-secondary px-8 py-6 rounded-t-2xl">
-            <h2 class="text-2xl lg:text-3xl font-bold text-white mb-2">Event Beheer</h2>
-            <p class="text-emerald-100">Maak en beheer events en shifts</p>
+        <div class="bg-gradient-to-r from-primary to-secondary px-4 sm:px-6 lg:px-8 py-4 sm:py-6 rounded-t-2xl">
+            <h2 class="text-xl sm:text-2xl lg:text-3xl font-bold text-white mb-2">Event Beheer</h2>
+            <p class="text-sm sm:text-base text-emerald-100">Maak en beheer events en shifts</p>
         </div>
 
         <!-- Content -->
-        <div class="p-8">
-            <div class="grid grid-cols-1 xl:grid-cols-2 gap-8">
+        <div class="p-4 sm:p-6 lg:p-8">
+            <div class="grid grid-cols-1 xl:grid-cols-2 gap-6 lg:gap-8">
                 <!-- Create Event Form -->
-                <div class="bg-gradient-to-br from-gray-50 to-gray-100 border border-gray-200 rounded-2xl p-6">
-                    <h3 class="text-xl font-bold text-gray-900 mb-6 flex items-center">
-                        <svg class="w-6 h-6 mr-3 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <div class="bg-gradient-to-br from-gray-50 to-gray-100 border border-gray-200 rounded-2xl p-4 sm:p-6">
+                    <h3 class="text-lg sm:text-xl font-bold text-gray-900 mb-4 sm:mb-6 flex items-center">
+                        <svg class="w-5 h-5 sm:w-6 sm:h-6 mr-2 sm:mr-3 text-primary" fill="none" stroke="currentColor"
+                            viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                 d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
                         </svg>
-                        Nieuw Event Aanmaken
+                        <span class="hidden sm:inline">Nieuw Event Aanmaken</span>
+                        <span class="sm:hidden">Event Aanmaken</span>
                     </h3>
 
-                    <form @submit.prevent="handleCreateEvent" class="space-y-6">
+                    <form @submit.prevent="handleCreateEvent" class="space-y-4 sm:space-y-6">
                         <!-- Event Name -->
                         <div>
                             <label for="eventName" class="block text-sm font-semibold text-gray-700 mb-2">Event
                                 Naam</label>
                             <input id="eventName" v-model="newEvent.name" type="text" required
                                 placeholder="Bijv. Spaghetti Avond 2025"
-                                class="w-full px-4 py-3 text-lg border-2 border-gray-200 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary transition-all duration-200" />
+                                class="w-full px-3 sm:px-4 py-2 sm:py-3 text-base sm:text-lg border-2 border-gray-200 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary transition-all duration-200" />
                         </div>
 
                         <!-- Event Description -->
@@ -35,7 +37,7 @@
                                 class="block text-sm font-semibold text-gray-700 mb-2">Beschrijving</label>
                             <textarea id="eventDescription" v-model="newEvent.description" required rows="3"
                                 placeholder="Event beschrijving"
-                                class="w-full px-4 py-3 text-lg border-2 border-gray-200 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary transition-all duration-200"></textarea>
+                                class="w-full px-3 sm:px-4 py-2 sm:py-3 text-base sm:text-lg border-2 border-gray-200 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary transition-all duration-200"></textarea>
                         </div>
 
                         <!-- Event Type -->
@@ -43,30 +45,34 @@
                             <label for="eventType" class="block text-sm font-semibold text-gray-700 mb-2">Event
                                 Type</label>
                             <select id="eventType" v-model="newEvent.type" required
-                                class="w-full px-4 py-3 text-lg border-2 border-gray-200 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary transition-all duration-200 bg-white appearance-none cursor-pointer">
+                                class="w-full px-3 sm:px-4 py-2 sm:py-3 text-base sm:text-lg border-2 border-gray-200 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary transition-all duration-200 bg-white appearance-none cursor-pointer">
                                 <option value="product_sale">Product Verkoop</option>
                                 <option value="shift_event">Shift Event</option>
                             </select>
                         </div>
 
                         <!-- Shift Configuration (only for shift events) -->
-                        <div v-if="newEvent.type === 'shift_event'" class="space-y-4">
-                            <div class="flex items-center justify-between">
-                                <h4 class="text-lg font-bold text-gray-900">Shifts Configureren</h4>
+                        <div v-if="newEvent.type === 'shift_event'" class="space-y-3 sm:space-y-4">
+                            <div
+                                class="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-2 sm:space-y-0">
+                                <h4 class="text-base sm:text-lg font-bold text-gray-900">Shifts Configureren</h4>
                                 <button type="button" @click="addShift"
-                                    class="bg-white text-primary border-2 border-primary px-4 py-2 rounded-xl font-semibold hover:bg-primary hover:text-white transition-all duration-200">
-                                    + Shift Toevoegen
+                                    class="bg-white text-primary border-2 border-primary px-3 sm:px-4 py-2 rounded-xl font-semibold hover:bg-primary hover:text-white transition-all duration-200 text-sm sm:text-base">
+                                    <span class="hidden sm:inline">+ Shift Toevoegen</span>
+                                    <span class="sm:hidden">+ Shift</span>
                                 </button>
                             </div>
 
                             <div v-for="(shift, index) in newEvent.shifts" :key="index"
-                                class="bg-white border-2 border-gray-200 rounded-xl p-4 space-y-3">
+                                class="bg-white border-2 border-gray-200 rounded-xl p-3 sm:p-4 space-y-3">
                                 <div class="flex justify-between items-center">
-                                    <span class="font-bold text-gray-900">Shift {{ index + 1 }}</span>
+                                    <span class="font-bold text-gray-900 text-sm sm:text-base">Shift {{ index + 1
+                                    }}</span>
                                     <button type="button" @click="removeShift(index)"
                                         :disabled="newEvent.shifts.length === 1"
                                         class="text-error hover:text-red-700 disabled:text-gray-400 disabled:cursor-not-allowed transition-colors duration-200">
-                                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <svg class="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor"
+                                            viewBox="0 0 24 24">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                                 d="M6 18L18 6M6 6l12 12"></path>
                                         </svg>
@@ -177,16 +183,24 @@
                                     <!-- Shifts Info for Shift Events -->
                                     <div v-if="event.type === 'shift_event' && event.shifts"
                                         class="bg-gray-50 rounded-lg p-3">
-                                        <div class="flex items-center space-x-2">
-                                            <svg class="w-4 h-4 text-gray-500" fill="none" stroke="currentColor"
-                                                viewBox="0 0 24 24">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                                    d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
-                                            </svg>
-                                            <span class="text-sm font-medium text-gray-700">
-                                                {{ event.shifts.length }} shift{{ event.shifts.length !== 1 ? 's' : ''
-                                                }} geconfigureerd
-                                            </span>
+                                        <div class="flex items-center justify-between">
+                                            <div class="flex items-center space-x-2">
+                                                <svg class="w-4 h-4 text-gray-500" fill="none" stroke="currentColor"
+                                                    viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round"
+                                                        stroke-width="2"
+                                                        d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                                                </svg>
+                                                <span class="text-sm font-medium text-gray-700">
+                                                    {{ event.shifts.length }} shift{{ event.shifts.length !== 1 ? 's' :
+                                                        ''
+                                                    }} geconfigureerd
+                                                </span>
+                                            </div>
+                                            <button @click="openShiftManager(event)"
+                                                class="text-primary hover:text-primary-dark text-sm font-medium transition-colors duration-200">
+                                                Bewerk shifts
+                                            </button>
                                         </div>
                                     </div>
                                 </div>
@@ -233,22 +247,116 @@
         </div>
 
         <!-- Confirmation Modal -->
-        <ConfirmationModal 
-            v-model="confirmation.isOpen.value" 
-            :title="confirmation.config.value.title"
-            :message="confirmation.config.value.message" 
-            :type="confirmation.config.value.type"
-            :confirm-text="confirmation.config.value.confirmText" 
-            :cancel-text="confirmation.config.value.cancelText"
-            @confirm="confirmation.confirm" 
-            @cancel="confirmation.cancel" 
-            @close="confirmation.close" 
-        />
+        <ConfirmationModal v-model="confirmation.isOpen.value" :title="confirmation.config.value.title"
+            :message="confirmation.config.value.message" :type="confirmation.config.value.type"
+            :confirm-text="confirmation.config.value.confirmText" :cancel-text="confirmation.config.value.cancelText"
+            @confirm="confirmation.confirm" @cancel="confirmation.cancel" @close="confirmation.close" />
+
+        <!-- Shift Management Modal -->
+        <div v-if="shiftManagement.isOpen" class="fixed inset-0 z-50 overflow-y-auto">
+            <div class="flex items-center justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:p-0">
+                <!-- Background overlay -->
+                <div class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" @click="closeShiftManager">
+                </div>
+
+                <!-- Modal panel -->
+                <div class="relative bg-white rounded-2xl shadow-xl transform transition-all sm:max-w-2xl sm:w-full">
+                    <!-- Header -->
+                    <div class="bg-gradient-to-r from-primary to-secondary px-6 py-4 rounded-t-2xl">
+                        <div class="flex items-center justify-between">
+                            <h3 class="text-xl font-bold text-white">
+                                Shifts beheren - {{ shiftManagement.event?.name }}
+                            </h3>
+                            <button @click="closeShiftManager"
+                                class="text-white hover:text-gray-200 transition-colors duration-200">
+                                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M6 18L18 6M6 6l12 12" />
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Content -->
+                    <div class="px-6 py-6 max-h-96 overflow-y-auto">
+                        <!-- Existing Shifts -->
+                        <div v-if="shiftManagement.event?.shifts?.length > 0" class="space-y-4 mb-6">
+                            <h4 class="font-bold text-gray-900 mb-4">Bestaande shifts</h4>
+                            <div v-for="(shift, index) in shiftManagement.event.shifts" :key="shift.id"
+                                class="bg-gray-50 border border-gray-200 rounded-xl p-4">
+                                <div v-if="!shift.editing" class="flex items-center justify-between">
+                                    <div class="flex-1">
+                                        <h5 class="font-semibold text-gray-900">{{ shift.name }}</h5>
+                                        <p class="text-sm text-gray-600">
+                                            {{ shift.startTime }} - {{ shift.endTime }} (max {{ shift.maxCapacity }})
+                                        </p>
+                                        <div v-if="shiftAvailability[shift.id]" class="text-xs text-blue-600 mt-1">
+                                            {{ shiftAvailability[shift.id].occupied }}/{{ shift.maxCapacity }} bezet
+                                        </div>
+                                    </div>
+                                    <button @click="editShift(shift)"
+                                        class="text-primary hover:text-primary-dark text-sm font-medium transition-colors duration-200">
+                                        Bewerken
+                                    </button>
+                                </div>
+
+                                <!-- Edit form -->
+                                <div v-else class="space-y-3">
+                                    <input v-model="shift.name" placeholder="Shift naam"
+                                        class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary" />
+                                    <div class="grid grid-cols-2 gap-3">
+                                        <input v-model="shift.startTime" type="time"
+                                            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary" />
+                                        <input v-model="shift.endTime" type="time"
+                                            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary" />
+                                    </div>
+                                    <input v-model.number="shift.maxCapacity" type="number" min="1"
+                                        placeholder="Max capaciteit"
+                                        class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary" />
+                                    <div class="flex space-x-2">
+                                        <button @click="saveShift(shift)"
+                                            class="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary-dark transition-colors duration-200">
+                                            Opslaan
+                                        </button>
+                                        <button @click="cancelEdit(shift)"
+                                            class="px-4 py-2 bg-gray-300 text-gray-700 rounded-lg hover:bg-gray-400 transition-colors duration-200">
+                                            Annuleren
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Add New Shift -->
+                        <div class="border-t pt-6">
+                            <h4 class="font-bold text-gray-900 mb-4">Nieuwe shift toevoegen</h4>
+                            <div class="space-y-3">
+                                <input v-model="newShift.name" placeholder="Shift naam (bijv. 18:00-19:00)"
+                                    class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary" />
+                                <div class="grid grid-cols-2 gap-3">
+                                    <input v-model="newShift.startTime" type="time"
+                                        class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary" />
+                                    <input v-model="newShift.endTime" type="time"
+                                        class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary" />
+                                </div>
+                                <input v-model.number="newShift.maxCapacity" type="number" min="1"
+                                    placeholder="Max capaciteit"
+                                    class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary" />
+                                <button @click="addNewShift" :disabled="!isNewShiftValid"
+                                    class="w-full px-4 py-3 bg-gradient-to-r from-primary to-secondary text-white rounded-xl font-bold transition-all duration-300 transform hover:scale-105 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none">
+                                    Shift Toevoegen
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
 </template>
 
 <script setup>
-import { ref } from 'vue';
+import { ref, computed } from 'vue';
 import { useNotificationStore } from '@/stores/notifications';
 import { useConfirmation } from '@/composables/useConfirmation';
 import { apiClient } from '@/services/api';
@@ -380,6 +488,130 @@ const toggleEventStatus = async (eventId, isActive) => {
     } catch (error) {
         console.error(`Error ${isActive ? 'activating' : 'deactivating'} event:`, error);
         notifications.error(`Evenement ${isActive ? 'activeren' : 'deactiveren'} mislukt`, `Er is een fout opgetreden.`);
+    }
+};
+
+// Shift Management
+const shiftManagement = ref({
+    isOpen: false,
+    event: null
+});
+
+const shiftAvailability = ref({});
+
+const newShift = ref({
+    name: '',
+    startTime: '',
+    endTime: '',
+    maxCapacity: 50
+});
+
+const isNewShiftValid = computed(() => {
+    return newShift.value.name &&
+        newShift.value.startTime &&
+        newShift.value.endTime &&
+        newShift.value.maxCapacity > 0;
+});
+
+const openShiftManager = async (event) => {
+    shiftManagement.value.event = { ...event, shifts: [...(event.shifts || [])] };
+    shiftManagement.value.isOpen = true;
+
+    // Load shift availability data
+    try {
+        const response = await apiClient.getEventShiftAvailability(event.id);
+        shiftAvailability.value = response.availability.reduce((acc, shift) => {
+            acc[shift.shiftId] = shift;
+            return acc;
+        }, {});
+    } catch (error) {
+        console.error('Error loading shift availability:', error);
+    }
+};
+
+const closeShiftManager = () => {
+    shiftManagement.value.isOpen = false;
+    shiftManagement.value.event = null;
+    shiftAvailability.value = {};
+    resetNewShift();
+};
+
+const resetNewShift = () => {
+    newShift.value = {
+        name: '',
+        startTime: '',
+        endTime: '',
+        maxCapacity: 50
+    };
+};
+
+const editShift = (shift) => {
+    // Store original values for cancellation
+    shift.originalValues = {
+        name: shift.name,
+        startTime: shift.startTime,
+        endTime: shift.endTime,
+        maxCapacity: shift.maxCapacity
+    };
+    shift.editing = true;
+};
+
+const cancelEdit = (shift) => {
+    // Restore original values
+    if (shift.originalValues) {
+        shift.name = shift.originalValues.name;
+        shift.startTime = shift.originalValues.startTime;
+        shift.endTime = shift.originalValues.endTime;
+        shift.maxCapacity = shift.originalValues.maxCapacity;
+        delete shift.originalValues;
+    }
+    shift.editing = false;
+};
+
+const saveShift = async (shift) => {
+    try {
+        const shiftData = {
+            name: shift.name,
+            startTime: shift.startTime,
+            endTime: shift.endTime,
+            maxCapacity: shift.maxCapacity
+        };
+
+        await apiClient.updateShift(shiftManagement.value.event.id, shift.id, shiftData);
+
+        shift.editing = false;
+        delete shift.originalValues;
+
+        notifications.success('Shift bijgewerkt', 'De shift is succesvol bijgewerkt.');
+        emit('events-updated');
+
+    } catch (error) {
+        console.error('Error updating shift:', error);
+        notifications.error('Shift bijwerken mislukt', error.response?.data?.message || 'Er is een fout opgetreden.');
+    }
+};
+
+const addNewShift = async () => {
+    try {
+        const shiftData = {
+            name: newShift.value.name,
+            startTime: newShift.value.startTime,
+            endTime: newShift.value.endTime,
+            maxCapacity: newShift.value.maxCapacity
+        };
+
+        const response = await apiClient.addShift(shiftManagement.value.event.id, shiftData);
+
+        // Add the new shift to the local event data
+        shiftManagement.value.event.shifts.push(response.shift);
+
+        resetNewShift();
+        notifications.success('Shift toegevoegd', 'De nieuwe shift is succesvol toegevoegd.');
+        emit('events-updated');
+
+    } catch (error) {
+        console.error('Error adding shift:', error);
+        notifications.error('Shift toevoegen mislukt', error.response?.data?.message || 'Er is een fout opgetreden.');
     }
 };
 </script>

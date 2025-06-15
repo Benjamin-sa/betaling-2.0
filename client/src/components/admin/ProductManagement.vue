@@ -12,7 +12,8 @@
                 <!-- Product Creation Form -->
                 <div class="bg-gradient-to-br from-gray-50 to-gray-100 border border-gray-200 rounded-2xl p-4 sm:p-6">
                     <h3 class="text-lg sm:text-xl font-bold text-gray-900 mb-4 sm:mb-6 flex items-center">
-                        <svg class="w-5 h-5 sm:w-6 sm:h-6 mr-2 sm:mr-3 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <svg class="w-5 h-5 sm:w-6 sm:h-6 mr-2 sm:mr-3 text-primary" fill="none" stroke="currentColor"
+                            viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                 d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
                         </svg>
@@ -78,7 +79,8 @@
                                                 d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
                                         </svg>
                                         <p class="text-xs sm:text-sm text-gray-600">
-                                            <span class="font-medium text-primary">Upload een afbeelding</span><span class="hidden sm:inline"> of sleep hier</span>
+                                            <span class="font-medium text-primary">Upload een afbeelding</span><span
+                                                class="hidden sm:inline"> of sleep hier</span>
                                         </p>
                                         <p class="text-xs text-gray-500 mt-1">PNG, JPG tot 5MB</p>
                                     </div>
@@ -87,7 +89,8 @@
                         </div>
 
                         <!-- Requires Timeslot -->
-                        <div v-if="selectedEventType === 'shift_event'" class="bg-white rounded-xl p-4 border-2 border-gray-200">
+                        <div v-if="selectedEventType === 'shift_event'"
+                            class="bg-white rounded-xl p-4 border-2 border-gray-200">
                             <div class="flex items-center">
                                 <input id="requiresTimeslot" v-model="newProduct.requiresTimeslot" type="checkbox"
                                     class="h-5 w-5 text-primary focus:ring-primary border-gray-300 rounded transition-colors duration-200" />
@@ -126,7 +129,8 @@
                 <!-- Product List -->
                 <div class="bg-gradient-to-br from-gray-50 to-gray-100 border border-gray-200 rounded-2xl p-4 sm:p-6">
                     <h3 class="text-lg sm:text-xl font-bold text-gray-900 mb-4 sm:mb-6 flex items-center">
-                        <svg class="w-5 h-5 sm:w-6 sm:h-6 mr-2 sm:mr-3 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <svg class="w-5 h-5 sm:w-6 sm:h-6 mr-2 sm:mr-3 text-primary" fill="none" stroke="currentColor"
+                            viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                 d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
                         </svg>
@@ -134,7 +138,8 @@
                         <span class="sm:hidden">Producten</span>
                     </h3>
 
-                    <div v-if="products.length > 0" class="space-y-3 sm:space-y-4 max-h-[400px] sm:max-h-[500px] overflow-y-auto">
+                    <div v-if="products.length > 0"
+                        class="space-y-3 sm:space-y-4 max-h-[400px] sm:max-h-[500px] overflow-y-auto">
                         <div v-for="product in products" :key="product.id"
                             class="bg-white border-2 border-gray-200 rounded-xl p-3 sm:p-4 hover:shadow-lg transition-all duration-300 transform hover:-translate-y-1">
                             <div class="flex flex-col sm:flex-row sm:items-start space-y-3 sm:space-y-0 sm:space-x-4">
@@ -154,15 +159,20 @@
 
                                 <!-- Product Info -->
                                 <div class="flex-1 min-w-0 text-center sm:text-left">
-                                    <div class="flex flex-col sm:flex-row sm:items-start sm:justify-between space-y-2 sm:space-y-0">
+                                    <div
+                                        class="flex flex-col sm:flex-row sm:items-start sm:justify-between space-y-2 sm:space-y-0">
                                         <div class="flex-1">
-                                            <h4 class="text-base sm:text-lg font-bold text-gray-900 truncate">{{ product.name }}</h4>
-                                            <p class="text-gray-600 text-xs sm:text-sm mt-1 line-clamp-2">{{ product.description }}
+                                            <h4 class="text-base sm:text-lg font-bold text-gray-900 truncate">{{
+                                                product.name }}</h4>
+                                            <p class="text-gray-600 text-xs sm:text-sm mt-1 line-clamp-2">{{
+                                                product.description }}
                                             </p>
 
                                             <!-- Price and Badges -->
-                                            <div class="flex flex-wrap items-center justify-center sm:justify-start gap-2 sm:gap-3 mt-2 sm:mt-3">
-                                                <span class="text-lg sm:text-xl font-bold text-primary">€{{ product.price }}</span>
+                                            <div
+                                                class="flex flex-wrap items-center justify-center sm:justify-start gap-2 sm:gap-3 mt-2 sm:mt-3">
+                                                <span class="text-lg sm:text-xl font-bold text-primary">€{{
+                                                    product.price }}</span>
                                                 <span v-if="product.requiresTimeslot"
                                                     class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-info-bg text-info border border-info/20">
                                                     <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor"
@@ -180,7 +190,8 @@
                                         <button @click="handleDeleteProduct(product.id)"
                                             class="self-center sm:self-start sm:ml-4 p-2 text-error hover:bg-error-bg rounded-xl transition-colors duration-200 flex-shrink-0"
                                             title="Product verwijderen">
-                                            <svg class="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <svg class="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor"
+                                                viewBox="0 0 24 24">
                                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                                     d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                                             </svg>
@@ -195,13 +206,14 @@
                     <div v-else class="text-center py-12 sm:py-16">
                         <div
                             class="w-16 h-16 sm:w-24 sm:h-24 mx-auto mb-4 sm:mb-6 bg-gradient-to-br from-gray-100 to-gray-200 rounded-full flex items-center justify-center">
-                            <svg class="w-8 h-8 sm:w-12 sm:h-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <svg class="w-8 h-8 sm:w-12 sm:h-12 text-gray-400" fill="none" stroke="currentColor"
+                                viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                     d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
                             </svg>
                         </div>
-                        <h3 class="text-xl font-semibold text-gray-900 mb-2">Geen producten gevonden</h3>
-                        <p class="text-gray-600">Voeg je eerste product toe om te beginnen.</p>
+                        <h3 class="text-lg sm:text-xl font-semibold text-gray-900 mb-2">Geen producten gevonden</h3>
+                        <p class="text-sm sm:text-base text-gray-600">Voeg je eerste product toe om te beginnen.</p>
                     </div>
                 </div>
             </div>

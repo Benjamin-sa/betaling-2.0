@@ -173,6 +173,20 @@ export const apiClient = {
     });
   },
 
+  async addShift(eventId, shiftData) {
+    return this.request(`/events/${eventId}/shifts`, {
+      method: "POST",
+      data: shiftData,
+    });
+  },
+
+  async updateShift(eventId, shiftId, shiftData) {
+    return this.request(`/events/${eventId}/shifts/${shiftId}`, {
+      method: "PATCH",
+      data: shiftData,
+    });
+  },
+
   async deleteEvent(eventId) {
     return this.request(`/events/${eventId}`, {
       method: "DELETE",

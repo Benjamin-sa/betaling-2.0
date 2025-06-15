@@ -3,16 +3,7 @@
     'group bg-white rounded-lg shadow-lg overflow-hidden transform transition-all duration-300 hover:-translate-y-1 hover:shadow-xl',
     { 'ring-2 ring-blue-500 ring-opacity-50': product.requiresTimeslot && !preview }
   ]">
-    <!-- Timeslot Required Badge -->
-    <div v-if="product.requiresTimeslot && !preview"
-      class="absolute top-3 left-3 z-10 bg-blue-500 text-white px-2 py-1 rounded-full text-xs font-medium">
-      <svg class="w-3 h-3 inline mr-1" fill="currentColor" viewBox="0 0 20 20">
-        <path fill-rule="evenodd"
-          d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z"
-          clip-rule="evenodd" />
-      </svg>
-      Tijdslot
-    </div>
+
 
     <div class="relative aspect-w-4 aspect-h-3">
       <img v-if="product.image" :src="product.image" :alt="product.name" @error="handleImageError"

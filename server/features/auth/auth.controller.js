@@ -3,6 +3,7 @@ const BaseController = require("../../core/controllers/base.controller");
 const admin = require("../../config/firebaseAdmin");
 const stripeService = require("../../core/services/stripe.service");
 const firebaseService = require("../../core/services/firebase-cached.service");
+const emailService = require("../../core/services/email.service");
 const { UserFields, createUserData } = require("../../models/webstore.model");
 
 // Auth-specific error messages
@@ -58,6 +59,31 @@ class AuthController extends BaseController {
       [UserFields.IS_ADMIN]: false,
     });
     const user = await firebaseService.createUser(userData);
+
+    // 4. Send welcome email
+    try {
+      const emailResult = await emailService.sendWelcomeEmail(
+        email,
+        userRecord.uid
+      );
+      if (emailResult.success) {
+        this._logAction("Welcome email sent successfully", {
+          userId: userRecord.uid,
+          email: email,
+        });
+      } else {
+        this._logAction("Failed to send welcome email", {
+          userId: userRecord.uid,
+          error: emailResult.error,
+        });
+      }
+    } catch (emailError) {
+      this._logAction("Error sending welcome email", {
+        userId: userRecord.uid,
+        error: emailError.message,
+      });
+      // Don't throw - email failure shouldn't break registration
+    }
 
     this._logAction("User registered successfully", { userId: userRecord.uid });
     this._sendSuccessResponse(

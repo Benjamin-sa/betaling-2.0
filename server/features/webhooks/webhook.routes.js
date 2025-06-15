@@ -8,4 +8,9 @@ router.post("/stripe", express.raw({ type: "application/json" }), (req, res) =>
   webhookController.handleStripeWebhook(req, res)
 );
 
+// Gmail OAuth2 callback endpoint
+router.get("/gmail/callback", (req, res) =>
+  webhookController.handleGmailCallback(req, res)
+);
+
 module.exports = router;

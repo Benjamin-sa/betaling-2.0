@@ -1,6 +1,7 @@
 // server/controllers/admin.controller.js
 const BaseController = require("../../core/controllers/base.controller");
 const firebaseService = require("../../core/services/firebase-cached.service");
+const emailService = require("../../core/services/email.service");
 const admin = require("../../config/firebaseAdmin");
 
 class AdminController extends BaseController {
@@ -136,6 +137,56 @@ class AdminController extends BaseController {
         firebaseUid,
         error: firebaseError.message,
       });
+    }
+  }
+
+  /**
+   * Setup Gmail OAuth2 - generate authorization URL
+   */
+  async setupGmail(req, res) {
+    await this._handleAsync(this._setupGmailHandler, req, res);
+  }
+
+  /**
+   * Internal handler for Gmail setup
+   * @private
+   */
+  async _setupGmailHandler(req, res) {
+    this._logAction("Generating Gmail OAuth2 authorization URL");
+
+    try {
+      // Check if CLIENT_ID and CLIENT_SECRET are configured
+      if (!process.env.GMAIL_CLIENT_ID || !process.env.GMAIL_CLIENT_SECRET) {
+        return this._sendErrorResponse(
+          res,
+          "Gmail Client ID and Client Secret must be configured in environment variables",
+          this.HTTP_STATUS.BAD_REQUEST
+        );
+      }
+
+      // Generate authorization URL
+      const authUrl = emailService.generateAuthUrl();
+
+      this._logAction("Gmail authorization URL generated");
+
+      this._sendSuccessResponse(res, {
+        authUrl,
+        callbackUrl: `${
+          process.env.APP_URL || process.env.VITE_APP_URL
+        }/api/webhooks/gmail/callback`,
+        message:
+          "Visit the authUrl to authorize Gmail access. After authorization, you'll be redirected back to configure your refresh token.",
+      });
+    } catch (error) {
+      this._logAction("Failed to generate Gmail authorization URL", {
+        error: error.message,
+      });
+
+      return this._sendErrorResponse(
+        res,
+        `Gmail setup failed: ${error.message}`,
+        this.HTTP_STATUS.INTERNAL_SERVER_ERROR
+      );
     }
   }
 }

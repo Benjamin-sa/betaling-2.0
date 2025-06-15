@@ -29,6 +29,11 @@ router.delete("/users/:firebaseUid", authenticate, authorizeAdmin, (req, res) =>
   adminController.deleteUser(req, res)
 );
 
+// Gmail setup route - generates OAuth2 authorization URL
+router.get("/gmail/setup", authenticate, authorizeAdmin, (req, res) =>
+  adminController.setupGmail(req, res)
+);
+
 // Cache management routes (basic only)
 router.get("/cache/stats", authenticate, authorizeAdmin, (req, res) =>
   cacheController.getCacheStats(req, res)

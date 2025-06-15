@@ -295,6 +295,11 @@ class CachedFirebaseService {
     return await this.firebase.getEventShiftAvailability(eventId);
   }
 
+  async checkShiftHasOrders(eventId, shiftId) {
+    // Don't cache this as it's used for safety checks and needs to be accurate
+    return await this.firebase.checkShiftHasOrders(eventId, shiftId);
+  }
+
   clearCache() {
     this.cache.flush();
   }

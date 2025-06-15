@@ -14,14 +14,14 @@
         <div class="border-b border-gray-200 mb-6 sm:mb-8">
             <!-- Mobile dropdown for tabs -->
             <div class="sm:hidden">
-                <select v-model="activeTab" 
+                <select v-model="activeTab"
                     class="block w-full px-3 py-2 border border-gray-300 rounded-md text-base font-medium bg-white focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary">
                     <option v-for="tab in tabs" :key="tab.id" :value="tab.id">
                         {{ tab.name }}{{ tab.badge ? ` (${tab.badge})` : '' }}
                     </option>
                 </select>
             </div>
-            
+
             <!-- Desktop tab navigation -->
             <nav class="hidden sm:flex -mb-px space-x-4 lg:space-x-8" aria-label="Tabs">
                 <button v-for="tab in tabs" :key="tab.id" @click="activeTab = tab.id" :class="[

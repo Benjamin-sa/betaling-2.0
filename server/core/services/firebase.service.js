@@ -187,6 +187,33 @@ class FirebaseService {
     return ordersWithItems;
   }
 
+  async getOrderBySessionId(sessionId) {
+    const snapshot = await this.db.collection("orders").doc(sessionId).get();
+
+    if (!snapshot.exists) {
+      return null;
+    }
+
+    const orderData = this._docToObject(snapshot);
+
+    // Fetch items subcollection for this order
+    const itemsSnapshot = await snapshot.ref.collection("items").get();
+    const items = itemsSnapshot.docs.map((itemDoc) =>
+      this._docToObject(itemDoc)
+    );
+
+    return {
+      ...orderData,
+      items,
+    };
+  }
+
+  async getUserById(userId) {
+    const snapshot = await this.db.collection("users").doc(userId).get();
+
+    return snapshot.exists ? this._docToObject(snapshot) : null;
+  }
+
   // ============================================================================
   // EVENT OPERATIONS
   // ============================================================================
@@ -276,6 +303,34 @@ class FirebaseService {
     });
 
     return availability;
+  }
+
+  /**
+   * Check if a shift has existing orders
+   * @param {string} eventId - Event ID
+   * @param {string} shiftId - Shift ID
+   * @returns {boolean} True if shift has orders
+   */
+  async checkShiftHasOrders(eventId, shiftId) {
+    const ordersSnapshot = await this.db
+      .collection("orders")
+      .where("eventId", "==", eventId)
+      .get();
+
+    // Check if any order items have this shiftId
+    for (const orderDoc of ordersSnapshot.docs) {
+      const itemsSnapshot = await orderDoc.ref.collection("items").get();
+      const hasShiftItems = itemsSnapshot.docs.some((itemDoc) => {
+        const itemData = itemDoc.data();
+        return itemData.shiftId === shiftId;
+      });
+
+      if (hasShiftItems) {
+        return true;
+      }
+    }
+
+    return false;
   }
 }
 

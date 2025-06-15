@@ -29,4 +29,15 @@ router.delete("/:eventId", authenticate, authorizeAdmin, (req, res) =>
   eventController.deleteEvent(req, res)
 );
 
+// Shift management routes
+router.post("/:eventId/shifts", authenticate, authorizeAdmin, (req, res) =>
+  eventController.addShift(req, res)
+);
+router.patch(
+  "/:eventId/shifts/:shiftId",
+  authenticate,
+  authorizeAdmin,
+  (req, res) => eventController.updateShift(req, res)
+);
+
 module.exports = router;
