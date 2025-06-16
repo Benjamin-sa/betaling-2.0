@@ -546,7 +546,8 @@ class AdminController extends BaseController {
         mode,
         publicKey: keys.publicKey,
         hasLiveKeys: !!(
-          process.env.STRIPE_SECRET_KEY && process.env.STRIPE_PUBLIC_KEY_LIVE
+          process.env.STRIPE_SECRET_KEY_LIVE &&
+          process.env.STRIPE_PUBLIC_KEY_LIVE
         ),
         hasTestKeys: !!(
           process.env.STRIPE_SECRET_KEY_TEST &&
@@ -624,10 +625,7 @@ class AdminController extends BaseController {
     }
 
     // Additional security check - ensure user is super admin
-    // TODO: Implement proper super admin check
-    const currentUser = await firebaseService.getUserByFirebaseUID(
-      req.user.uid
-    );
+    const currentUser = await firebaseService.getUser(req.user.uid);
     if (!currentUser?.isAdmin) {
       return this._sendErrorResponse(
         res,

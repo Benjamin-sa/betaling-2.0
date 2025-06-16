@@ -583,7 +583,8 @@ class CachedFirebaseService {
    * @returns {Promise<string>} Current Stripe mode
    */
   async getStripeMode() {
-    return await this.settings.getStripeMode();
+    const mode = await this.settings.getStripeMode();
+    return mode;
   }
 
   /**

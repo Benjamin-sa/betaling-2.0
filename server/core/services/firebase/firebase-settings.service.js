@@ -1,24 +1,15 @@
-const { firestore } = require("../../../config/firebaseAdmin");
+const FirebaseBaseService = require("./firebase-base.service");
 
 /**
  * Firebase Settings Service
  * Handles application settings with fallback to safe defaults
  */
-class FirebaseSettingsService {
+class FirebaseSettingsService extends FirebaseBaseService {
   constructor() {
+    super();
     this.cache = new Map();
     this.cacheExpiry = 30 * 60 * 1000; // 30 minutes
-  }
-
-  /**
-   * Get Firestore collection with lazy initialization
-   * @private
-   */
-  getCollection() {
-    if (!firestore) {
-      throw new Error("Firestore is not initialized");
-    }
-    return firestore.collection("settings");
+    this.collectionName = "settings";
   }
 
   /**
@@ -32,7 +23,7 @@ class FirebaseSettingsService {
         return cached;
       }
 
-      const collection = this.getCollection();
+      const collection = this._getCollection(this.collectionName);
       const doc = await collection.doc("stripe_config").get();
 
       if (!doc.exists) {
@@ -42,11 +33,13 @@ class FirebaseSettingsService {
         return defaultMode;
       }
 
-      const mode = doc.data().mode || "test"; // Safe fallback
+      const docData = doc.data();
+
+      const mode = docData.mode || "test"; // Safe fallback
+
       this.setCachedSetting("stripe_mode", mode);
       return mode;
     } catch (error) {
-      console.error("Error getting Stripe mode, using safe fallback:", error);
       return "test"; // Safe fallback on any error
     }
   }
@@ -63,8 +56,8 @@ class FirebaseSettingsService {
         throw new Error('Invalid mode. Must be "test" or "live"');
       }
 
-      const now = new Date();
-      const collection = this.getCollection();
+      const now = this._getServerTimestamp();
+      const collection = this._getCollection(this.collectionName);
 
       await collection.doc("stripe_config").set(
         {

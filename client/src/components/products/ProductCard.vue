@@ -6,14 +6,34 @@
 
 
     <div class="relative aspect-w-4 aspect-h-3">
+      <!-- Test Mode Badge -->
+      <div v-if="product.isTestMode"
+        class="absolute top-2 left-2 z-10 inline-flex items-center px-2 py-1 rounded-full text-xs font-bold bg-warning text-white shadow-lg border-2 border-white">
+        <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+            d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.732-.833-2.5 0L4.268 18.5c-.77.833.192 2.5 1.732 2.5z" />
+        </svg>
+        TEST
+      </div>
+
       <img v-if="product.image" :src="product.image" :alt="product.name" @error="handleImageError"
         class="w-full h-full object-cover transform transition-transform group-hover:scale-105" />
       <div v-else :class="[
-        'w-full h-full flex flex-col items-center justify-center p-4',
+        'w-full h-full flex flex-col items-center justify-center p-4 relative',
         product.requiresTimeslot
           ? 'bg-gradient-to-br from-blue-50 to-blue-100'
           : 'bg-gradient-to-br from-primary/10 to-primary/5'
       ]">
+        <!-- Test Mode Badge for fallback div -->
+        <div v-if="product.isTestMode"
+          class="absolute top-2 left-2 z-10 inline-flex items-center px-2 py-1 rounded-full text-xs font-bold bg-warning text-white shadow-lg border-2 border-white">
+          <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+              d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.732-.833-2.5 0L4.268 18.5c-.77.833.192 2.5 1.732 2.5z" />
+          </svg>
+          TEST
+        </div>
+
         <span :class="[
           'text-2xl font-bold text-center',
           product.requiresTimeslot ? 'text-blue-700' : 'text-primary/80'

@@ -13,6 +13,7 @@ const ProductFields = {
   REQUIRES_TIMESLOT: "requiresTimeslot",
   IMAGE: "image",
   EVENT_ID: "eventId",
+  IS_TEST_MODE: "isTestMode",
   CREATED_AT: "createdAt",
 };
 
@@ -218,6 +219,10 @@ function createProductData(inputData, options = {}) {
     validationRules[ProductFields.REQUIRES_TIMESLOT] = { type: "boolean" };
   }
 
+  if (inputData[ProductFields.IS_TEST_MODE] !== undefined) {
+    validationRules[ProductFields.IS_TEST_MODE] = { type: "boolean" };
+  }
+
   // Validate basic fields
   validateFields(inputData, validationRules, "Product");
 
@@ -265,6 +270,12 @@ function createProductData(inputData, options = {}) {
       "string"
     ),
     [ProductFields.REQUIRES_TIMESLOT]: requiresTimeslot || false,
+    [ProductFields.IS_TEST_MODE]: transformValue(
+      inputData[ProductFields.IS_TEST_MODE] !== undefined
+        ? inputData[ProductFields.IS_TEST_MODE]
+        : true,
+      "boolean"
+    ),
     [ProductFields.CREATED_AT]: transformValue(null, "timestamp"),
   };
 }
@@ -282,6 +293,7 @@ function createProductUpdateData(inputData, options = {}) {
     ProductFields.PRICE,
     ProductFields.IMAGE,
     ProductFields.REQUIRES_TIMESLOT,
+    ProductFields.IS_TEST_MODE,
     ProductFields.STRIPE_PRICE_ID,
   ];
 
@@ -312,6 +324,9 @@ function createProductUpdateData(inputData, options = {}) {
         case ProductFields.REQUIRES_TIMESLOT:
           validationRules[field] = { type: "boolean" };
           break;
+        case ProductFields.IS_TEST_MODE:
+          validationRules[field] = { type: "boolean" };
+          break;
       }
     }
   });
@@ -329,6 +344,9 @@ function createProductUpdateData(inputData, options = {}) {
         transformedData[field] = transformValue(value, "number");
         break;
       case ProductFields.REQUIRES_TIMESLOT:
+        transformedData[field] = transformValue(value, "boolean");
+        break;
+      case ProductFields.IS_TEST_MODE:
         transformedData[field] = transformValue(value, "boolean");
         break;
       default:

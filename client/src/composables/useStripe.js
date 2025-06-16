@@ -29,9 +29,9 @@ export function useStripe() {
       // Get current Stripe public key from public endpoint (no auth required)
       const response = await apiClient.getStripePublicKey();
 
-      if (response.success && response.data.publicKey) {
-        stripeState.publicKey = response.data.publicKey;
-        stripeState.mode = response.data.mode;
+      if (response.publicKey) {
+        stripeState.publicKey = response.publicKey;
+        stripeState.mode = response.mode;
 
         // Load Stripe with the current public key
         stripeState.instance = await loadStripe(stripeState.publicKey);

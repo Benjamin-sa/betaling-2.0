@@ -133,6 +133,7 @@ class ProductController extends BaseController {
           [ProductFields.STRIPE_PRODUCT_ID]: stripeProduct.product.id,
           [ProductFields.STRIPE_PRICE_ID]: stripeProduct.price.id,
           [ProductFields.REQUIRES_TIMESLOT]: requiresTimeslot,
+          [ProductFields.IS_TEST_MODE]: stripeProduct.isTestMode, // Use the explicit isTestMode field
         },
         {
           event, // Pass event for business logic validation

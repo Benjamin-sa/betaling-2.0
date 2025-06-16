@@ -1,5 +1,5 @@
 require("dotenv").config();
-const settingsService = require("./firebase/firebase-settings.service");
+const settingsService = require("./firebase-cached.service");
 
 class StripeService {
   constructor() {
@@ -135,6 +135,8 @@ class StripeService {
   async createProduct(productData) {
     try {
       const stripe = await this.getStripeInstance(); // Use dynamic instance
+      const keys = await this.getStripeKeys(); // Get current keys including mode
+
       // Destructure the productData object
       const { name, description, price, imageUrl } = productData;
 
@@ -165,7 +167,12 @@ class StripeService {
         default_price: stripePrice.id,
       });
 
-      return { product, price: stripePrice };
+      return {
+        product,
+        price: stripePrice,
+        mode: keys.mode, // Include the mode information
+        isTestMode: keys.mode === "test", // Explicitly set isTestMode based on current mode
+      };
     } catch (error) {
       console.error("Error creating product:", error);
       throw error;

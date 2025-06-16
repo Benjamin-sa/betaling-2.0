@@ -313,21 +313,17 @@ const loadEmailLogs = async (page = 1) => {
 
         const response = await apiClient.getEmailLogs(activeFilters, options)
 
-        if (response.success) {
-            emailLogs.value = response.data.emailLogs || []
+        emailLogs.value = response.emailLogs || []
 
-            const paginationData = response.data.pagination
-            pagination.currentPage = paginationData.currentPage
-            pagination.totalPages = paginationData.totalPages
-            pagination.totalLogs = paginationData.totalLogs
-            pagination.hasNext = paginationData.hasNext
-            pagination.hasPrev = paginationData.hasPrev
-        } else {
-            throw new Error(response.message || 'Failed to load email logs')
-        }
+        const paginationData = response.pagination
+        pagination.currentPage = paginationData.currentPage
+        pagination.totalPages = paginationData.totalPages
+        pagination.totalLogs = paginationData.totalLogs
+        pagination.hasNext = paginationData.hasNext
+        pagination.hasPrev = paginationData.hasPrev
     } catch (error) {
         console.error('Error loading email logs:', error)
-        notifications.addNotification('Failed to load email logs', 'error')
+        notifications.error('Failed to load email logs', error?.message || 'Er is een fout opgetreden bij het laden van de email logs.')
         emailLogs.value = []
     } finally {
         loading.value = false
@@ -344,15 +340,10 @@ const loadStatistics = async () => {
         }
 
         const response = await apiClient.getEmailStatistics(activeFilters)
-
-        if (response.success) {
-            statistics.value = response.data.statistics
-        } else {
-            throw new Error(response.message || 'Failed to load statistics')
-        }
+        statistics.value = response.statistics
     } catch (error) {
         console.error('Error loading email statistics:', error)
-        notifications.addNotification('Failed to load email statistics', 'error')
+        notifications.error('Failed to load email statistics', error?.message || 'Er is een fout opgetreden bij het laden van de email statistieken.')
     }
 }
 

@@ -187,16 +187,12 @@ const loadConfig = async () => {
         error.value = null
 
         const response = await apiClient.getStripeConfig()
+        config.value = response
 
-        if (response.success) {
-            config.value = response.data
-        } else {
-            throw new Error(response.message || 'Failed to load Stripe configuration')
-        }
     } catch (err) {
         console.error('Error loading Stripe config:', err)
         error.value = err.message
-        notifications.addNotification('Failed to load Stripe configuration', 'error')
+        notifications.error('Failed to load Stripe configuration', err?.message || 'Er is een fout opgetreden bij het laden van de Stripe configuratie.')
     } finally {
         loading.value = false
     }
@@ -218,21 +214,18 @@ const switchMode = async (mode) => {
         switching.value = true
         targetMode.value = mode
 
-        const response = await apiClient.switchStripeMode(mode)
+        await apiClient.switchStripeMode(mode)
 
-        if (response.success) {
-            notifications.addNotification(
-                `Successfully switched to ${mode.toUpperCase()} mode`,
-                'success'
-            )
-            // Reload configuration
-            await loadConfig()
-        } else {
-            throw new Error(response.message || 'Failed to switch Stripe mode')
-        }
+        notifications.success(
+            `Successfully switched to ${mode.toUpperCase()} mode`,
+            `Stripe is nu ingesteld op ${mode.toUpperCase()} modus.`
+        )
+        // Reload configuration
+        await loadConfig()
+
     } catch (err) {
         console.error('Error switching Stripe mode:', err)
-        notifications.addNotification(`Failed to switch to ${mode} mode`, 'error')
+        notifications.error(`Failed to switch to ${mode} mode`, err?.message || `Er is een fout opgetreden bij het wijzigen naar ${mode} modus.`)
     } finally {
         switching.value = false
         targetMode.value = null

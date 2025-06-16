@@ -47,18 +47,24 @@ async function startServer() {
 
     // Rate limiting for API routes
     const apiLimiter = rateLimit({
-      windowMs: 15 * 60 * 1000, // 15 minutes
-      max: 100, // Limit each IP to 100 requests per windowMs
-      message: "Too many API requests from this IP, please try again later.",
+      windowMs: 10 * 60 * 1000, // 10 minutes
+      max: 500,
+      message: {
+        error: "Too many API requests from this IP",
+        message: "Please try again in a few minutes",
+        retryAfter: "10 minutes",
+      },
       standardHeaders: true,
       legacyHeaders: false,
+      // Skip rate limiting for health checks
+      skip: (req) => req.path === "/api/health",
     });
 
     // Webhook routes must be before express.json() to handle raw body
     app.use("/api/webhooks", require("./features/webhooks/webhook.routes"));
 
     // Apply rate limiting to API routes (after webhooks)
-    app.use("/api/", apiLimiter);
+    app.use("/api", apiLimiter);
 
     // Parse JSON bodies for all other routes
     app.use(express.json());
