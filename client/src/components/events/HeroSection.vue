@@ -71,7 +71,7 @@
                             <p
                                 class="text-xl sm:text-2xl md:text-3xl lg:text-4xl text-gray-100 font-light leading-relaxed max-w-5xl mx-auto">
                                 {{ selectedEvent?.description ||
-                                    'Beleef onvergetelijke momenten samen met onze scouts gemeenschap' }}
+                                    'Beleef onvergetelijke momenten samen met onze scouts groep' }}
                             </p>
                         </div>
 

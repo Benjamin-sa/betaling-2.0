@@ -21,11 +21,33 @@
                         <span class="sm:hidden">Event Aanmaken</span>
                     </h3>
 
+                    <!-- Info Banner -->
+                    <div class="bg-info-bg border border-info/20 rounded-xl p-4 mb-6">
+                        <div class="flex items-start space-x-3">
+                            <svg class="w-5 h-5 text-info mt-0.5 flex-shrink-0" fill="none" stroke="currentColor"
+                                viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                            <div>
+                                <h4 class="text-sm font-semibold text-info mb-1">💡 Belangrijk</h4>
+                                <p class="text-sm text-info leading-relaxed">
+                                    De <strong>event naam</strong> wordt gebruikt als <strong>hoofdtitel</strong> op de
+                                    homepage en de <strong>beschrijving</strong> is zichtbaar voor alle klanten. Zorg
+                                    ervoor dat deze informatie duidelijk en aantrekkelijk is voor je doelgroep.
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+
                     <form @submit.prevent="handleCreateEvent" class="space-y-4 sm:space-y-6">
                         <!-- Event Name -->
                         <div>
-                            <label for="eventName" class="block text-sm font-semibold text-gray-700 mb-2">Event
-                                Naam</label>
+                            <label for="eventName" class="block text-sm font-semibold text-gray-700 mb-2">
+                                Event Naam
+                                <span class="text-xs font-normal text-info ml-1">(wordt weergegeven als
+                                    hoofdtitel)</span>
+                            </label>
                             <input id="eventName" v-model="newEvent.name" type="text" required
                                 placeholder="Bijv. Spaghetti Avond 2025"
                                 class="w-full px-3 sm:px-4 py-2 sm:py-3 text-base sm:text-lg border-2 border-gray-200 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary transition-all duration-200" />
@@ -33,10 +55,12 @@
 
                         <!-- Event Description -->
                         <div>
-                            <label for="eventDescription"
-                                class="block text-sm font-semibold text-gray-700 mb-2">Beschrijving</label>
+                            <label for="eventDescription" class="block text-sm font-semibold text-gray-700 mb-2">
+                                Beschrijving
+                                <span class="text-xs font-normal text-info ml-1">(zichtbaar voor klanten)</span>
+                            </label>
                             <textarea id="eventDescription" v-model="newEvent.description" required rows="3"
-                                placeholder="Event beschrijving"
+                                placeholder="Beschrijf het event voor je klanten - wat kunnen ze verwachten?"
                                 class="w-full px-3 sm:px-4 py-2 sm:py-3 text-base sm:text-lg border-2 border-gray-200 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary transition-all duration-200"></textarea>
                         </div>
 
@@ -67,7 +91,7 @@
                                 class="bg-white border-2 border-gray-200 rounded-xl p-3 sm:p-4 space-y-3">
                                 <div class="flex justify-between items-center">
                                     <span class="font-bold text-gray-900 text-sm sm:text-base">Shift {{ index + 1
-                                        }}</span>
+                                    }}</span>
                                     <button type="button" @click="removeShift(index)"
                                         :disabled="newEvent.shifts.length === 1"
                                         class="text-error hover:text-red-700 disabled:text-gray-400 disabled:cursor-not-allowed transition-colors duration-200">
