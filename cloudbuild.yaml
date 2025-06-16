@@ -38,7 +38,7 @@ steps:
         "--memory",
         "256Mi",
         "--cpu",
-        "0.5",
+        "1",
         "--concurrency",
         "50",
         "--max-instances",
