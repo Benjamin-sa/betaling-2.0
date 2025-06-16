@@ -49,7 +49,7 @@ steps:
         "--execution-environment",
         "gen2",
         "--set-env-vars",
-        "NODE_ENV=production,PORT=8080,APP_URL=https://shop.lodlavki.be,VITE_APP_URL=https://shop.lodlavki.be,GMAIL_FROM_NAME=Scouts Lodlavki,GMAIL_USER_EMAIL=noreply@lodlavki.be,env=production",
+        "NODE_ENV=production,APP_URL=https://shop.lodlavki.be,VITE_APP_URL=https://shop.lodlavki.be,GMAIL_FROM_NAME=Scouts Lodlavki,GMAIL_USER_EMAIL=noreply@lodlavki.be,env=production",
         "--set-secrets",
         "STRIPE_SECRET_KEY_LIVE=stripe-secret-key-live:latest,STRIPE_SECRET_KEY_TEST=stripe-secrey-key-test:latest,STRIPE_PUBLIC_KEY_LIVE=stripe-public-key-live:latest,STRIPE_PUBLIC_KEY_TEST=stripe-public-key-test:latest,STRIPE_WEBHOOK_SECRET=stripe-webhook-secret:latest,STRIPE_WEBHOOK_SECRET_LIVE=stripe-webhook-secret-live:latest,GMAIL_CLIENT_ID=gmail-client-id:latest,GMAIL_CLIENT_SECRET=gmail-client-secret:latest",
       ]
