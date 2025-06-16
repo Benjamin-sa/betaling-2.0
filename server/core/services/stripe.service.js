@@ -3,6 +3,26 @@ const settingsService = require("./firebase-cached.service");
 
 class StripeService {
   constructor() {
+    // Debug logging for environment variables
+    console.log("=== STRIPE SERVICE INITIALIZATION ===");
+    console.log("NODE_ENV:", process.env.NODE_ENV);
+    console.log(
+      "STRIPE_SECRET_KEY_TEST exists:",
+      !!process.env.STRIPE_SECRET_KEY_TEST
+    );
+    console.log(
+      "STRIPE_SECRET_KEY_LIVE exists:",
+      !!process.env.STRIPE_SECRET_KEY_LIVE
+    );
+    console.log(
+      "STRIPE_SECRET_KEY_TEST prefix:",
+      process.env.STRIPE_SECRET_KEY_TEST?.substring(0, 12)
+    );
+    console.log(
+      "STRIPE_SECRET_KEY_LIVE prefix:",
+      process.env.STRIPE_SECRET_KEY_LIVE?.substring(0, 12)
+    );
+
     // Keep current behavior as fallback
     this.defaultStripe = require("stripe")(process.env.STRIPE_SECRET_KEY_TEST);
     this.stripeInstances = {
