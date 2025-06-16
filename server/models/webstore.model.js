@@ -44,6 +44,15 @@ const OrderItemFields = {
   SHIFT_ID: "shiftId",
 };
 
+const EmailLogFields = {
+  ORDER_ID: "orderId",
+  USER_EMAIL: "userEmail",
+  STATUS: "status", // "sent", "failed", "skipped"
+  SENT_AT: "sentAt",
+  ERROR_MESSAGE: "errorMessage",
+  EMAIL_TYPE: "emailType", // "order_confirmation"
+};
+
 const EventFields = {
   ID: "id",
   TYPE: "type",
@@ -464,6 +473,48 @@ function createOrderItemData(inputData) {
 }
 
 // ============================================================================
+// EMAIL LOG FACTORY FUNCTIONS
+// ============================================================================
+
+/**
+ * Create a new email log data object
+ */
+function createEmailLogData(inputData) {
+  const validationRules = {
+    [EmailLogFields.ORDER_ID]: { required: true, type: "string" },
+    [EmailLogFields.USER_EMAIL]: { required: true, type: "string" },
+    [EmailLogFields.STATUS]: { required: true, type: "string" },
+    [EmailLogFields.EMAIL_TYPE]: { required: true, type: "string" },
+  };
+
+  validateFields(inputData, validationRules, "Email Log");
+
+  return {
+    [EmailLogFields.ORDER_ID]: transformValue(
+      inputData[EmailLogFields.ORDER_ID],
+      "string"
+    ),
+    [EmailLogFields.USER_EMAIL]: transformValue(
+      inputData[EmailLogFields.USER_EMAIL],
+      "string"
+    ),
+    [EmailLogFields.STATUS]: transformValue(
+      inputData[EmailLogFields.STATUS],
+      "string"
+    ),
+    [EmailLogFields.EMAIL_TYPE]: transformValue(
+      inputData[EmailLogFields.EMAIL_TYPE],
+      "string"
+    ),
+    [EmailLogFields.ERROR_MESSAGE]: transformValue(
+      inputData[EmailLogFields.ERROR_MESSAGE] || null,
+      "string"
+    ),
+    [EmailLogFields.SENT_AT]: admin.firestore.FieldValue.serverTimestamp(),
+  };
+}
+
+// ============================================================================
 // EVENT FACTORY FUNCTIONS
 // ============================================================================
 
@@ -552,6 +603,7 @@ module.exports = {
   OrderItemFields,
   EventFields,
   ShiftFields,
+  EmailLogFields,
 
   // Factory functions
   createProductData,
@@ -560,6 +612,7 @@ module.exports = {
   createUserUpdateData,
   createOrderData,
   createOrderItemData,
+  createEmailLogData,
   createEventData,
 
   // Utility functions

@@ -3,11 +3,12 @@ const express = require("express");
 const cors = require("cors");
 const path = require("path");
 const fs = require("fs");
+const rateLimit = require("express-rate-limit");
 
 async function startServer() {
   try {
     const app = express();
-    const port = process.env.PORT || 8080; // Changed from 3000 to 8080
+    const port = process.env.PORT || 8080;
 
     // Debug: Check if client files exist
     const clientDistPath = path.join(__dirname, "client/dist");
@@ -23,16 +24,52 @@ async function startServer() {
       console.log("Files in client/dist:", files);
     }
 
-    // Middleware setup
+    // Security headers middleware
+    app.use((req, res, next) => {
+      // Prevent search engines from indexing sensitive pages
+      if (req.path.startsWith("/api/") || req.path.startsWith("/admin/")) {
+        res.setHeader(
+          "X-Robots-Tag",
+          "noindex, nofollow, nosnippet, noarchive"
+        );
+      }
+
+      // Security headers
+      res.setHeader("X-Content-Type-Options", "nosniff");
+      res.setHeader("X-Frame-Options", "DENY");
+      res.setHeader("X-XSS-Protection", "1; mode=block");
+
+      next();
+    });
+
+    // CORS middleware
     app.use(cors());
+
+    // Rate limiting for API routes
+    const apiLimiter = rateLimit({
+      windowMs: 15 * 60 * 1000, // 15 minutes
+      max: 100, // Limit each IP to 100 requests per windowMs
+      message: "Too many API requests from this IP, please try again later.",
+      standardHeaders: true,
+      legacyHeaders: false,
+    });
 
     // Webhook routes must be before express.json() to handle raw body
     app.use("/api/webhooks", require("./features/webhooks/webhook.routes"));
 
+    // Apply rate limiting to API routes (after webhooks)
+    app.use("/api/", apiLimiter);
+
     // Parse JSON bodies for all other routes
     app.use(express.json());
 
-    // Serve static files from client build with better error handling
+    // Serve robots.txt explicitly
+    app.get("/robots.txt", (req, res) => {
+      res.type("text/plain");
+      res.sendFile(path.join(__dirname, "client/dist", "robots.txt"));
+    });
+
+    // Serve static files from client build
     app.use(
       express.static(clientDistPath, {
         dotfiles: "ignore",
@@ -56,6 +93,7 @@ async function startServer() {
         status: "OK",
         timestamp: new Date().toISOString(),
         clientFilesExist: fs.existsSync(indexPath),
+        environment: process.env.NODE_ENV,
       });
     });
 
@@ -83,12 +121,14 @@ async function startServer() {
 
     // Start server
     app.listen(port, "0.0.0.0", () => {
-      // Added '0.0.0.0' for Docker compatibility
-      console.log(`Server running at http://0.0.0.0:${port}`);
-      console.log(`Environment: ${process.env.NODE_ENV || "development"}`);
+      console.log(`🚀 Server running at http://0.0.0.0:${port}`);
+      console.log(`📦 Environment: ${process.env.NODE_ENV || "development"}`);
+      console.log(
+        `📁 Client files: ${fs.existsSync(clientDistPath) ? "✅" : "❌"}`
+      );
     });
   } catch (error) {
-    console.error("Failed to start server:", error);
+    console.error("❌ Failed to start server:", error);
     process.exit(1);
   }
 }

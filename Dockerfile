@@ -66,7 +66,6 @@ RUN npm ci --only=production
 WORKDIR /app
 
 # Stel omgevingsvariabelen in voor optimalisatie
-ENV NODE_ENV=production
 ENV PORT=8080
 ENV NPM_CONFIG_LOGLEVEL=warn  
 

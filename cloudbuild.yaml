@@ -6,15 +6,19 @@ steps:
         "build",
         "--no-cache",
         "--tag",
-        "gcr.io/$PROJECT_ID/scouts-webshop:$COMMIT_SHA",
+        "gcr.io/$PROJECT_ID/betaling-2.0:$COMMIT_SHA",
         "--tag",
-        "gcr.io/$PROJECT_ID/scouts-webshop:latest",
+        "gcr.io/$PROJECT_ID/betaling-2.0:latest",
         ".",
       ]
 
   # Push the image to Container Registry
   - name: "gcr.io/cloud-builders/docker"
-    args: ["push", "gcr.io/$PROJECT_ID/scouts-webshop:$COMMIT_SHA"]
+    args: ["push", "gcr.io/$PROJECT_ID/betaling-2.0:$COMMIT_SHA"]
+
+  # Push the latest tag as well
+  - name: "gcr.io/cloud-builders/docker"
+    args: ["push", "gcr.io/$PROJECT_ID/betaling-2.0:latest"]
 
   # Deploy to Cloud Run
   - name: "gcr.io/google.com/cloudsdktool/cloud-sdk"
@@ -23,22 +27,22 @@ steps:
       [
         "run",
         "deploy",
-        "scouts-webshop",
+        "lodlavki-shop",
         "--image",
-        "gcr.io/$PROJECT_ID/scouts-webshop:$COMMIT_SHA",
+        "gcr.io/$PROJECT_ID/betaling-2.0:$COMMIT_SHA",
         "--region",
         "europe-west1",
         "--platform",
         "managed",
         "--allow-unauthenticated",
         "--memory",
-        "512Mi",
+        "256Mi",
         "--cpu",
-        "1",
+        "0.5",
         "--concurrency",
-        "100",
+        "50",
         "--max-instances",
-        "5",
+        "2",
         "--min-instances",
         "0",
         "--cpu-throttling",
@@ -46,11 +50,12 @@ steps:
         "gen2",
         "--port",
         "8080",
+        "--set-env-vars",
+        "NODE_ENV=production,PORT=8080",
       ]
 
-# Use smaller machine type for cost optimization
 options:
-  machineType: "E2_HIGHCPU_8"
-  diskSizeGb: "100"
+  machineType: "E2_HIGHCPU_2"
+  diskSizeGb: "5"
 
-timeout: "1200s"
+timeout: "300s"

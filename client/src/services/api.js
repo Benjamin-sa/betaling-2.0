@@ -1,4 +1,15 @@
-const BASE_URL = import.meta.env.VITE_SERVER_URL;
+// Dynamic BASE_URL based on environment
+const getBaseURL = () => {
+  // Check if we're in production
+  if (import.meta.env.PROD) {
+    return "https://shop.lodlavki.be";
+  }
+
+  // Development fallback - check for custom server URL or use default
+  return import.meta.env.VITE_SERVER_URL || "http://localhost:8080";
+};
+
+const BASE_URL = getBaseURL();
 
 // Token provider to avoid circular dependency
 let tokenProvider = null;
@@ -186,6 +197,55 @@ export const apiClient = {
     return this.request(`/admin/users/${firebaseUid}`, {
       method: "DELETE",
     });
+  },
+
+  // Email Log API
+  async getEmailLogs(filters = {}, options = {}) {
+    const params = new URLSearchParams();
+
+    // Add pagination options
+    if (options.page) params.append("page", options.page.toString());
+    if (options.limit) params.append("limit", options.limit.toString());
+
+    // Add filters to params
+    Object.entries(filters).forEach(([key, value]) => {
+      if (value !== undefined && value !== null && value !== "") {
+        params.append(key, value);
+      }
+    });
+
+    return this.request(`/admin/email-logs?${params.toString()}`);
+  },
+
+  async getEmailLogsByOrderId(orderId) {
+    return this.request(`/admin/email-logs/order/${orderId}`);
+  },
+
+  async getEmailStatistics(filters = {}) {
+    const params = new URLSearchParams();
+    Object.entries(filters).forEach(([key, value]) => {
+      if (value !== undefined && value !== null && value !== "") {
+        params.append(key, value);
+      }
+    });
+
+    return this.request(`/admin/email-logs/statistics?${params.toString()}`);
+  },
+
+  // Stripe Configuration API
+  async getStripeConfig() {
+    return this.request("/admin/stripe/config");
+  },
+
+  async switchStripeMode(mode) {
+    return this.request("/admin/stripe/switch-mode", {
+      method: "POST",
+      data: { mode },
+    });
+  },
+
+  async getStripePublicKey() {
+    return this.request("/stripe/public-key");
   },
 
   // Event API

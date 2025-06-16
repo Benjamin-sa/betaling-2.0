@@ -413,6 +413,250 @@ class AdminController extends BaseController {
     const statistics = await firebaseService.getOrderStatistics(filters);
     this._sendSuccessResponse(res, { statistics });
   }
+
+  /**
+   * Get all email logs with filtering and pagination
+   */
+  async getEmailLogs(req, res) {
+    await this._handleAsync(this._getEmailLogsHandler, req, res);
+  }
+
+  /**
+   * Internal handler for getting email logs
+   * @private
+   */
+  async _getEmailLogsHandler(req, res) {
+    const {
+      status,
+      orderId,
+      userEmail,
+      emailType = "order_confirmation",
+      dateFrom,
+      dateTo,
+      page = 1,
+      limit = 50,
+    } = req.query;
+
+    // Build filters object
+    const filters = {};
+    if (status && status !== "all") filters.status = status;
+    if (orderId) filters.orderId = orderId;
+    if (userEmail) filters.userEmail = userEmail.trim();
+    if (emailType && emailType !== "all") filters.emailType = emailType;
+    if (dateFrom) filters.dateFrom = dateFrom;
+    if (dateTo) filters.dateTo = dateTo;
+
+    // Build options object
+    const options = {
+      page: parseInt(page),
+      limit: Math.min(parseInt(limit), 100), // Cap at 100 for performance
+    };
+
+    this._logAction("Fetching email logs", { filters, options });
+
+    const result = await firebaseService.getEmailLogs(filters, options);
+
+    this._sendSuccessResponse(res, {
+      emailLogs: result.logs,
+      pagination: {
+        currentPage: options.page,
+        totalPages: result.totalPages,
+        totalLogs: result.totalCount,
+        hasNext: result.hasNext,
+        hasPrev: result.hasPrev,
+      },
+      filters: filters,
+    });
+  }
+
+  /**
+   * Get email logs for a specific order
+   */
+  async getEmailLogsByOrderId(req, res) {
+    await this._handleAsync(this._getEmailLogsByOrderIdHandler, req, res);
+  }
+
+  /**
+   * Internal handler for getting email logs by order ID
+   * @private
+   */
+  async _getEmailLogsByOrderIdHandler(req, res) {
+    const { orderId } = req.params;
+
+    if (!orderId) {
+      return this._sendErrorResponse(
+        res,
+        "orderId is required",
+        this.HTTP_STATUS.BAD_REQUEST
+      );
+    }
+
+    this._logAction("Fetching email logs for order", { orderId });
+
+    const logs = await firebaseService.getEmailLogsByOrderId(orderId);
+    this._sendSuccessResponse(res, { emailLogs: logs });
+  }
+
+  /**
+   * Get email delivery statistics
+   */
+  async getEmailStatistics(req, res) {
+    await this._handleAsync(this._getEmailStatisticsHandler, req, res);
+  }
+
+  /**
+   * Internal handler for getting email statistics
+   * @private
+   */
+  async _getEmailStatisticsHandler(req, res) {
+    const { dateFrom, dateTo, emailType = "order_confirmation" } = req.query;
+
+    const filters = {};
+    if (emailType && emailType !== "all") filters.emailType = emailType;
+    if (dateFrom) filters.dateFrom = dateFrom;
+    if (dateTo) filters.dateTo = dateTo;
+
+    this._logAction("Fetching email statistics", { filters });
+
+    const statistics = await firebaseService.getEmailStatistics(filters);
+    this._sendSuccessResponse(res, { statistics });
+  }
+
+  /**
+   * Get current Stripe configuration and mode
+   */
+  async getStripeConfig(req, res) {
+    await this._handleAsync(this._getStripeConfigHandler, req, res);
+  }
+
+  /**
+   * Internal handler for getting Stripe configuration
+   * @private
+   */
+  async _getStripeConfigHandler(req, res) {
+    try {
+      const stripeService = require("../../core/services/stripe.service");
+
+      const mode = await firebaseService.getStripeMode();
+      const keys = await stripeService.getStripeKeys();
+
+      this._logAction("Fetching Stripe configuration", { mode });
+
+      this._sendSuccessResponse(res, {
+        mode,
+        publicKey: keys.publicKey,
+        hasLiveKeys: !!(
+          process.env.STRIPE_SECRET_KEY && process.env.STRIPE_PUBLIC_KEY_LIVE
+        ),
+        hasTestKeys: !!(
+          process.env.STRIPE_SECRET_KEY_TEST &&
+          process.env.STRIPE_PUBLIC_KEY_TEST
+        ),
+      });
+    } catch (error) {
+      this._logAction("Error fetching Stripe configuration", {
+        error: error.message,
+      });
+      this._sendErrorResponse(
+        res,
+        "Failed to get Stripe configuration",
+        this.HTTP_STATUS.INTERNAL_SERVER_ERROR
+      );
+    }
+  }
+
+  /**
+   * Switch Stripe mode (test/live) - SUPER ADMIN ONLY
+   */
+  async switchStripeMode(req, res) {
+    await this._handleAsync(this._switchStripeModeHandler, req, res);
+  }
+
+  /**
+   * Get current Stripe public key (PUBLIC ENDPOINT - no auth required)
+   */
+  async getStripePublicKey(req, res) {
+    await this._handleAsync(this._getStripePublicKeyHandler, req, res);
+  }
+
+  /**
+   * Internal handler for getting Stripe public key
+   * @private
+   */
+  async _getStripePublicKeyHandler(req, res) {
+    try {
+      const stripeService = require("../../core/services/stripe.service");
+      const keys = await stripeService.getStripeKeys();
+
+      this._logAction("Fetching Stripe public key", { mode: keys.mode });
+
+      this._sendSuccessResponse(res, {
+        publicKey: keys.publicKey,
+        mode: keys.mode,
+      });
+    } catch (error) {
+      this._logAction("Error fetching Stripe public key", {
+        error: error.message,
+      });
+      // Fallback to test key to prevent breaking the app
+      this._sendSuccessResponse(res, {
+        publicKey: process.env.STRIPE_PUBLIC_KEY_TEST || "",
+        mode: "test",
+      });
+    }
+  }
+
+  /**
+   * Internal handler for switching Stripe mode
+   * @private
+   */
+  async _switchStripeModeHandler(req, res) {
+    const { mode } = req.body;
+    const userId = req.user?.email || req.user?.uid || "unknown";
+
+    // Validate mode
+    if (!mode || (mode !== "test" && mode !== "live")) {
+      return this._sendErrorResponse(
+        res,
+        'Invalid mode. Must be "test" or "live"',
+        this.HTTP_STATUS.BAD_REQUEST
+      );
+    }
+
+    // Additional security check - ensure user is super admin
+    // TODO: Implement proper super admin check
+    const currentUser = await firebaseService.getUserByFirebaseUID(
+      req.user.uid
+    );
+    if (!currentUser?.isAdmin) {
+      return this._sendErrorResponse(
+        res,
+        "Insufficient permissions",
+        this.HTTP_STATUS.FORBIDDEN
+      );
+    }
+
+    try {
+      await firebaseService.setStripeMode(mode, userId);
+
+      this._logAction("Stripe mode switched", { mode, userId });
+
+      this._sendSuccessResponse(res, {
+        message: `Stripe mode switched to ${mode}`,
+        mode,
+      });
+    } catch (error) {
+      this._logAction("Error switching Stripe mode", {
+        error: error.message,
+        userId,
+      });
+      this._sendErrorResponse(
+        res,
+        "Failed to switch Stripe mode",
+        this.HTTP_STATUS.INTERNAL_SERVER_ERROR
+      );
+    }
+  }
 }
 
 module.exports = new AdminController();

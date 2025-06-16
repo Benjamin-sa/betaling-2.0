@@ -14,7 +14,7 @@ export default defineConfig({
     host: "0.0.0.0", // Luistert naar alle netwerkinterfaces
     port: 5173, // Optioneel: specificeer een poort
     proxy: {
-      "/api": "http://localhost:3000",
+      "/api": "http://localhost:8080",
     },
   },
 });

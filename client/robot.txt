@@ -1,0 +1,42 @@
+# Scouts Lodlavki Webshop - Crawler Rules
+
+# Allow crawling of main pages
+User-agent: *
+Allow: /
+Allow: /products
+Allow: /events
+
+# Block API endpoints and admin areas
+Disallow: /api/
+Disallow: /admin/
+Disallow: /checkout/
+Disallow: /cart/
+Disallow: /profile/
+
+# Block resource-intensive endpoints
+Disallow: /api/products/search
+Disallow: /api/events/
+Disallow: /api/orders/
+Disallow: /api/users/
+Disallow: /api/webhooks/
+
+# Block temporary and development paths
+Disallow: /dev/
+Disallow: /test/
+Disallow: /debug/
+
+# Set crawl delay to prevent server overload
+Crawl-delay: 2
+
+# Block specific bots that might be problematic
+User-agent: AhrefsBot
+Disallow: /
+
+User-agent: MJ12bot
+Disallow: /
+
+User-agent: DotBot
+Disallow: /
+
+# Allow search engines to find your sitemap (if you create one)
+# Sitemap: https://shop.lodlavki.be/sitemap.xml

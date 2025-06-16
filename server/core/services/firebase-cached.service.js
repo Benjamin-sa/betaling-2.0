@@ -4,6 +4,8 @@ const firebaseProductService = require("./firebase/firebase-product.service");
 const firebaseOrderService = require("./firebase/firebase-order.service");
 const firebaseEventService = require("./firebase/firebase-event.service");
 const firebaseShiftCounterService = require("./firebase/firebase-shift-counter.service");
+const firebaseEmailLogService = require("./firebase/firebase-email-log.service");
+const firebaseSettingsService = require("./firebase/firebase-settings.service");
 const cacheService = require("./cache.service");
 
 /**
@@ -18,7 +20,10 @@ class CachedFirebaseService {
     this.orders = firebaseOrderService;
     this.events = firebaseEventService;
     this.shiftCounters = firebaseShiftCounterService;
+    this.emailLogs = firebaseEmailLogService;
+    this.settings = firebaseSettingsService;
     this.cache = cacheService;
+    this.emailLogs = firebaseEmailLogService;
   }
 
   // Pass-through helper
@@ -550,6 +555,45 @@ class CachedFirebaseService {
 
   clearCacheType(type) {
     return this.cache.delByType(type);
+  }
+
+  // ============================================================================
+  // EMAIL LOG OPERATIONS
+  // ============================================================================
+
+  async createEmailLog(logData) {
+    return await this.emailLogs.createEmailLog(logData);
+  }
+
+  async getEmailLogs(filters = {}, options = {}) {
+    return await this.emailLogs.getEmailLogs(filters, options);
+  }
+
+  async getEmailLogsByOrderId(orderId) {
+    return await this.emailLogs.getEmailLogsByOrderId(orderId);
+  }
+
+  async getEmailStatistics(filters = {}) {
+    return await this.emailLogs.getEmailStatistics(filters);
+  }
+
+  // Settings Service Methods
+  /**
+   * Get current Stripe mode (test/live)
+   * @returns {Promise<string>} Current Stripe mode
+   */
+  async getStripeMode() {
+    return await this.settings.getStripeMode();
+  }
+
+  /**
+   * Set Stripe mode (test/live)
+   * @param {string} mode - 'test' or 'live'
+   * @param {string} userId - User who made the change
+   * @returns {Promise<void>}
+   */
+  async setStripeMode(mode, userId) {
+    return await this.settings.setStripeMode(mode, userId);
   }
 }
 

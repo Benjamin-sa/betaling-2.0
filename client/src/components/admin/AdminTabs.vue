@@ -61,6 +61,14 @@
                 <UserManagement />
             </div>
 
+            <div v-show="activeTab === 'emails'">
+                <EmailDeliveryManagement />
+            </div>
+
+            <div v-show="activeTab === 'stripe'">
+                <StripeConfigManagement />
+            </div>
+
             <div v-show="activeTab === 'google'">
                 <GoogleServicesManagement />
             </div>
@@ -74,6 +82,8 @@ import EventManagement from './EventManagement.vue'
 import ProductManagement from './ProductManagement.vue'
 import OrderManagement from './OrderManagement.vue'
 import UserManagement from './UserManagement.vue'
+import EmailDeliveryManagement from './EmailDeliveryManagement.vue'
+import StripeConfigManagement from './StripeConfigManagement.vue'
 import GoogleServicesManagement from './GoogleServicesManagement.vue'
 
 const props = defineProps({
@@ -127,6 +137,22 @@ const GoogleIcon = {
   `
 }
 
+const EmailIcon = {
+    template: `
+    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+    </svg>
+  `
+}
+
+const StripeIcon = {
+    template: `
+    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
+    </svg>
+  `
+}
+
 // Tab configuration - use component objects instead of strings
 const tabs = computed(() => [
     {
@@ -151,6 +177,18 @@ const tabs = computed(() => [
         id: 'users',
         name: 'Gebruikers',
         icon: UsersIcon,
+        badge: null
+    },
+    {
+        id: 'emails',
+        name: 'Email Delivery',
+        icon: EmailIcon,
+        badge: null
+    },
+    {
+        id: 'stripe',
+        name: 'Stripe Config',
+        icon: StripeIcon,
         badge: null
     },
     {

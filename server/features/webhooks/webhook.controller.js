@@ -9,6 +9,7 @@ const {
   OrderItemFields,
   createOrderData,
   createOrderItemData,
+  createEmailLogData,
 } = require("../../models/webstore.model");
 
 // Constants for better maintainability
@@ -232,13 +233,29 @@ class WebhookController extends BaseController {
    * @private
    */
   async sendOrderConfirmationEmail(user, orderData, stripeSession) {
+    const emailType = "order_confirmation";
+    let emailStatus = "failed";
+    let errorMessage = null;
+
     try {
       // Check if Gmail service is authenticated
       const isAuthenticated = await gmailService.isAuthenticated();
       if (!isAuthenticated) {
+        emailStatus = "skipped";
+        errorMessage = "Gmail service not authenticated";
+
         this._logAction("Gmail service not authenticated - skipping email", {
           orderId: orderData.orderId,
         });
+
+        // Log the skipped email attempt
+        await this._logEmailAttempt(
+          orderData.orderId,
+          user.email,
+          emailType,
+          emailStatus,
+          errorMessage
+        );
         return;
       }
 
@@ -263,17 +280,42 @@ class WebhookController extends BaseController {
         }
       );
 
+      // Email sent successfully
+      emailStatus = "sent";
+
       this._logAction("Order confirmation email sent successfully", {
         orderId: orderData.orderId,
         userEmail: user.email,
       });
+
+      // Log the successful email attempt
+      await this._logEmailAttempt(
+        orderData.orderId,
+        user.email,
+        emailType,
+        emailStatus,
+        null
+      );
     } catch (error) {
+      // Email failed to send
+      emailStatus = "failed";
+      errorMessage = error.message;
+
       // Log error but don't throw - email failure shouldn't block order processing
       this._logAction("Failed to send order confirmation email", {
         orderId: orderData.orderId,
         userEmail: user.email,
         error: error.message,
       });
+
+      // Log the failed email attempt
+      await this._logEmailAttempt(
+        orderData.orderId,
+        user.email,
+        emailType,
+        emailStatus,
+        errorMessage
+      );
     }
   }
 
@@ -323,14 +365,16 @@ class WebhookController extends BaseController {
 
       if (error) {
         this._logAction("Gmail OAuth2 Error", { error });
+        const frontendUrl = process.env.VITE_APP_URL || "http://localhost:5173";
         return res.redirect(
-          `http://localhost:5173/admin?gmail_error=${encodeURIComponent(error)}`
+          `${frontendUrl}/admin?gmail_error=${encodeURIComponent(error)}`
         );
       }
 
       if (!code) {
+        const frontendUrl = process.env.VITE_APP_URL || "http://localhost:5173";
         return res.redirect(
-          `http://localhost:5173/admin?gmail_error=${encodeURIComponent(
+          `${frontendUrl}/admin?gmail_error=${encodeURIComponent(
             "No authorization code received"
           )}`
         );
@@ -344,14 +388,60 @@ class WebhookController extends BaseController {
       });
 
       // Redirect back to admin with success
-      return res.redirect("http://localhost:5173/admin?gmail_success=true");
+      const frontendUrl = process.env.VITE_APP_URL || "http://localhost:5173";
+      return res.redirect(`${frontendUrl}/admin?gmail_success=true`);
     } catch (err) {
       this._logAction("Gmail OAuth2 callback error", { error: err.message });
+      const frontendUrl = process.env.VITE_APP_URL || "http://localhost:5173";
       return res.redirect(
-        `http://localhost:5173/admin?gmail_error=${encodeURIComponent(
-          err.message
-        )}`
+        `${frontendUrl}/admin?gmail_error=${encodeURIComponent(err.message)}`
       );
+    }
+  }
+
+  /**
+   * Log email attempt to database
+   * @private
+   * @param {string} orderId - Order ID
+   * @param {string} userEmail - User email address
+   * @param {string} emailType - Type of email (e.g., 'order_confirmation')
+   * @param {string} status - Email status ('sent', 'failed', 'skipped')
+   * @param {string} errorMessage - Error message if failed
+   */
+  async _logEmailAttempt(
+    orderId,
+    userEmail,
+    emailType,
+    status,
+    errorMessage = null
+  ) {
+    try {
+      const emailLogData = createEmailLogData({
+        orderId,
+        userEmail,
+        emailType,
+        status,
+        errorMessage,
+      });
+
+      const logId = await firebaseService.createEmailLog(emailLogData);
+
+      this._logAction("Email attempt logged", {
+        logId,
+        orderId,
+        userEmail,
+        emailType,
+        status,
+      });
+    } catch (error) {
+      // Don't throw - logging failure shouldn't break the main flow
+      this._logAction("Failed to log email attempt", {
+        orderId,
+        userEmail,
+        emailType,
+        status,
+        error: error.message,
+      });
     }
   }
 }

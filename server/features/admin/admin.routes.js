@@ -18,6 +18,36 @@ router.get("/orders/statistics", authenticate, authorizeAdmin, (req, res) =>
   adminController.getOrderStatistics(req, res)
 );
 
+// Email delivery logs routes
+router.get("/email-logs", authenticate, authorizeAdmin, (req, res) =>
+  adminController.getEmailLogs(req, res)
+);
+
+router.get(
+  "/email-logs/order/:orderId",
+  authenticate,
+  authorizeAdmin,
+  (req, res) => adminController.getEmailLogsByOrderId(req, res)
+);
+
+router.get("/email-logs/statistics", authenticate, authorizeAdmin, (req, res) =>
+  adminController.getEmailStatistics(req, res)
+);
+
+// Stripe configuration routes (SUPER ADMIN ONLY)
+router.get("/stripe/config", authenticate, authorizeAdmin, (req, res) =>
+  adminController.getStripeConfig(req, res)
+);
+
+router.post("/stripe/switch-mode", authenticate, authorizeAdmin, (req, res) =>
+  adminController.switchStripeMode(req, res)
+);
+
+// Public Stripe configuration (for frontend initialization)
+router.get("/stripe/public-key", (req, res) =>
+  adminController.getStripePublicKey(req, res)
+);
+
 // Get all users
 router.get("/users", authenticate, authorizeAdmin, (req, res) =>
   adminController.getAllUsers(req, res)

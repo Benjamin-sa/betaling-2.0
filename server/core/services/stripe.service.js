@@ -1,9 +1,69 @@
 require("dotenv").config();
-const stripe = require("stripe")(process.env.STRIPE_SECRET_KEY_TEST);
+const settingsService = require("./firebase/firebase-settings.service");
+
 class StripeService {
+  constructor() {
+    // Keep current behavior as fallback
+    this.defaultStripe = require("stripe")(process.env.STRIPE_SECRET_KEY_TEST);
+    this.stripeInstances = {
+      test: require("stripe")(process.env.STRIPE_SECRET_KEY_TEST),
+      live: require("stripe")(
+        process.env.STRIPE_SECRET_KEY_LIVE || process.env.STRIPE_SECRET_KEY_TEST
+      ),
+    };
+  }
+
+  /**
+   * Get current Stripe instance based on mode setting
+   * @returns {Promise<Object>} Stripe instance
+   */
+  async getStripeInstance() {
+    try {
+      const mode = await settingsService.getStripeMode();
+      return this.stripeInstances[mode] || this.defaultStripe; // Safe fallback
+    } catch (error) {
+      console.error("Error getting Stripe instance, using default:", error);
+      return this.defaultStripe; // Safe fallback
+    }
+  }
+
+  /**
+   * Get current Stripe keys based on mode
+   * @returns {Promise<Object>} Public and secret keys
+   */
+  async getStripeKeys() {
+    try {
+      const mode = await settingsService.getStripeMode();
+
+      if (mode === "live") {
+        return {
+          publicKey: process.env.STRIPE_PUBLIC_KEY_LIVE,
+          secretKey: process.env.STRIPE_SECRET_KEY_LIVE,
+          webhookSecret: process.env.STRIPE_WEBHOOK_SECRET_LIVE,
+          mode: "live",
+        };
+      } else {
+        return {
+          publicKey: process.env.STRIPE_PUBLIC_KEY_TEST,
+          secretKey: process.env.STRIPE_SECRET_KEY_TEST,
+          webhookSecret: process.env.STRIPE_WEBHOOK_SECRET,
+          mode: "test",
+        };
+      }
+    } catch (error) {
+      console.error("Error getting Stripe keys, using test defaults:", error);
+      return {
+        publicKey: process.env.STRIPE_PUBLIC_KEY_TEST,
+        secretKey: process.env.STRIPE_SECRET_KEY_TEST,
+        webhookSecret: process.env.STRIPE_WEBHOOK_SECRET,
+        mode: "test",
+      };
+    }
+  }
   // Maak een nieuwe StripeService instantie
   async createCheckoutSession(items, userId, stripeCustomerId, metadata = {}) {
     try {
+      const stripe = await this.getStripeInstance(); // Use dynamic instance
       const baseUrl = process.env.VITE_APP_URL;
 
       // Transform items into Stripe line_items format
@@ -74,6 +134,7 @@ class StripeService {
    */
   async createProduct(productData) {
     try {
+      const stripe = await this.getStripeInstance(); // Use dynamic instance
       // Destructure the productData object
       const { name, description, price, imageUrl } = productData;
 
@@ -120,6 +181,7 @@ class StripeService {
    */
   async findOrCreateCustomer(email, uid = null) {
     try {
+      const stripe = await this.getStripeInstance(); // Use dynamic instance
       // Zoek naar bestaande klanten met dit e-mailadres
       const existingCustomers = await stripe.customers.list({
         email: email,
@@ -153,10 +215,13 @@ class StripeService {
    */
   async validateWebhookEvent(rawBody, signature) {
     try {
+      const stripe = await this.getStripeInstance(); // Use dynamic instance
+      const keys = await this.getStripeKeys(); // Get current keys including webhook secret
+
       const event = stripe.webhooks.constructEvent(
         rawBody,
         signature,
-        process.env.STRIPE_WEBHOOK_SECRET
+        keys.webhookSecret
       );
       return event;
     } catch (err) {
@@ -172,6 +237,7 @@ class StripeService {
    */
   async getCheckoutSession(sessionId) {
     try {
+      const stripe = await this.getStripeInstance(); // Use dynamic instance
       const session = await stripe.checkout.sessions.retrieve(sessionId, {
         expand: ["line_items.data.price.product"],
       });
@@ -189,6 +255,7 @@ class StripeService {
    */
   async deactivateProduct(productId) {
     try {
+      const stripe = await this.getStripeInstance(); // Use dynamic instance
       // Deactiveer product in Stripe
       await stripe.products.update(productId, { active: false });
 

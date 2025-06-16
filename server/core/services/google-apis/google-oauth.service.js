@@ -64,7 +64,7 @@ class GoogleOAuth2Service {
       }
 
       // Construct redirect URI
-      const baseUrl = process.env.APP_URL || "http://localhost:3000";
+      const baseUrl = process.env.APP_URL || "http://localhost:8080";
       const redirectUri = `${baseUrl}/api/webhooks/gmail/callback`;
 
       // Create OAuth2 client
