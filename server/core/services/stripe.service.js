@@ -1,4 +1,5 @@
 require("dotenv").config();
+require("dotenv").config();
 const settingsService = require("./firebase-cached.service");
 
 class StripeService {
@@ -23,6 +24,14 @@ class StripeService {
       process.env.STRIPE_SECRET_KEY_LIVE?.substring(0, 12)
     );
 
+    // Check if any keys are undefined
+    if (!process.env.STRIPE_SECRET_KEY_TEST) {
+      console.error("❌ STRIPE_SECRET_KEY_TEST is undefined!");
+    }
+    if (!process.env.STRIPE_SECRET_KEY_LIVE) {
+      console.error("❌ STRIPE_SECRET_KEY_LIVE is undefined!");
+    }
+
     // Keep current behavior as fallback
     this.defaultStripe = require("stripe")(process.env.STRIPE_SECRET_KEY_TEST);
     this.stripeInstances = {
@@ -31,6 +40,8 @@ class StripeService {
         process.env.STRIPE_SECRET_KEY_LIVE || process.env.STRIPE_SECRET_KEY_TEST
       ),
     };
+
+    console.log("✅ Stripe service initialized with default test mode");
   }
 
   /**
@@ -154,8 +165,34 @@ class StripeService {
    */
   async createProduct(productData) {
     try {
+      console.log("=== STRIPE CREATE PRODUCT DEBUG ===");
+      console.log("Environment variables check:");
+      console.log(
+        "STRIPE_SECRET_KEY_TEST exists:",
+        !!process.env.STRIPE_SECRET_KEY_TEST
+      );
+      console.log(
+        "STRIPE_SECRET_KEY_LIVE exists:",
+        !!process.env.STRIPE_SECRET_KEY_LIVE
+      );
+      console.log(
+        "STRIPE_SECRET_KEY_TEST prefix:",
+        process.env.STRIPE_SECRET_KEY_TEST?.substring(0, 12)
+      );
+      console.log(
+        "STRIPE_SECRET_KEY_LIVE prefix:",
+        process.env.STRIPE_SECRET_KEY_LIVE?.substring(0, 12)
+      );
+
       const stripe = await this.getStripeInstance(); // Use dynamic instance
       const keys = await this.getStripeKeys(); // Get current keys including mode
+
+      console.log("Stripe keys retrieved:", {
+        mode: keys.mode,
+        hasPublicKey: !!keys.publicKey,
+        hasSecretKey: !!keys.secretKey,
+        secretKeyPrefix: keys.secretKey?.substring(0, 12),
+      });
 
       // Destructure the productData object
       const { name, description, price, imageUrl } = productData;
