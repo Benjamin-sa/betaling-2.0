@@ -37,6 +37,23 @@ export function useCheckout(products, cartItems, selectedEvent) {
       return ERROR_MESSAGES.NO_PRODUCTS_SELECTED;
     }
 
+    // Check for mixed Stripe modes (test and live products in same cart)
+    const productModes = selectedItems
+      .map((item) => {
+        const product = products.value.find((p) => p.id === item.productId);
+        return product?.isTestMode;
+      })
+      .filter((mode) => mode !== undefined);
+
+    if (productModes.length > 0) {
+      const hasTestMode = productModes.some((mode) => mode === true);
+      const hasLiveMode = productModes.some((mode) => mode === false);
+
+      if (hasTestMode && hasLiveMode) {
+        return ERROR_MESSAGES.MIXED_STRIPE_MODES_ERROR;
+      }
+    }
+
     if (selectedEvent?.value?.type === EVENT_TYPES.SHIFT_EVENT) {
       const hasTimeslotRequiredProductsWithoutShifts = selectedItems.some(
         (item) => {

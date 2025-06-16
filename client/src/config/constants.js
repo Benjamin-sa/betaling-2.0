@@ -3,11 +3,6 @@
  */
 
 // Stripe Configuration
-export const STRIPE_CONFIG = {
-  // TODO: Move to environment variables in production
-  PUBLIC_KEY:
-    "pk_test_51Q2YysK7LyHlGaLs1KaOcD1Gk6A8b8l45LVF3q9URgskNKwgFHBEIPRKtMXGZEu0kFn9Iq0yWGcJ0Aatm5XCMsiK00SWythWSu",
-};
 
 // LocalStorage Keys
 export const STORAGE_KEYS = {
@@ -47,6 +42,8 @@ export const ERROR_MESSAGES = {
   LOAD_PRODUCTS_ERROR:
     "Er is een fout opgetreden bij het laden van de producten.",
   STRIPE_LOAD_ERROR: "Failed to load Stripe",
+  MIXED_STRIPE_MODES_ERROR:
+    "Je winkelwagen bevat producten uit verschillende Stripe modi (test en live). Verwijder producten zodat alle producten uit dezelfde modus komen.",
 };
 
 // Notification Titles
