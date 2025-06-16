@@ -48,7 +48,7 @@ steps:
         "--execution-environment",
         "gen1",
         "--set-env-vars",
-        "NODE_ENV=production,APP_URL=https://shop.lodlavki.be,VITE_APP_URL=https://shop.lodlavki.be,GMAIL_FROM_NAME=Scouts Lodlavki,GMAIL_USER_EMAIL=noreply@lodlavki.be,env=production",
+        "NODE_ENV=production,APP_URL=https://shop.lodlavki.be,VITE_APP_URL=https://shop.lodlavki.be,GMAIL_FROM_NAME=Scouts Lodlavki,GMAIL_USER_EMAIL=noreply@lodlavki.be,env=production,VITE_FIREBASE_API_KEY=AIzaSyB5n2X6bYHgB1-SauA6El0w_d6S7KZJaiU,VITE_FIREBASE_APP_ID=1:707497556595:web:e90233119937a80023c806,VITE_FIREBASE_AUTH_DOMAIN=lod-lavki-project.firebaseapp.com,VITE_FIREBASE_MESSAGING_SENDER_ID=707497556595,VITE_FIREBASE_PROJECT_ID=lod-lavki-project,VITE_FIREBASE_STORAGE_BUCKET=lod-lavki-project.firebasestorage.app",
         "--set-secrets",
         "STRIPE_SECRET_KEY_LIVE=stripe-secret-key-live:latest,STRIPE_SECRET_KEY_TEST=stripe-secrey-key-test:latest,STRIPE_PUBLIC_KEY_LIVE=stripe-public-key-live:latest,STRIPE_PUBLIC_KEY_TEST=stripe-public-key-test:latest,STRIPE_WEBHOOK_SECRET=stripe-webhook-secret:latest,STRIPE_WEBHOOK_SECRET_LIVE=stripe-webhook-secret-live:latest,GMAIL_CLIENT_ID=gmail-client-id:latest,GMAIL_CLIENT_SECRET=gmail-client-secret:latest",
       ]
