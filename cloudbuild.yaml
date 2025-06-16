@@ -4,7 +4,6 @@ steps:
     args:
       [
         "build",
-        "--no-cache",
         "--tag",
         "gcr.io/$PROJECT_ID/betaling-2.0:$COMMIT_SHA",
         "--tag",
@@ -47,7 +46,7 @@ steps:
         "0",
         "--cpu-throttling",
         "--execution-environment",
-        "gen2",
+        "gen1",
         "--set-env-vars",
         "NODE_ENV=production,APP_URL=https://shop.lodlavki.be,VITE_APP_URL=https://shop.lodlavki.be,GMAIL_FROM_NAME=Scouts Lodlavki,GMAIL_USER_EMAIL=noreply@lodlavki.be,env=production",
         "--set-secrets",
