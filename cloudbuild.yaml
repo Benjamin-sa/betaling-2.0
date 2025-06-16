@@ -59,5 +59,6 @@ steps:
 options:
   machineType: "UNSPECIFIED"
   diskSizeGb: "5"
+  logging: "CLOUD_LOGGING_ONLY"
 
 timeout: "400s"
