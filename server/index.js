@@ -45,6 +45,10 @@ async function startServer() {
     // CORS middleware
     app.use(cors());
 
+    // Trust proxy settings for Cloud Run and other reverse proxies
+    // This is essential for rate limiting and getting real client IPs
+    app.set("trust proxy", true);
+
     // Rate limiting for API routes
     const apiLimiter = rateLimit({
       windowMs: 10 * 60 * 1000, // 10 minutes
