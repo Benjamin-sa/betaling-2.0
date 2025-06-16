@@ -57,7 +57,7 @@ steps:
       ]
 
 options:
-  machineType: "E2_HIGHCPU_2"
+  machineType: "UNSPECIFIED"
   diskSizeGb: "5"
 
 timeout: "400s"
