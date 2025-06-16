@@ -1,14 +1,14 @@
-import { initializeApp } from 'firebase/app';
-import { getAuth } from 'firebase/auth';
-import { getFirestore } from 'firebase/firestore';
+import { initializeApp } from "firebase/app";
+import { getAuth } from "firebase/auth";
+import { getFirestore } from "firebase/firestore";
 
 const firebaseConfig = {
-  apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
-  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
-  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
-  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
-  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
-  appId: import.meta.env.VITE_FIREBASE_APP_ID
+  apiKey: "AIzaSyB5n2X6bYHgB1-SauA6El0w_d6S7KZJaiU",
+  authDomain: "lod-lavki-project.firebaseapp.com",
+  projectId: "lod-lavki-project",
+  storageBucket: "lod-lavki-project.firebasestorage.app",
+  messagingSenderId: "707497556595",
+  appId: "1:707497556595:web:e90233119937a80023c806",
 };
 
 const app = initializeApp(firebaseConfig);
