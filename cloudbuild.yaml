@@ -48,8 +48,6 @@ steps:
         "--cpu-throttling",
         "--execution-environment",
         "gen2",
-        "--port",
-        "8080",
         "--set-env-vars",
         "NODE_ENV=production,PORT=8080,APP_URL=https://shop.lodlavki.be,VITE_APP_URL=https://shop.lodlavki.be,GMAIL_FROM_NAME=Scouts Lodlavki,GMAIL_USER_EMAIL=noreply@lodlavki.be,env=production",
         "--set-secrets",
