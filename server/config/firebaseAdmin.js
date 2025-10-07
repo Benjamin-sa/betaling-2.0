@@ -4,7 +4,7 @@ if (!admin.apps.length) {
   try {
     const config = {
       projectId: "lod-lavki-project",
-      storageBucket: "lod-lavki-scouts-images",
+      storageBucket: "lod-lavki-project.firebasestorage.app",
       credential: admin.credential.applicationDefault(),
     };
 
