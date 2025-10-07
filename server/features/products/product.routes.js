@@ -8,7 +8,10 @@ const productController = require("./product.controller");
 const storage = multer.memoryStorage();
 const upload = multer({
   storage: storage,
-  limits: { fileSize: 5 * 1024 * 1024 }, // Limiteer tot 5MB
+  limits: { 
+    fileSize: 5 * 1024 * 1024, // Limiteer tot 5MB per bestand
+    files: 5 // Maximaal 5 bestanden per upload
+  },
   fileFilter: (req, file, cb) => {
     if (file.mimetype.startsWith("image/")) {
       cb(null, true);
@@ -26,7 +29,7 @@ router.post(
   "/",
   authenticate,
   authorizeAdmin,
-  upload.single("image"),
+  upload.array("images", 5), // Changed from single to array, max 5 images
   (req, res) => productController.createProduct(req, res)
 );
 

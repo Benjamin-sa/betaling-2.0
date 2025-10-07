@@ -3,7 +3,7 @@ const BaseController = require("../../core/controllers/base.controller");
 const firebaseService = require("../../core/services/firebase-cached.service");
 const gmailService = require("../../core/services/google-apis/gmail.service");
 const googleOAuth2Service = require("../../core/services/google-apis/google-oauth.service");
-const driveImageManager = require("../../core/services/google-apis/driveImageManager.service");
+const firebaseStorageService = require("../../core/services/firebase-storage.service");
 const { admin } = require("../../config/firebaseAdmin");
 
 class AdminController extends BaseController {
@@ -143,7 +143,7 @@ class AdminController extends BaseController {
   }
 
   /**
-   * Setup Google OAuth2 - generate authorization URL for Gmail and Drive
+   * Setup Google OAuth2 - generate authorization URL for Gmail
    */
   async setupGoogleAuth(req, res) {
     await this._handleAsync(this._setupGoogleAuthHandler, req, res);
@@ -154,7 +154,7 @@ class AdminController extends BaseController {
    * @private
    */
   async _setupGoogleAuthHandler(req, res) {
-    this._logAction("Setting up Google OAuth2 (Gmail + Drive)");
+    this._logAction("Setting up Google OAuth2 (Gmail only)");
 
     try {
       const authUrl = googleOAuth2Service.generateAuthUrl();
@@ -163,8 +163,9 @@ class AdminController extends BaseController {
       return this._sendSuccessResponse(res, {
         authUrl,
         message:
-          "Visit this URL to authorize Google services (Gmail + Drive) access",
-        scopes: ["Gmail", "Drive", "User Info"],
+          "Visit this URL to authorize Gmail service access for email delivery",
+        scopes: ["Gmail", "User Info"],
+        note: "Image storage is now handled by Firebase Storage (no additional setup required)",
       });
     } catch (error) {
       this._logAction("Failed to generate Google authorization URL", {
@@ -194,8 +195,9 @@ class AdminController extends BaseController {
     this._logAction("Checking Google services authentication status");
 
     try {
-      const [authStatus] = await Promise.all([
+      const [authStatus, storageStatus] = await Promise.all([
         googleOAuth2Service.getAuthStatus(),
+        firebaseStorageService.getStatus(),
       ]);
 
       const comprehensiveStatus = {
@@ -208,12 +210,22 @@ class AdminController extends BaseController {
           allowedEmail: authStatus.allowedEmail,
         },
 
-        // Overall status
-        allServicesReady: authStatus.authenticated,
+        // Firebase Storage status (no OAuth needed)
+        storage: {
+          authenticated: storageStatus.authenticated,
+          initialized: storageStatus.initialized,
+          bucketName: storageStatus.bucketName,
+          bucketExists: storageStatus.bucketExists,
+        },
+
+        // Overall status (Gmail for emails, Firebase Storage for images)
+        allServicesReady:
+          authStatus.authenticated && storageStatus.authenticated,
       };
 
       this._logAction("Google services status retrieved", {
         oauth2Authenticated: authStatus.authenticated,
+        storageReady: storageStatus.authenticated,
       });
 
       return this._sendSuccessResponse(res, comprehensiveStatus);
@@ -287,16 +299,16 @@ class AdminController extends BaseController {
       const success = await googleOAuth2Service.reloadToken();
 
       // Get updated status for all services
-      const [authStatus, gmailStatus, driveStatus] = await Promise.all([
+      const [authStatus, gmailStatus, storageStatus] = await Promise.all([
         googleOAuth2Service.getAuthStatus(),
         gmailService.getAuthStatus(),
-        driveImageManager.getStatus(),
+        firebaseStorageService.getStatus(),
       ]);
 
       this._logAction("Google OAuth2 tokens reloaded", {
         success,
         gmailReady: gmailStatus.authenticated,
-        driveReady: driveStatus.authenticated,
+        storageReady: storageStatus.authenticated,
       });
 
       return this._sendSuccessResponse(res, {
@@ -307,13 +319,13 @@ class AdminController extends BaseController {
         },
         services: {
           gmail: { authenticated: gmailStatus.authenticated },
-          drive: {
-            authenticated: driveStatus.authenticated,
-            initialized: driveStatus.initialized,
+          storage: {
+            authenticated: storageStatus.authenticated,
+            initialized: storageStatus.initialized,
           },
         },
         message: success
-          ? "Google OAuth2 tokens reloaded successfully for all services"
+          ? "Google OAuth2 tokens reloaded successfully for Gmail service"
           : "No valid tokens found - authentication required",
       });
     } catch (error) {

@@ -20,7 +20,6 @@
 </template>
 
 <script setup>
-import { computed } from 'vue'
 import { useRoute } from 'vue-router'
 import Navigation from './components/ui/Navigation.vue'
 import Footer from './components/ui/Footer.vue'

@@ -91,7 +91,7 @@
                                 class="bg-white border-2 border-gray-200 rounded-xl p-3 sm:p-4 space-y-3">
                                 <div class="flex justify-between items-center">
                                     <span class="font-bold text-gray-900 text-sm sm:text-base">Shift {{ index + 1
-                                    }}</span>
+                                        }}</span>
                                     <button type="button" @click="removeShift(index)"
                                         :disabled="newEvent.shifts.length === 1"
                                         class="text-error hover:text-red-700 disabled:text-gray-400 disabled:cursor-not-allowed transition-colors duration-200">

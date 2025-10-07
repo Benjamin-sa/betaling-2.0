@@ -128,42 +128,14 @@ class WebhookController extends BaseController {
         ? JSON.parse(session.metadata.items)
         : [];
 
-      console.log("[DEBUG WEBHOOK] Session metadata:", {
-        eventId: session.metadata?.eventId,
-        hasItemsMetadata: !!session.metadata?.items,
-        originalItemsCount: originalItems.length,
-        originalItems: originalItems.map((item) => ({
-          productId: item.productId,
-          shiftId: item.shiftId,
-          quantity: item.quantity,
-        })),
-      });
-
       // 4. Transform session line items to order items with shift information
       const orderItems = this._transformLineItemsToOrderItems(
         session.line_items.data,
         originalItems
       );
 
-      console.log(
-        "[DEBUG WEBHOOK] Transformed order items:",
-        orderItems.map((item) => ({
-          productName: item.productName,
-          shiftId: item.shiftId,
-          quantity: item.quantity,
-        }))
-      );
-
       // 5. Get eventId from metadata
       const eventId = session.metadata?.eventId || "";
-
-      console.log("[DEBUG WEBHOOK] Order data being sent to Firebase:", {
-        orderId: session.id,
-        userId: user.id,
-        eventId: eventId,
-        itemsWithShifts: orderItems.filter((item) => item.shiftId).length,
-        totalItems: orderItems.length,
-      });
 
       // 6. Save order to Firebase using the updated createOrder method
       await firebaseService.createOrder({

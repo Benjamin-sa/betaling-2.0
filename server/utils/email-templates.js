@@ -47,7 +47,7 @@ class EmailTemplates {
       html: htmlContent,
       text: textContent,
       headers: enhancedHeaders,
-      subject: `Bestelling bevestiging - ${orderData.orderId}`,
+      subject: `Bestelling bevestiging - Lod Lavki`,
       from: this._getFromAddress(),
     };
   }

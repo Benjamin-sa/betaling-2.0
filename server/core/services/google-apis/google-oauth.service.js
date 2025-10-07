@@ -28,7 +28,7 @@ class GoogleOAuth2Service {
       SCOPES: [
         "https://www.googleapis.com/auth/gmail.send",
         "https://www.googleapis.com/auth/userinfo.email",
-        "https://www.googleapis.com/auth/drive.file",
+        // Note: Removed Drive scope as images are now handled by Firebase Storage
       ],
     };
 

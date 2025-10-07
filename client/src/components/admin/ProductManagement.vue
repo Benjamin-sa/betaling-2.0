@@ -66,26 +66,10 @@
 
                         <!-- Image Upload -->
                         <div>
-                            <label for="image" class="block text-sm font-semibold text-gray-700 mb-2">Afbeelding</label>
-                            <div class="relative">
-                                <input id="image" type="file" @change="handleImageChange" accept="image/*"
-                                    class="hidden" />
-                                <label for="image"
-                                    class="flex items-center justify-center w-full px-3 sm:px-4 py-4 sm:py-6 border-2 border-dashed border-gray-300 rounded-xl cursor-pointer hover:border-primary hover:bg-gray-50 transition-all duration-200">
-                                    <div class="text-center">
-                                        <svg class="w-6 h-6 sm:w-8 sm:h-8 mx-auto mb-2 text-gray-400" fill="none"
-                                            stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                                d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
-                                        </svg>
-                                        <p class="text-xs sm:text-sm text-gray-600">
-                                            <span class="font-medium text-primary">Upload een afbeelding</span><span
-                                                class="hidden sm:inline"> of sleep hier</span>
-                                        </p>
-                                        <p class="text-xs text-gray-500 mt-1">PNG, JPG tot 5MB</p>
-                                    </div>
-                                </label>
-                            </div>
+                            <MultiImageUpload v-model="newProduct.images" label="Product afbeeldingen" :max-images="5"
+                                :max-size-m-b="5"
+                                help-text="Upload tot 5 afbeeldingen voor dit product. De eerste afbeelding wordt gebruikt als hoofdafbeelding."
+                                @error="handleImageUploadError" />
                         </div>
 
                         <!-- Requires Timeslot -->
@@ -143,17 +127,25 @@
                         <div v-for="product in products" :key="product.id"
                             class="bg-white border-2 border-gray-200 rounded-xl p-3 sm:p-4 hover:shadow-lg transition-all duration-300 transform hover:-translate-y-1">
                             <div class="flex flex-col sm:flex-row sm:items-start space-y-3 sm:space-y-0 sm:space-x-4">
-                                <!-- Product Image -->
+                                <!-- Product Images -->
                                 <div class="flex-shrink-0 mx-auto sm:mx-0">
-                                    <div
-                                        class="w-12 h-12 sm:w-16 sm:h-16 rounded-xl bg-gradient-to-br from-primary to-secondary flex items-center justify-center">
-                                        <svg v-if="!product.image" class="w-6 h-6 sm:w-8 sm:h-8 text-white" fill="none"
+                                    <div v-if="product.images && product.images.length > 0"
+                                        class="w-20 h-20 sm:w-24 sm:h-24">
+                                        <ImagePreview
+                                            :images="Array.isArray(product.images) ? product.images : [product.images]"
+                                            class="w-full h-full" />
+                                    </div>
+                                    <div v-else-if="product.image" class="w-20 h-20 sm:w-24 sm:h-24">
+                                        <img :src="product.image" :alt="product.name"
+                                            class="w-full h-full object-cover rounded-xl border-2 border-gray-200" />
+                                    </div>
+                                    <div v-else
+                                        class="w-20 h-20 sm:w-24 sm:h-24 rounded-xl bg-gradient-to-br from-primary to-secondary flex items-center justify-center">
+                                        <svg class="w-8 h-8 sm:w-10 sm:h-10 text-white" fill="none"
                                             stroke="currentColor" viewBox="0 0 24 24">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                                 d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
                                         </svg>
-                                        <img v-else :src="product.image" :alt="product.name"
-                                            class="w-full h-full object-cover rounded-xl" />
                                     </div>
                                 </div>
 
@@ -234,6 +226,8 @@ import { useNotificationStore } from '@/stores/notifications';
 import { useConfirmation } from '@/composables/useConfirmation';
 import { apiClient } from '@/services/api';
 import ConfirmationModal from '@/components/ui/ConfirmationModal.vue';
+import MultiImageUpload from '@/components/ui/MultiImageUpload.vue';
+import ImagePreview from '@/components/ui/ImagePreview.vue';
 
 const notifications = useNotificationStore();
 const confirmation = useConfirmation();
@@ -255,12 +249,12 @@ const newProduct = ref({
     description: '',
     price: '',
     eventId: '',
-    image: null,
+    images: [], // Changed from single image to array of images
     requiresTimeslot: false,
 });
 
-const handleImageChange = (event) => {
-    newProduct.value.image = event.target.files[0];
+const handleImageUploadError = (error) => {
+    notifications.error('Afbeelding fout', error);
 };
 
 // Computed property to get the selected event type
@@ -288,8 +282,11 @@ const handleAddProduct = async () => {
         formData.append('eventId', newProduct.value.eventId);
         formData.append('requiresTimeslot', newProduct.value.requiresTimeslot);
 
-        if (newProduct.value.image) {
-            formData.append('image', newProduct.value.image);
+        // Add multiple images to FormData
+        if (newProduct.value.images && newProduct.value.images.length > 0) {
+            newProduct.value.images.forEach((image, index) => {
+                formData.append(`images`, image); // Backend will receive this as an array
+            });
         }
 
         const response = await apiClient.addProduct(formData);
@@ -304,13 +301,9 @@ const handleAddProduct = async () => {
             description: '',
             price: '',
             eventId: '',
-            image: null,
+            images: [], // Reset to empty array
             requiresTimeslot: false,
         };
-
-        // Reset file input
-        const fileInput = document.getElementById('image');
-        if (fileInput) fileInput.value = '';
 
     } catch (error) {
         console.error('Error adding product:', error);

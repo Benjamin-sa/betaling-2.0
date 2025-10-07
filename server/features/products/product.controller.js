@@ -2,7 +2,7 @@
 const BaseController = require("../../core/controllers/base.controller");
 const firebaseService = require("../../core/services/firebase-cached.service");
 const stripeService = require("../../core/services/stripe.service");
-const driveImageManager = require("../../core/services/google-apis/driveImageManager.service");
+const firebaseStorageService = require("../../core/services/firebase-storage.service");
 const {
   ProductFields,
   createProductData,
@@ -21,17 +21,24 @@ class ProductController extends BaseController {
   /**
    * Clean up resources on failure
    */
-  async _cleanupResources(imageUrl, stripeProductId = null) {
+  async _cleanupResources(imageUrls, stripeProductId = null) {
     const cleanupPromises = [];
 
-    if (imageUrl) {
-      cleanupPromises.push(
-        driveImageManager
-          .deleteImage(imageUrl)
-          .catch((error) =>
-            console.error("Failed to cleanup uploaded image:", error)
-          )
-      );
+    // Handle both single imageUrl (string) and multiple imageUrls (array)
+    if (imageUrls) {
+      const urlsToDelete = Array.isArray(imageUrls) ? imageUrls : [imageUrls];
+
+      urlsToDelete.forEach((imageUrl) => {
+        if (imageUrl) {
+          cleanupPromises.push(
+            firebaseStorageService
+              .deleteImage(imageUrl)
+              .catch((error) =>
+                console.error("Failed to cleanup uploaded image:", error)
+              )
+          );
+        }
+      });
     }
 
     if (stripeProductId) {
@@ -91,9 +98,14 @@ class ProductController extends BaseController {
    */
   async _createProductHandler(req, res) {
     const { name, description, price, eventId, requiresTimeslot } = req.body;
-    const image = req.file;
+    const images = req.files; // Changed from req.file to req.files for multiple images
 
-    this._logAction("Creating new product", { name, price, eventId });
+    this._logAction("Creating new product", {
+      name,
+      price,
+      eventId,
+      imageCount: images ? images.length : 0,
+    });
 
     // Get event data for validation
     const event = await firebaseService.getEvent(eventId);
@@ -105,21 +117,23 @@ class ProductController extends BaseController {
       );
     }
 
-    let imageUrl = null;
+    let imageUrls = [];
     let stripeProduct = null;
 
     try {
-      // 1. Upload image if provided
-      if (image) {
-        imageUrl = await this._uploadProductImage(image);
+      // 1. Upload images if provided
+      if (images && images.length > 0) {
+        this._logAction("Uploading product images", { count: images.length });
+        imageUrls = await this._uploadProductImages(images);
       }
 
-      // 2. Create product in Stripe
+      // 2. Create product in Stripe (use first image as main image for Stripe)
+      const mainImageUrl = imageUrls.length > 0 ? imageUrls[0] : null;
       stripeProduct = await stripeService.createProduct({
         name,
         description,
         price,
-        imageUrl,
+        imageUrl: mainImageUrl,
       });
 
       // 3. Create product data using factory function with validation
@@ -129,11 +143,12 @@ class ProductController extends BaseController {
           [ProductFields.DESCRIPTION]: description,
           [ProductFields.PRICE]: price,
           [ProductFields.EVENT_ID]: eventId,
-          [ProductFields.IMAGE]: imageUrl,
+          [ProductFields.IMAGE]: mainImageUrl, // Keep single image field for backward compatibility
+          [ProductFields.IMAGES]: imageUrls, // Add new images array field
           [ProductFields.STRIPE_PRODUCT_ID]: stripeProduct.product.id,
           [ProductFields.STRIPE_PRICE_ID]: stripeProduct.price.id,
           [ProductFields.REQUIRES_TIMESLOT]: requiresTimeslot,
-          [ProductFields.IS_TEST_MODE]: stripeProduct.isTestMode, // Use the explicit isTestMode field
+          [ProductFields.IS_TEST_MODE]: stripeProduct.isTestMode,
         },
         {
           event, // Pass event for business logic validation
@@ -143,7 +158,10 @@ class ProductController extends BaseController {
       // 4. Save to Firebase
       const productId = await firebaseService.createProduct(productData);
 
-      this._logAction("Product created successfully", { productId });
+      this._logAction("Product created successfully", {
+        productId,
+        imagesUploaded: imageUrls.length,
+      });
       this._sendSuccessResponse(
         res,
         { productId, product: productData },
@@ -153,10 +171,11 @@ class ProductController extends BaseController {
     } catch (error) {
       this._logAction("Product creation failed, cleaning up resources", {
         error: error.message,
+        imagesToCleanup: imageUrls.length,
       });
 
       // Cleanup on failure
-      await this._cleanupResources(imageUrl, stripeProduct?.product?.id);
+      await this._cleanupResources(imageUrls, stripeProduct?.product?.id);
       throw error; // Re-throw to be handled by _handleAsync
     }
   }
@@ -203,9 +222,17 @@ class ProductController extends BaseController {
       await stripeService.deactivateProduct(product.stripeProductId);
     }
 
-    // 3. Delete image if exists
+    // 3. Delete images if they exist (handle both legacy single image and new images array)
+    const imagesToDelete = [];
     if (product.image) {
-      await this._deleteProductImage(product.image);
+      imagesToDelete.push(product.image);
+    }
+    if (product.images && Array.isArray(product.images)) {
+      imagesToDelete.push(...product.images);
+    }
+    
+    if (imagesToDelete.length > 0) {
+      await this._deleteProductImage(imagesToDelete);
     }
 
     // 4. Delete from Firebase
@@ -216,11 +243,11 @@ class ProductController extends BaseController {
   }
 
   /**
-   * Upload product image with error handling
+   * Upload single product image to Firebase Storage
    * @private
    */
   async _uploadProductImage(image) {
-    return await driveImageManager.uploadImage(
+    return await firebaseStorageService.uploadImage(
       image.buffer,
       image.originalname,
       image.mimetype,
@@ -229,15 +256,52 @@ class ProductController extends BaseController {
   }
 
   /**
-   * Delete product image with error handling
+   * Upload multiple product images to Firebase Storage
    * @private
    */
-  async _deleteProductImage(image) {
+  async _uploadProductImages(images) {
+    const uploadPromises = images.map((image, index) => {
+      // Add index to filename to ensure uniqueness
+      const uniqueFilename = `${Date.now()}_${index}_${image.originalname}`;
+      return firebaseStorageService.uploadImage(
+        image.buffer,
+        uniqueFilename,
+        image.mimetype,
+        "products"
+      );
+    });
+
     try {
-      await driveImageManager.deleteImage(image);
-      this._logAction("Product image deleted successfully");
+      const imageUrls = await Promise.all(uploadPromises);
+      this._logAction("Multiple product images uploaded successfully", { count: imageUrls.length });
+      return imageUrls;
+    } catch (error) {
+      this._logAction("Error uploading product images", { error: error.message });
+      throw error;
+    }
+  }
+
+  /**
+   * Delete product image(s) with error handling
+   * @private
+   */
+  async _deleteProductImage(images) {
+    try {
+      // Handle both single image (string) and multiple images (array)
+      const imagesToDelete = Array.isArray(images) ? images : [images];
+      
+      const deletePromises = imagesToDelete.map(imageUrl => {
+        if (imageUrl) {
+          return firebaseStorageService.deleteImage(imageUrl);
+        }
+      }).filter(Boolean); // Remove null/undefined promises
+
+      if (deletePromises.length > 0) {
+        await Promise.all(deletePromises);
+        this._logAction("Product image(s) deleted successfully", { count: deletePromises.length });
+      }
     } catch (imageError) {
-      this._logAction("Error deleting product image", {
+      this._logAction("Error deleting product image(s)", {
         error: imageError.message,
       });
       // Continue with product deletion even if image deletion fails

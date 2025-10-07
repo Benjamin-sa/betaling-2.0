@@ -1,0 +1,44 @@
+version: '3.8'
+
+services:
+  webshop:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "8080:8080"
+    environment:
+      - PORT=8080
+      - NODE_ENV=production
+    env_file:
+      - ./server/.env
+    volumes:
+      # Mount Firebase credentials if you have them locally
+      - ./server/firebase-credentials.json:/app/server/firebase-credentials.json:ro
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "node", "-e", "require('http').get('http://localhost:8080/api/health', (res) => { process.exit(res.statusCode === 200 ? 0 : 1) })"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 5s
+
+  # Optional: Add a development service for hot-reload
+  webshop-dev:
+    image: node:20-alpine
+    working_dir: /app
+    ports:
+      - "5173:5173"  # Vite dev server
+      - "8080:8080"  # Backend server
+    environment:
+      - NODE_ENV=development
+    env_file:
+      - ./server/.env
+    volumes:
+      - .:/app
+      - /app/node_modules
+      - /app/client/node_modules
+      - /app/server/node_modules
+    command: sh -c "npm run install:all && npm run dev:client & npm run dev --prefix server"
+    profiles:
+      - development

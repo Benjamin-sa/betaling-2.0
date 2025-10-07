@@ -12,6 +12,7 @@ const ProductFields = {
   STRIPE_PRICE_ID: "stripePriceId",
   REQUIRES_TIMESLOT: "requiresTimeslot",
   IMAGE: "image",
+  IMAGES: "images", // New field for multiple images
   EVENT_ID: "eventId",
   IS_TEST_MODE: "isTestMode",
   CREATED_AT: "createdAt",
