@@ -1,4 +1,5 @@
 import { ref } from "vue";
+import { useRouter } from "vue-router";
 import { apiClient } from "@/services/api";
 import { useAuthStore } from "@/stores/auth";
 import { useNotificationStore } from "@/stores/notifications";
@@ -21,6 +22,7 @@ import {
 export function useCheckout(products, cartItems, selectedEvent) {
   const auth = useAuthStore();
   const notifications = useNotificationStore();
+  const router = useRouter();
   const { redirectToCheckout } = useStripe();
   const { validateCartCapacity } = useShiftCapacity();
 
@@ -102,8 +104,12 @@ export function useCheckout(products, cartItems, selectedEvent) {
           NOTIFICATION_TITLES.AUTH_ERROR,
           ERROR_MESSAGES.AUTH_REQUIRED
         );
+
+        router.push("/login");
         return;
       }
+
+
 
       // Validate cart items
       const validationError = getCheckoutValidationError();
