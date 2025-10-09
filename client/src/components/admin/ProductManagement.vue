@@ -2,8 +2,28 @@
     <div class="bg-white rounded-2xl shadow-lg border border-gray-200">
         <!-- Header -->
         <div class="bg-gradient-to-r from-primary to-secondary px-4 sm:px-6 lg:px-8 py-4 sm:py-6 rounded-t-2xl">
-            <h2 class="text-xl sm:text-2xl lg:text-3xl font-bold text-white mb-2">Producten Beheren</h2>
-            <p class="text-sm sm:text-base text-emerald-100">Voeg nieuwe producten toe en beheer bestaande</p>
+            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                    <h2 class="text-xl sm:text-2xl lg:text-3xl font-bold text-white mb-2">Producten Beheren</h2>
+                    <p class="text-sm sm:text-base text-emerald-100">Voeg nieuwe producten toe en beheer bestaande</p>
+                </div>
+                
+                <!-- Test Mode Warning (only show in test mode) -->
+                <div v-if="stripeMode === 'test'" class="mt-3 sm:mt-0">
+                    <div class="bg-orange-500 text-white px-4 py-2 rounded-xl font-bold text-sm border-2 border-orange-600 shadow-lg">
+                        <div class="flex items-center">
+                            <svg class="w-5 h-5 mr-2 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                                    d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                            </svg>
+                            <span>⚠️ TEST MODUS ACTIEF</span>
+                        </div>
+                    </div>
+                    <p class="text-xs text-white/90 mt-1 text-right font-medium">
+                        Alleen voor ontwikkelaars - klanten kunnen NIET betalen
+                    </p>
+                </div>
+            </div>
         </div>
 
         <!-- Content -->
@@ -22,6 +42,32 @@
                     </h3>
 
                     <form @submit.prevent="handleAddProduct" class="space-y-4 sm:space-y-6">
+                        <!-- Test Mode Warning Banner -->
+                        <div v-if="stripeMode === 'test'" class="bg-orange-50 border-2 border-orange-500 rounded-xl p-4">
+                            <div class="flex items-start">
+                                <div class="flex-shrink-0">
+                                    <svg class="w-6 h-6 text-orange-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                                            d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                                    </svg>
+                                </div>
+                                <div class="ml-3">
+                                    <h3 class="text-sm font-bold text-orange-900">⚠️ TEST MODUS - ALLEEN VOOR ONTWIKKELAARS</h3>
+                                    <div class="mt-2 text-sm text-orange-800">
+                                        <p class="font-semibold">Producten die nu worden aangemaakt:</p>
+                                        <ul class="list-disc ml-5 mt-1 space-y-1">
+                                            <li><strong>Kunnen NIET door klanten worden betaald</strong></li>
+                                            <li>Zijn alleen bedoeld voor test-doeleinden</li>
+                                            <li>Gebruiken Stripe test betalingen (geen echt geld)</li>
+                                        </ul>
+                                        <p class="mt-2 font-bold text-orange-900">
+                                            💡 Om echte betalingen te accepteren: schakel over naar LIVE modus in Stripe Configuratie
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
                         <!-- Product Name -->
                         <div>
                             <label for="name" class="block text-sm font-semibold text-gray-700 mb-2">Naam</label>
@@ -175,6 +221,16 @@
                                                     </svg>
                                                     Tijdslot vereist
                                                 </span>
+                                                <span v-if="product.isTestMode === true"
+                                                    class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-orange-100 text-orange-800 border border-orange-300"
+                                                    title="Dit product kan niet door klanten worden betaald">
+                                                    🧪 Test
+                                                </span>
+                                                <span v-else-if="product.isTestMode === false"
+                                                    class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800 border border-green-300"
+                                                    title="Dit product kan door klanten worden betaald">
+                                                    ✅ Live
+                                                </span>
                                             </div>
                                         </div>
 
@@ -243,6 +299,7 @@ const emit = defineEmits(['products-updated']);
 
 const loading = ref(false);
 const products = ref([]);
+const stripeMode = ref(null);
 
 const newProduct = ref({
     name: '',
@@ -275,6 +332,9 @@ watch(selectedEventType, (newType) => {
 const handleAddProduct = async () => {
     try {
         loading.value = true;
+        
+        console.log('🛍️ Creating product in Stripe mode:', stripeMode.value);
+        
         const formData = new FormData();
         formData.append('name', newProduct.value.name);
         formData.append('description', newProduct.value.description);
@@ -290,6 +350,8 @@ const handleAddProduct = async () => {
         }
 
         const response = await apiClient.addProduct(formData);
+        console.log('✅ Product created with isTestMode:', response.product.isTestMode);
+        
         products.value.push(response.product);
         emit('products-updated');
 
@@ -340,7 +402,19 @@ const loadProducts = async () => {
     }
 };
 
+const loadStripeMode = async () => {
+    try {
+        const config = await apiClient.getStripeConfig();
+        stripeMode.value = config.mode;
+        console.log('📊 Current Stripe Mode:', config.mode);
+    } catch (error) {
+        console.error('Error loading Stripe mode:', error);
+        stripeMode.value = 'test'; // Default fallback
+    }
+};
+
 onMounted(() => {
     loadProducts();
+    loadStripeMode();
 });
 </script>

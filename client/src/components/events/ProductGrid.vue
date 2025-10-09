@@ -90,6 +90,32 @@
                 </p>
             </div>
 
+            <!-- Test Mode Warning for Customers -->
+            <div v-if="hasTestProducts" class="mb-8 max-w-4xl mx-auto">
+                <div class="bg-orange-50 border-l-4 border-orange-500 rounded-r-xl p-6 shadow-lg">
+                    <div class="flex items-start">
+                        <div class="flex-shrink-0">
+                            <svg class="w-8 h-8 text-orange-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                                    d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                            </svg>
+                        </div>
+                        <div class="ml-4">
+                            <h3 class="text-lg font-bold text-orange-900 mb-2">
+                                ⚠️ Let op: Testomgeving
+                            </h3>
+                            <p class="text-orange-800 text-sm sm:text-base">
+                                <strong>Deze producten zijn momenteel in testmodus.</strong> 
+                                Je kunt producten bekijken en toevoegen aan je winkelmandje, maar <strong class="underline">er kunnen geen echte betalingen worden gedaan</strong>.
+                            </p>
+                            <p class="text-orange-700 text-xs sm:text-sm mt-2">
+                                Dit is een test-/ontwikkelomgeving. Neem contact op met de beheerder als je een echte bestelling wilt plaatsen.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             <!-- Products Grid - show for all events that have products -->
             <div v-if="products.length > 0" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
                 <div v-for="product in products" :key="product.id"
@@ -194,6 +220,11 @@ const availableShiftsCount = computed(() => {
 const availableShifts = computed(() => {
     if (!props.selectedEvent?.shifts) return [];
     return props.selectedEvent.shifts.filter(shift => shift.isActive);
+});
+
+// Check if any products are in test mode
+const hasTestProducts = computed(() => {
+    return props.products.some(product => product.isTestMode === true);
 });
 
 const updateCartItem = (productId, shiftId, newQuantity) => {

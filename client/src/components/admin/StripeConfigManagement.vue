@@ -38,99 +38,173 @@
                 <!-- Current Mode Indicator -->
                 <div class="flex items-center justify-between">
                     <div>
-                        <h3 class="text-lg font-semibold text-gray-900">Current Mode</h3>
-                        <p class="text-sm text-gray-600">Active Stripe environment</p>
+                        <h3 class="text-lg font-semibold text-gray-900">Huidige Modus</h3>
+                        <p class="text-sm text-gray-600">Actieve Stripe omgeving</p>
                     </div>
                     <div class="flex items-center space-x-3">
                         <span :class="[
-                            'inline-flex px-3 py-1 text-sm font-semibold rounded-full',
+                            'inline-flex items-center px-4 py-2 text-sm font-bold rounded-xl border-2 shadow-sm',
                             config.mode === 'live'
-                                ? 'bg-red-100 text-red-800'
-                                : 'bg-yellow-100 text-yellow-800'
+                                ? 'bg-green-100 text-green-900 border-green-300'
+                                : 'bg-orange-500 text-white border-orange-600'
                         ]">
-                            {{ config.mode === 'live' ? '🔴 LIVE MODE' : '🟡 TEST MODE' }}
+                            <svg v-if="config.mode === 'live'" class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                            <svg v-else class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                            </svg>
+                            {{ config.mode === 'live' ? '✅ LIVE MODUS' : '⚠️ TEST MODUS' }}
                         </span>
                     </div>
                 </div>
 
-                <!-- Warning for Live Mode -->
-                <div v-if="config.mode === 'live'" class="bg-red-50 border border-red-200 rounded-xl p-4">
+                <!-- Warning for Test Mode -->
+                <div v-if="config.mode === 'test'" class="bg-orange-50 border-2 border-orange-500 rounded-xl p-6">
                     <div class="flex items-start">
-                        <svg class="w-5 h-5 text-red-500 mt-0.5 mr-3" fill="none" stroke="currentColor"
-                            viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.732-.833-2.5 0L4.268 18.5c-.77.833.192 2.5 1.732 2.5z" />
-                        </svg>
-                        <div>
-                            <h4 class="text-sm font-medium text-red-800">Live Mode Active</h4>
-                            <p class="text-sm text-red-700 mt-1">Real payments are being processed. Please be careful
-                                with any changes.</p>
+                        <div class="flex-shrink-0">
+                            <svg class="w-8 h-8 text-orange-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                            </svg>
+                        </div>
+                        <div class="ml-4">
+                            <h4 class="text-base font-bold text-orange-900 mb-2">⚠️ TEST MODUS ACTIEF - Alleen voor Ontwikkelaars</h4>
+                            <div class="text-sm text-orange-800 space-y-2">
+                                <p class="font-semibold">In test modus kunnen <strong class="underline">klanten GEEN echte betalingen doen</strong>:</p>
+                                <ul class="list-disc ml-5 space-y-1">
+                                    <li>Alle betalingen zijn gesimuleerd (geen echt geld)</li>
+                                    <li>Nieuwe producten worden aangemaakt in test modus</li>
+                                    <li>Klanten zien een waarschuwing dat ze niet kunnen betalen</li>
+                                    <li>Alleen geschikt voor test en ontwikkeling</li>
+                                </ul>
+                                <p class="mt-3 font-bold text-orange-900 bg-orange-100 border border-orange-300 rounded-lg p-2">
+                                    💡 Schakel over naar LIVE MODUS om echte betalingen te accepteren
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Success indicator for Live Mode -->
+                <div v-else class="bg-green-50 border-2 border-green-500 rounded-xl p-6">
+                    <div class="flex items-start">
+                        <div class="flex-shrink-0">
+                            <svg class="w-8 h-8 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                        </div>
+                        <div class="ml-4">
+                            <h4 class="text-base font-bold text-green-900 mb-2">✅ Live Modus Actief</h4>
+                            <div class="text-sm text-green-800 space-y-1">
+                                <p><strong>Klanten kunnen nu echte betalingen doen.</strong></p>
+                                <p>Nieuwe producten worden aangemaakt voor echte verkoop.</p>
+                            </div>
                         </div>
                     </div>
                 </div>
 
                 <!-- Keys Status -->
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div class="bg-gray-50 rounded-lg p-4">
-                        <div class="flex items-center">
-                            <div :class="[
-                                'w-3 h-3 rounded-full mr-2',
-                                config.hasTestKeys ? 'bg-green-500' : 'bg-red-500'
-                            ]"></div>
-                            <span class="text-sm font-medium text-gray-900">Test Keys</span>
+                    <div class="bg-gray-50 rounded-lg p-4 border border-gray-200">
+                        <div class="flex items-center justify-between">
+                            <div class="flex items-center">
+                                <div :class="[
+                                    'w-3 h-3 rounded-full mr-2',
+                                    config.hasTestKeys ? 'bg-green-500' : 'bg-red-500'
+                                ]"></div>
+                                <span class="text-sm font-semibold text-gray-900">Test Sleutels</span>
+                            </div>
+                            <svg v-if="config.hasTestKeys" class="w-5 h-5 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                            <svg v-else class="w-5 h-5 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
                         </div>
                         <p class="text-xs text-gray-600 mt-1">
-                            {{ config.hasTestKeys ? 'Configured' : 'Missing' }}
+                            {{ config.hasTestKeys ? '✅ Geconfigureerd' : '❌ Ontbreekt' }}
                         </p>
                     </div>
 
-                    <div class="bg-gray-50 rounded-lg p-4">
-                        <div class="flex items-center">
-                            <div :class="[
-                                'w-3 h-3 rounded-full mr-2',
-                                config.hasLiveKeys ? 'bg-green-500' : 'bg-red-500'
-                            ]"></div>
-                            <span class="text-sm font-medium text-gray-900">Live Keys</span>
+                    <div class="bg-gray-50 rounded-lg p-4 border border-gray-200">
+                        <div class="flex items-center justify-between">
+                            <div class="flex items-center">
+                                <div :class="[
+                                    'w-3 h-3 rounded-full mr-2',
+                                    config.hasLiveKeys ? 'bg-green-500' : 'bg-red-500'
+                                ]"></div>
+                                <span class="text-sm font-semibold text-gray-900">Live Sleutels</span>
+                            </div>
+                            <svg v-if="config.hasLiveKeys" class="w-5 h-5 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                            <svg v-else class="w-5 h-5 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
                         </div>
                         <p class="text-xs text-gray-600 mt-1">
-                            {{ config.hasLiveKeys ? 'Configured' : 'Missing' }}
+                            {{ config.hasLiveKeys ? '✅ Geconfigureerd' : '❌ Ontbreekt' }}
                         </p>
                     </div>
                 </div>
 
                 <!-- Mode Switch Controls -->
                 <div class="border-t border-gray-200 pt-4">
-                    <h4 class="text-sm font-medium text-gray-900 mb-3">Switch Mode</h4>
-                    <div class="flex items-center space-x-4">
+                    <h4 class="text-sm font-medium text-gray-900 mb-3">Modus Wisselen</h4>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
                         <button @click="switchMode('test')"
                             :disabled="switching || config.mode === 'test' || !config.hasTestKeys"
-                            class="px-4 py-2 bg-yellow-500 text-white rounded-lg font-medium hover:bg-yellow-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200">
-                            <div class="flex items-center space-x-2">
+                            class="px-4 py-3 bg-orange-500 text-white rounded-xl font-semibold hover:bg-orange-600 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 hover:shadow-lg">
+                            <div class="flex items-center justify-center space-x-2">
                                 <svg v-if="switching && targetMode === 'test'" class="animate-spin w-4 h-4" fill="none"
                                     stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                        d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
                                 </svg>
-                                <span>Switch to Test</span>
+                                <svg v-else class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                                </svg>
+                                <span>Wissel naar Test Modus</span>
                             </div>
+                            <p class="text-xs text-orange-100 mt-1">Voor ontwikkeling en testen</p>
                         </button>
 
                         <button @click="switchMode('live')"
                             :disabled="switching || config.mode === 'live' || !config.hasLiveKeys"
-                            class="px-4 py-2 bg-red-500 text-white rounded-lg font-medium hover:bg-red-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200">
-                            <div class="flex items-center space-x-2">
+                            class="px-4 py-3 bg-green-600 text-white rounded-xl font-semibold hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 hover:shadow-lg">
+                            <div class="flex items-center justify-center space-x-2">
                                 <svg v-if="switching && targetMode === 'live'" class="animate-spin w-4 h-4" fill="none"
                                     stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                        d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
                                 </svg>
-                                <span>Switch to Live</span>
+                                <svg v-else class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                </svg>
+                                <span>Wissel naar Live Modus</span>
                             </div>
+                            <p class="text-xs text-green-100 mt-1">Voor echte betalingen</p>
                         </button>
                     </div>
-                    <p class="text-xs text-gray-500 mt-2">
-                        ⚠️ Switching modes will affect all new payments immediately
-                    </p>
+                    <div class="mt-3 bg-yellow-50 border border-yellow-200 rounded-lg p-3">
+                        <p class="text-xs text-yellow-800 flex items-start">
+                            <svg class="w-4 h-4 mr-2 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                            </svg>
+                            <span>⚠️ Het wisselen van modus heeft onmiddellijk effect op alle nieuwe betalingen en producten</span>
+                        </p>
+                    </div>
                 </div>
             </div>
 
@@ -149,16 +223,25 @@
         <!-- Information Card -->
         <div class="bg-blue-50 border border-blue-200 rounded-2xl p-6">
             <div class="flex items-start">
-                <svg class="w-5 h-5 text-blue-500 mt-0.5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg class="w-6 h-6 text-blue-500 mt-0.5 mr-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                         d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
                 <div>
-                    <h4 class="text-sm font-medium text-blue-800">About Stripe Modes</h4>
-                    <div class="text-sm text-blue-700 mt-1 space-y-1">
-                        <p><strong>Test Mode:</strong> Safe for development and testing. No real payments processed.</p>
-                        <p><strong>Live Mode:</strong> Real payments will be processed. Use with caution.</p>
-                        <p><strong>Switching:</strong> Changes take effect immediately for new payments.</p>
+                    <h4 class="text-base font-bold text-blue-900 mb-3">Over Stripe Modi</h4>
+                    <div class="text-sm text-blue-800 space-y-2">
+                        <div>
+                            <p class="font-semibold">🧪 Test Modus:</p>
+                            <p>Veilig voor ontwikkeling en testen. Geen echte betalingen. Klanten kunnen NIET betalen.</p>
+                        </div>
+                        <div>
+                            <p class="font-semibold">✅ Live Modus:</p>
+                            <p>Echte betalingen worden verwerkt. Klanten kunnen producten kopen en betalen.</p>
+                        </div>
+                        <div>
+                            <p class="font-semibold">⚡ Wisselen:</p>
+                            <p>Veranderingen hebben onmiddellijk effect op nieuwe betalingen en producten.</p>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -204,9 +287,21 @@ const switchMode = async (mode) => {
         // Confirmation for live mode
         if (mode === 'live') {
             const confirmed = confirm(
-                '⚠️ WARNING: You are about to switch to LIVE mode!\n\n' +
-                'This will process real payments immediately.\n' +
-                'Are you absolutely sure you want to continue?'
+                '⚠️ WAARSCHUWING: Je staat op het punt om over te schakelen naar LIVE MODUS!\n\n' +
+                '✅ Klanten kunnen dan ECHTE betalingen doen\n' +
+                '💰 Alle nieuwe producten worden aangemaakt voor echte verkoop\n' +
+                '⚡ De wijziging treedt onmiddellijk in werking\n\n' +
+                'Ben je er absoluut zeker van dat je wilt doorgaan?'
+            )
+            if (!confirmed) return
+        } else {
+            // Confirmation for test mode
+            const confirmed = confirm(
+                '⚠️ Je staat op het punt om over te schakelen naar TEST MODUS\n\n' +
+                '🧪 Klanten kunnen dan GEEN echte betalingen meer doen\n' +
+                '⚠️ Alleen voor ontwikkeling en testen\n' +
+                '⚡ De wijziging treedt onmiddellijk in werking\n\n' +
+                'Wil je doorgaan?'
             )
             if (!confirmed) return
         }
@@ -216,16 +311,27 @@ const switchMode = async (mode) => {
 
         await apiClient.switchStripeMode(mode)
 
-        notifications.success(
-            `Successfully switched to ${mode.toUpperCase()} mode`,
-            `Stripe is nu ingesteld op ${mode.toUpperCase()} modus.`
-        )
+        if (mode === 'live') {
+            notifications.success(
+                '✅ Live Modus Actief',
+                'Klanten kunnen nu echte betalingen doen. Nieuwe producten worden aangemaakt voor echte verkoop.'
+            )
+        } else {
+            notifications.success(
+                '🧪 Test Modus Actief',
+                'Klanten kunnen nu GEEN echte betalingen meer doen. Alleen geschikt voor ontwikkeling en testen.'
+            )
+        }
+        
         // Reload configuration
         await loadConfig()
 
     } catch (err) {
         console.error('Error switching Stripe mode:', err)
-        notifications.error(`Failed to switch to ${mode} mode`, err?.message || `Er is een fout opgetreden bij het wijzigen naar ${mode} modus.`)
+        notifications.error(
+            `Fout bij wisselen naar ${mode} modus`, 
+            err?.message || `Er is een fout opgetreden bij het wijzigen naar ${mode} modus.`
+        )
     } finally {
         switching.value = false
         targetMode.value = null
