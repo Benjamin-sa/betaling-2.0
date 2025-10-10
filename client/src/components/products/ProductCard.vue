@@ -5,10 +5,10 @@
   ]">
 
 
-    <div class="relative aspect-w-4 aspect-h-3">
+    <div class="relative aspect-w-4 aspect-h-3 bg-gray-100">
       <!-- Test Mode Badge -->
       <div v-if="product.isTestMode"
-        class="absolute top-2 left-2 z-10 inline-flex items-center px-2 py-1 rounded-full text-xs font-bold bg-warning text-white shadow-lg border-2 border-white">
+        class="absolute top-2 left-2 z-20 inline-flex items-center px-2 py-1 rounded-full text-xs font-bold bg-warning text-white shadow-lg border-2 border-white">
         <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
             d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.732-.833-2.5 0L4.268 18.5c-.77.833.192 2.5 1.732 2.5z" />
@@ -16,8 +16,71 @@
         TEST
       </div>
 
-      <img v-if="product.image" :src="product.image" :alt="product.name" @error="handleImageError"
-        class="w-full h-full object-cover transform transition-transform group-hover:scale-105" />
+      <!-- Multiple Images Gallery -->
+      <div v-if="productImages.length > 0" class="relative w-full h-full">
+        <!-- Image Container -->
+        <div class="relative w-full h-full overflow-hidden">
+          <TransitionGroup name="image-fade" tag="div" class="relative w-full h-full">
+            <img 
+              v-for="(image, index) in productImages" 
+              :key="image"
+              v-show="index === currentImageIndex"
+              :src="image" 
+              :alt="`${product.name} - Afbeelding ${index + 1}`" 
+              @error="handleImageError"
+              class="absolute inset-0 w-full h-full object-cover transform transition-transform group-hover:scale-105" 
+            />
+          </TransitionGroup>
+        </div>
+
+        <!-- Navigation Arrows (only show if multiple images) -->
+        <template v-if="productImages.length > 1">
+          <!-- Previous Button -->
+          <button 
+            @click.stop="previousImage"
+            class="absolute left-2 top-1/2 -translate-y-1/2 z-10 p-2 bg-white/90 hover:bg-white rounded-full shadow-lg transition-all duration-200 hover:scale-110 active:scale-95 group/btn"
+            aria-label="Vorige afbeelding"
+          >
+            <svg class="w-4 h-4 text-gray-800 group-hover/btn:text-primary transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M15 19l-7-7 7-7" />
+            </svg>
+          </button>
+
+          <!-- Next Button -->
+          <button 
+            @click.stop="nextImage"
+            class="absolute right-2 top-1/2 -translate-y-1/2 z-10 p-2 bg-white/90 hover:bg-white rounded-full shadow-lg transition-all duration-200 hover:scale-110 active:scale-95 group/btn"
+            aria-label="Volgende afbeelding"
+          >
+            <svg class="w-4 h-4 text-gray-800 group-hover/btn:text-primary transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M9 5l7 7-7 7" />
+            </svg>
+          </button>
+
+          <!-- Image Indicators (Dots) -->
+          <div class="absolute bottom-3 left-1/2 -translate-x-1/2 z-10 flex space-x-2 bg-black/30 backdrop-blur-sm px-3 py-2 rounded-full">
+            <button
+              v-for="(image, index) in productImages"
+              :key="`dot-${index}`"
+              @click.stop="goToImage(index)"
+              :class="[
+                'transition-all duration-200',
+                index === currentImageIndex 
+                  ? 'w-6 h-2 bg-white rounded-full' 
+                  : 'w-2 h-2 bg-white/50 hover:bg-white/75 rounded-full'
+              ]"
+              :aria-label="`Ga naar afbeelding ${index + 1}`"
+            />
+          </div>
+
+          <!-- Image Counter -->
+          <div class="absolute top-2 right-2 z-10 px-2 py-1 bg-black/60 backdrop-blur-sm text-white text-xs font-semibold rounded-full">
+            {{ currentImageIndex + 1 }} / {{ productImages.length }}
+          </div>
+        </template>
+      </div>
+
+      <!-- No Image Fallback -->
       <div v-else :class="[
         'w-full h-full flex flex-col items-center justify-center p-4 relative',
         product.requiresTimeslot
@@ -34,6 +97,10 @@
           TEST
         </div>
 
+        <svg class="w-16 h-16 text-gray-300 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" 
+            d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+        </svg>
         <span :class="[
           'text-2xl font-bold text-center',
           product.requiresTimeslot ? 'text-blue-700' : 'text-primary/80'
@@ -147,7 +214,7 @@
 </template>
 
 <script setup>
-import { computed, ref, watch } from 'vue'
+import { computed, ref, watch, onMounted, onUnmounted } from 'vue'
 import { EVENT_TYPES } from '@/config/constants'
 import { useNotificationStore } from '@/stores/notifications'
 import ShiftCapacityIndicator from '@/components/events/ShiftCapacityIndicator.vue'
@@ -185,6 +252,56 @@ const emit = defineEmits(['update:cart-item', 'image-error', 'update:product-shi
 
 const selectedShift = ref(props.productShiftSelection[props.product.id] || '')
 const currentQuantity = ref(1)
+const currentImageIndex = ref(0)
+
+// Image Gallery Logic
+const productImages = computed(() => {
+  // Priority: Use images array if available, fallback to single image, then empty
+  if (props.product.images && Array.isArray(props.product.images) && props.product.images.length > 0) {
+    return props.product.images.filter(img => img) // Filter out null/undefined
+  } else if (props.product.image) {
+    return [props.product.image]
+  }
+  return []
+})
+
+const nextImage = () => {
+  if (productImages.value.length > 1) {
+    currentImageIndex.value = (currentImageIndex.value + 1) % productImages.value.length
+  }
+}
+
+const previousImage = () => {
+  if (productImages.value.length > 1) {
+    currentImageIndex.value = currentImageIndex.value === 0 
+      ? productImages.value.length - 1 
+      : currentImageIndex.value - 1
+  }
+}
+
+const goToImage = (index) => {
+  currentImageIndex.value = index
+}
+
+// Keyboard navigation for image gallery
+const handleKeyPress = (event) => {
+  if (productImages.value.length <= 1) return
+  
+  if (event.key === 'ArrowLeft') {
+    previousImage()
+  } else if (event.key === 'ArrowRight') {
+    nextImage()
+  }
+}
+
+// Setup keyboard listeners
+onMounted(() => {
+  window.addEventListener('keydown', handleKeyPress)
+})
+
+onUnmounted(() => {
+  window.removeEventListener('keydown', handleKeyPress)
+})
 
 // Computed properties for better UX
 const totalInCart = computed(() => {
@@ -291,3 +408,35 @@ const getOtherShiftItems = () => {
     }))
 }
 </script>
+
+<style scoped>
+/* Image fade transition for smooth carousel effect */
+.image-fade-enter-active,
+.image-fade-leave-active {
+  transition: opacity 0.5s ease-in-out;
+}
+
+.image-fade-enter-from {
+  opacity: 0;
+}
+
+.image-fade-leave-to {
+  opacity: 0;
+}
+
+/* Ensure aspect ratio container works properly */
+.aspect-w-4 {
+  position: relative;
+  padding-bottom: 75%; /* 4:3 aspect ratio */
+}
+
+.aspect-w-4 > * {
+  position: absolute;
+  height: 100%;
+  width: 100%;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+}
+</style>
