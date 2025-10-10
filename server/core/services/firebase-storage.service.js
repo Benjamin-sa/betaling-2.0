@@ -77,7 +77,10 @@ class FirebaseStorageService {
       // Create file reference
       const file = this.storageBucket.file(filePath);
 
-      // Upload the file
+      // Generate a Firebase download token for public access
+      const firebaseToken = uuidv4();
+
+      // Upload the file with metadata including download token
       await file.save(imageBuffer, {
         metadata: {
           contentType: mimeType,
@@ -85,17 +88,14 @@ class FirebaseStorageService {
             originalName: originalName,
             uploadedAt: new Date().toISOString(),
             folder: folder,
+            firebaseStorageDownloadTokens: firebaseToken, // Token for public access
           },
         },
-        public: true, // Make file publicly accessible
         resumable: false, // Use simple upload for images
       });
 
-      // Make the file publicly readable
-      await file.makePublic();
-
-      // Generate public URL
-      const publicUrl = `https://storage.googleapis.com/${this.storageBucket.name}/${filePath}`;
+      // Generate public URL with token (works with Uniform Bucket-Level Access)
+      const publicUrl = `https://firebasestorage.googleapis.com/v0/b/${this.storageBucket.name}/o/${encodeURIComponent(filePath)}?alt=media&token=${firebaseToken}`;
 
       console.log(`✅ Image uploaded successfully: ${uniqueFileName}`);
       console.log(`🔗 Public URL: ${publicUrl}`);
