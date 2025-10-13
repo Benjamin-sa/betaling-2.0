@@ -114,9 +114,16 @@
                     Filters Wissen
                 </button>
                 <button @click="exportOrders"
-                    class="bg-gradient-to-r from-primary to-green-600 text-white px-4 py-2 rounded-xl font-medium shadow-lg hover:shadow-xl transition-all duration-200"
+                    class="bg-gradient-to-r from-primary to-green-600 text-white px-4 py-2 rounded-xl font-medium shadow-lg hover:shadow-xl transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
                     :disabled="loading">
-                    Export CSV
+                    <svg v-if="loading" class="animate-spin w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    <svg v-else class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-4-4m4 4l4-4m-4-4V3m0 3a3 3 0 013 3v1"></path>
+                    </svg>
+                    {{ loading ? 'Exporteren...' : 'Export CSV' }}
                 </button>
             </div>
         </div>
@@ -267,6 +274,14 @@
                 </button>
             </div>
         </div>
+
+        <!-- CSV Export Builder Modal -->
+        <CsvExportBuilder
+            v-model="showExportBuilder"
+            :orders="allOrdersForExport"
+            :events="events"
+            @export="handleExportWithConfig"
+        />
     </div>
 </template>
 
@@ -274,6 +289,7 @@
 import { ref, reactive, onMounted, computed } from 'vue'
 import { useNotificationStore } from '@/stores/notifications'
 import { apiClient } from '@/services/api'
+import CsvExportBuilder from './CsvExportBuilder.vue'
 
 // Props
 const props = defineProps({
@@ -291,6 +307,8 @@ const orders = ref([])
 const statistics = ref(null)
 const loading = ref(false)
 const pagination = ref(null)
+const showExportBuilder = ref(false)
+const allOrdersForExport = ref([])
 
 const filters = reactive({
     search: '',
@@ -369,11 +387,380 @@ const goToPage = (page) => {
 
 const exportOrders = async () => {
     try {
-        // In a real implementation, you would call an export API endpoint
-        notifications.success('Export', 'Export functionaliteit wordt binnenkort toegevoegd')
+        loading.value = true
+        
+        // Get all orders with current filters (no pagination for export)
+        const response = await apiClient.getAdminOrdersFiltered(
+            { ...filters },
+            {
+                sortBy: sortBy.value,
+                sortOrder: sortOrder.value,
+                page: 1,
+                limit: 10000, // Large limit to get all orders
+                export: true
+            }
+        )
+
+        allOrdersForExport.value = response.orders || []
+        
+        if (allOrdersForExport.value.length === 0) {
+            notifications.warning('Geen data', 'Geen bestellingen gevonden om te exporteren')
+            return
+        }
+
+        // Open the export builder modal
+        showExportBuilder.value = true
+        
     } catch (error) {
+        console.error('Export error:', error)
+        notifications.error('Export Fout', 'Kon orders niet laden voor export')
+    } finally {
+        loading.value = false
+    }
+}
+
+const handleExportWithConfig = (config) => {
+    try {
+        const csvContent = config.format === 'detailed' 
+            ? convertOrdersToDetailedCSV(allOrdersForExport.value, config)
+            : convertOrdersToCompactCSV(allOrdersForExport.value, config);
+        
+        // Create and download CSV file
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
+        const link = document.createElement('a')
+        
+        if (link.download !== undefined) {
+            const url = URL.createObjectURL(blob)
+            link.setAttribute('href', url)
+            link.setAttribute('download', generateFilename(config))
+            link.style.visibility = 'hidden'
+            document.body.appendChild(link)
+            link.click()
+            document.body.removeChild(link)
+            URL.revokeObjectURL(url)
+        }
+
+        showExportBuilder.value = false
+        notifications.success('Export voltooid', `${allOrdersForExport.value.length} bestellingen geëxporteerd naar CSV`)
+        
+    } catch (error) {
+        console.error('Export error:', error)
         notifications.error('Export Fout', 'Kon orders niet exporteren')
     }
+}
+
+const convertOrdersToDetailedCSV = (orders, config) => {
+    // Sort orders if groupByEvent is enabled
+    let sortedOrders = [...orders]
+    if (config.groupByEvent) {
+        sortedOrders.sort((a, b) => {
+            const eventA = getEventName(a.eventId)
+            const eventB = getEventName(b.eventId)
+            return eventA.localeCompare(eventB)
+        })
+    }
+
+    // Build headers based on configuration
+    const headers = []
+    const columnMap = {
+        orderId: 'Bestelling ID',
+        orderNumber: 'Bestelling #',
+        date: 'Datum',
+        customerEmail: 'Klant Email',
+        event: 'Event',
+        shift: 'Shift',
+        totalAmount: 'Totaal (€)',
+        paymentMethod: 'Betaalmethode',
+        status: 'Status',
+        itemCount: 'Totaal Items',
+        firebaseUid: 'Firebase UID',
+        stripeCustomerId: 'Stripe Customer ID',
+        confirmedAt: 'Bevestigd Op',
+        confirmedBy: 'Bevestigd Door'
+    }
+
+    config.columns.forEach(colId => {
+        headers.push(columnMap[colId] || colId)
+    })
+
+    // Add product columns if enabled
+    if (config.includeProductColumns) {
+        config.uniqueProducts.forEach(product => {
+            headers.push(product)
+        })
+    }
+
+    const csvArray = config.includeHeaders ? [headers] : []
+
+    // Build data rows
+    sortedOrders.forEach(order => {
+        const row = []
+        
+        config.columns.forEach(colId => {
+            switch(colId) {
+                case 'orderId':
+                    row.push(`"${order.id || ''}"`)
+                    break
+                case 'orderNumber':
+                    row.push(`"${order.orderNumber || ''}"`)
+                    break
+                case 'date':
+                    row.push(`"${formatDateForExport(order.createdAt)}"`)
+                    break
+                case 'customerEmail':
+                    row.push(`"${order.userEmail || ''}"`)
+                    break
+                case 'event':
+                    row.push(`"${getEventName(order.eventId)}"`)
+                    break
+                case 'shift':
+                    row.push(`"${order.shiftName || ''}"`)
+                    break
+                case 'totalAmount':
+                    row.push(order.amountTotal ? order.amountTotal.toFixed(2) : '0.00')
+                    break
+                case 'paymentMethod':
+                    row.push(`"${order.paymentMethod || ''}"`)
+                    break
+                case 'status':
+                    row.push(`"${getOrderStatus(order)}"`)
+                    break
+                case 'itemCount':
+                    row.push(order.items?.reduce((sum, item) => sum + (item.quantity || 0), 0) || 0)
+                    break
+                case 'firebaseUid':
+                    row.push(`"${order.userId || ''}"`)
+                    break
+                case 'stripeCustomerId':
+                    row.push(`"${order.stripeCustomerId || ''}"`)
+                    break
+                case 'confirmedAt':
+                    row.push(`"${formatDateForExport(order.manualPaymentConfirmedAt)}"`)
+                    break
+                case 'confirmedBy':
+                    row.push(`"${order.manualPaymentConfirmedBy || ''}"`)
+                    break
+                default:
+                    row.push('""')
+            }
+        })
+
+        // Add product quantities
+        if (config.includeProductColumns) {
+            config.uniqueProducts.forEach(productName => {
+                let quantity = 0
+                order.items?.forEach(item => {
+                    let itemName = item.productName
+                    if (config.includeShiftColumns && item.shiftId) {
+                        itemName = `${item.productName} (${item.shiftName || 'Shift'})`
+                    }
+                    if (itemName === productName) {
+                        quantity += item.quantity || 0
+                    }
+                })
+                row.push(quantity)
+            })
+        }
+
+        csvArray.push(row)
+    })
+
+    // Add summary row if enabled
+    if (config.includeSummaryRow && config.includeProductColumns) {
+        const summaryRow = []
+        
+        // Fill regular columns
+        config.columns.forEach((colId, index) => {
+            if (index === 0) {
+                summaryRow.push('"TOTAAL"')
+            } else if (colId === 'totalAmount') {
+                const total = sortedOrders.reduce((sum, order) => sum + (order.amountTotal || 0), 0)
+                summaryRow.push(total.toFixed(2))
+            } else if (colId === 'itemCount') {
+                const total = sortedOrders.reduce((sum, order) => 
+                    sum + (order.items?.reduce((itemSum, item) => itemSum + (item.quantity || 0), 0) || 0), 0)
+                summaryRow.push(total)
+            } else {
+                summaryRow.push('""')
+            }
+        })
+
+        // Calculate totals for each product
+        if (config.includeProductColumns) {
+            config.uniqueProducts.forEach(productName => {
+                let total = 0
+                sortedOrders.forEach(order => {
+                    order.items?.forEach(item => {
+                        let itemName = item.productName
+                        if (config.includeShiftColumns && item.shiftId) {
+                            itemName = `${item.productName} (${item.shiftName || 'Shift'})`
+                        }
+                        if (itemName === productName) {
+                            total += item.quantity || 0
+                        }
+                    })
+                })
+                summaryRow.push(total)
+            })
+        }
+
+        csvArray.push(summaryRow)
+    }
+
+    return csvArray.map(row => row.join(',')).join('\n')
+}
+
+const convertOrdersToCompactCSV = (orders, config) => {
+    const headers = []
+    const columnMap = {
+        orderId: 'Bestelling ID',
+        orderNumber: 'Bestelling #',
+        date: 'Datum',
+        customerEmail: 'Klant Email',
+        event: 'Event',
+        shift: 'Shift',
+        totalAmount: 'Totaal (€)',
+        paymentMethod: 'Betaalmethode',
+        status: 'Status',
+        itemCount: 'Totaal Items',
+        firebaseUid: 'Firebase UID',
+        stripeCustomerId: 'Stripe Customer ID',
+        confirmedAt: 'Bevestigd Op',
+        confirmedBy: 'Bevestigd Door'
+    }
+
+    config.columns.forEach(colId => {
+        headers.push(columnMap[colId] || colId)
+    })
+    
+    // Add products column for compact view
+    headers.push('Producten')
+
+    const csvArray = config.includeHeaders ? [headers] : []
+
+    orders.forEach(order => {
+        const row = []
+        
+        config.columns.forEach(colId => {
+            switch(colId) {
+                case 'orderId':
+                    row.push(`"${order.id || ''}"`)
+                    break
+                case 'orderNumber':
+                    row.push(`"${order.orderNumber || ''}"`)
+                    break
+                case 'date':
+                    row.push(`"${formatDateForExport(order.createdAt)}"`)
+                    break
+                case 'customerEmail':
+                    row.push(`"${order.userEmail || ''}"`)
+                    break
+                case 'event':
+                    row.push(`"${getEventName(order.eventId)}"`)
+                    break
+                case 'shift':
+                    row.push(`"${order.shiftName || ''}"`)
+                    break
+                case 'totalAmount':
+                    row.push(order.amountTotal ? order.amountTotal.toFixed(2) : '0.00')
+                    break
+                case 'paymentMethod':
+                    row.push(`"${order.paymentMethod || ''}"`)
+                    break
+                case 'status':
+                    row.push(`"${getOrderStatus(order)}"`)
+                    break
+                case 'itemCount':
+                    row.push(order.items?.reduce((sum, item) => sum + (item.quantity || 0), 0) || 0)
+                    break
+                case 'firebaseUid':
+                    row.push(`"${order.userId || ''}"`)
+                    break
+                case 'stripeCustomerId':
+                    row.push(`"${order.stripeCustomerId || ''}"`)
+                    break
+                case 'confirmedAt':
+                    row.push(`"${formatDateForExport(order.manualPaymentConfirmedAt)}"`)
+                    break
+                case 'confirmedBy':
+                    row.push(`"${order.manualPaymentConfirmedBy || ''}"`)
+                    break
+                default:
+                    row.push('""')
+            }
+        })
+
+        // Add combined products
+        const productList = order.items?.map(item => 
+            `${item.quantity}x ${item.productName}${item.shiftId ? ' (Shift)' : ''}`
+        ).join('; ') || 'Geen items'
+        row.push(`"${productList}"`)
+
+        csvArray.push(row)
+    })
+
+    return csvArray.map(row => row.join(',')).join('\n')
+}
+
+const formatDateForExport = (timestamp) => {
+    if (!timestamp) return ''
+    
+    try {
+        let date
+        if (timestamp && typeof timestamp === 'object' && timestamp.toDate) {
+            date = timestamp.toDate()
+        } else if (timestamp && timestamp.seconds) {
+            date = new Date(timestamp.seconds * 1000)
+        } else {
+            date = new Date(timestamp)
+        }
+        
+        return date.toLocaleDateString('nl-NL', {
+            year: 'numeric',
+            month: '2-digit',
+            day: '2-digit',
+            hour: '2-digit',
+            minute: '2-digit',
+            second: '2-digit'
+        })
+    } catch (error) {
+        return ''
+    }
+}
+
+const generateFilename = (config = null) => {
+    const now = new Date()
+    const dateStr = now.toISOString().split('T')[0] // YYYY-MM-DD
+    const timeStr = now.toTimeString().split(' ')[0].replace(/:/g, '-') // HH-MM-SS
+    
+    let filename = `bestellingen_${dateStr}_${timeStr}`
+    
+    // Add format type
+    if (config) {
+        filename += `_${config.format}`
+    }
+    
+    // Add filter info to filename
+    const filterParts = []
+    if (filters.eventId) {
+        const eventName = getEventName(filters.eventId).replace(/[^a-zA-Z0-9]/g, '_')
+        filterParts.push(`event_${eventName}`)
+    }
+    if (filters.paymentMethod) {
+        filterParts.push(`payment_${filters.paymentMethod}`)
+    }
+    if (filters.dateFrom) {
+        filterParts.push(`van_${filters.dateFrom}`)
+    }
+    if (filters.dateTo) {
+        filterParts.push(`tot_${filters.dateTo}`)
+    }
+    
+    if (filterParts.length > 0) {
+        filename += `_${filterParts.join('_')}`
+    }
+    
+    return `${filename}.csv`
 }
 
 const viewOrderDetails = (order) => {

@@ -17,7 +17,24 @@ class FirebaseBaseService {
    */
   _docToObject(doc) {
     if (!doc.exists) return null;
-    return { id: doc.id, ...doc.data() };
+    
+    const data = doc.data();
+    
+    // Convert Firestore Timestamps to ISO strings for JSON serialization
+    const convertedData = {};
+    for (const [key, value] of Object.entries(data)) {
+      if (value && typeof value === 'object' && value._seconds !== undefined) {
+        // Convert Firestore Timestamp to ISO string
+        convertedData[key] = new Date(value._seconds * 1000).toISOString();
+      } else if (value && typeof value.toDate === 'function') {
+        // Handle Firestore Timestamp objects with toDate method
+        convertedData[key] = value.toDate().toISOString();
+      } else {
+        convertedData[key] = value;
+      }
+    }
+    
+    return { id: doc.id, ...convertedData };
   }
 
   /**

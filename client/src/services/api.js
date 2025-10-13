@@ -221,15 +221,8 @@ export const apiClient = {
     return this.request(`/admin/email-logs/order/${orderId}`);
   },
 
-  async getEmailStatistics(filters = {}) {
-    const params = new URLSearchParams();
-    Object.entries(filters).forEach(([key, value]) => {
-      if (value !== undefined && value !== null && value !== "") {
-        params.append(key, value);
-      }
-    });
-
-    return this.request(`/admin/email-logs/statistics?${params.toString()}`);
+  async getEmailStatistics() {
+    return this.request("/admin/email-logs/statistics");
   },
 
   // Stripe Configuration API

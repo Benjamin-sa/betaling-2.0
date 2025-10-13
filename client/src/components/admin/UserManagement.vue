@@ -8,6 +8,76 @@
 
         <!-- Content -->
         <div class="p-4 sm:p-6 lg:p-8">
+            <!-- Search/Filter Section -->
+            <div v-if="!loading && users.length > 0" class="mb-6">
+                <div class="bg-gradient-to-br from-gray-50 to-gray-100 border border-gray-200 rounded-2xl p-4 sm:p-6">
+                    <div class="flex flex-col sm:flex-row gap-4">
+                        <!-- Search Input -->
+                        <div class="flex-1">
+                            <label for="user-search" class="block text-sm font-medium text-gray-700 mb-2">
+                                Zoeken naar gebruikers
+                            </label>
+                            <div class="relative">
+                                <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                    <svg class="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                                    </svg>
+                                </div>
+                                <input
+                                    id="user-search"
+                                    v-model="searchQuery"
+                                    type="text"
+                                    placeholder="Zoek op email, Firebase UID of Stripe Customer ID..."
+                                    class="w-full pl-10 pr-4 py-3 text-sm border-2 border-gray-200 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary transition-all duration-200"
+                                />
+                                <button
+                                    v-if="searchQuery"
+                                    @click="searchQuery = ''"
+                                    class="absolute inset-y-0 right-0 pr-3 flex items-center"
+                                >
+                                    <svg class="h-5 w-5 text-gray-400 hover:text-gray-600 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                                    </svg>
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Filter Options -->
+                        <div class="sm:w-48">
+                            <label for="admin-filter" class="block text-sm font-medium text-gray-700 mb-2">
+                                Filter op rol
+                            </label>
+                            <select
+                                id="admin-filter"
+                                v-model="adminFilter"
+                                class="w-full px-4 py-3 text-sm border-2 border-gray-200 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary transition-all duration-200 bg-white appearance-none cursor-pointer"
+                            >
+                                <option value="all">Alle gebruikers</option>
+                                <option value="admin">Alleen admins</option>
+                                <option value="user">Alleen gebruikers</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Results Summary -->
+                    <div class="mt-4 flex items-center justify-between text-sm text-gray-600">
+                        <div>
+                            {{ filteredUsers.length }} van {{ users.length }} gebruikers
+                            <span v-if="searchQuery || adminFilter !== 'all'" class="font-medium">
+                                (gefilterd)
+                            </span>
+                        </div>
+                        <button
+                            v-if="searchQuery || adminFilter !== 'all'"
+                            @click="clearFilters"
+                            class="text-primary hover:text-primary-dark font-medium transition-colors"
+                        >
+                            Filters wissen
+                        </button>
+                    </div>
+                </div>
+            </div>
+
             <!-- Loading State -->
             <div v-if="loading" class="text-center py-12 sm:py-16">
                 <div
@@ -24,8 +94,8 @@
                 </div>
             </div>
 
-            <div v-else-if="users.length > 0" class="space-y-3 sm:space-y-4">
-                <div v-for="user in users" :key="user.id"
+            <div v-else-if="filteredUsers.length > 0" class="space-y-3 sm:space-y-4">
+                <div v-for="user in filteredUsers" :key="user.id"
                     class="bg-gradient-to-br from-gray-50 to-gray-100 border border-gray-200 rounded-2xl p-4 sm:p-6 hover:shadow-lg transition-all duration-300 transform hover:-translate-y-1">
                     <div class="flex flex-col lg:flex-row lg:items-center justify-between space-y-4 lg:space-y-0">
                         <!-- User Info -->
@@ -117,7 +187,7 @@
             </div>
 
             <!-- Empty State -->
-            <div v-else class="text-center py-12 sm:py-16">
+            <div v-else-if="users.length === 0" class="text-center py-12 sm:py-16">
                 <div
                     class="w-16 h-16 sm:w-24 sm:h-24 mx-auto mb-4 sm:mb-6 bg-gradient-to-br from-gray-100 to-gray-200 rounded-full flex items-center justify-center">
                     <svg class="w-8 h-8 sm:w-12 sm:h-12 text-gray-400" fill="none" stroke="currentColor"
@@ -130,6 +200,28 @@
                 <p class="text-sm sm:text-base text-gray-600">Er zijn nog geen gebruikers geregistreerd in het systeem.
                 </p>
             </div>
+
+            <!-- No Search Results -->
+            <div v-else class="text-center py-12 sm:py-16">
+                <div
+                    class="w-16 h-16 sm:w-24 sm:h-24 mx-auto mb-4 sm:mb-6 bg-gradient-to-br from-gray-100 to-gray-200 rounded-full flex items-center justify-center">
+                    <svg class="w-8 h-8 sm:w-12 sm:h-12 text-gray-400" fill="none" stroke="currentColor"
+                        viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                    </svg>
+                </div>
+                <h3 class="text-lg sm:text-xl font-semibold text-gray-900 mb-2">Geen resultaten gevonden</h3>
+                <p class="text-sm sm:text-base text-gray-600">
+                    Geen gebruikers gevonden die voldoen aan je zoekcriteria.
+                </p>
+                <button
+                    @click="clearFilters"
+                    class="mt-4 text-primary hover:text-primary-dark font-medium transition-colors"
+                >
+                    Alle gebruikers tonen
+                </button>
+            </div>
         </div>
 
         <!-- Confirmation Modal -->
@@ -141,7 +233,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue';
+import { ref, onMounted, computed } from 'vue';
 import { useNotificationStore } from '@/stores/notifications';
 import { useConfirmation } from '@/composables/useConfirmation';
 import { apiClient } from '@/services/api';
@@ -154,6 +246,42 @@ const emit = defineEmits(['users-updated']);
 
 const loading = ref(false);
 const users = ref([]);
+const searchQuery = ref('');
+const adminFilter = ref('all');
+
+// Computed property for filtered users
+const filteredUsers = computed(() => {
+    let filtered = users.value;
+
+    // Filter by search query
+    if (searchQuery.value) {
+        const query = searchQuery.value.toLowerCase();
+        filtered = filtered.filter(user => 
+            user.email.toLowerCase().includes(query) ||
+            user.id.toLowerCase().includes(query) ||
+            (user.stripeCustomerId && user.stripeCustomerId.toLowerCase().includes(query))
+        );
+    }
+
+    // Filter by admin status
+    if (adminFilter.value !== 'all') {
+        filtered = filtered.filter(user => {
+            if (adminFilter.value === 'admin') {
+                return user.isAdmin;
+            } else if (adminFilter.value === 'user') {
+                return !user.isAdmin;
+            }
+            return true;
+        });
+    }
+
+    return filtered;
+});
+
+const clearFilters = () => {
+    searchQuery.value = '';
+    adminFilter.value = 'all';
+};
 
 const loadUsers = async () => {
     try {

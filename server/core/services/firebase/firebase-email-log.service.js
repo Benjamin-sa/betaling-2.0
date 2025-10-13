@@ -27,30 +27,42 @@ class FirebaseEmailLogService extends FirebaseBaseService {
   }
 
   /**
-   * Get recent email logs with pagination
+   * Get recent email logs with pagination and filtering
+   * @param {Object} filters - Filter options
    * @param {Object} options - Query options
    * @returns {Promise<Object>} Email logs with pagination info
    */
-  async getEmailLogs(options = {}) {
+  async getEmailLogs(filters = {}, options = {}) {
     const {
-      limit = 100,
       page = 1,
-      status = null, // Filter by status (sent, failed, skipped)
-      orderBy = EmailLogFields.SENT_AT,
-      orderDirection = "desc",
+      limit = 50,
     } = options;
+
+    const {
+      status = null,
+      orderId = null,
+      userEmail = null,
+    } = filters;
 
     let query = this.collection;
 
-    // Apply status filter if provided
-    if (status) {
+    // Apply filters if provided
+    if (status && status !== 'all') {
       query = query.where(EmailLogFields.STATUS, "==", status);
     }
 
-    // Apply ordering
-    query = query.orderBy(orderBy, orderDirection);
+    if (orderId) {
+      query = query.where(EmailLogFields.ORDER_ID, "==", orderId);
+    }
 
-    // Get total count for pagination
+    if (userEmail) {
+      query = query.where(EmailLogFields.USER_EMAIL, "==", userEmail);
+    }
+
+    // Apply ordering - always order by sent date
+    query = query.orderBy(EmailLogFields.SENT_AT, "desc");
+
+    // Get total count for pagination (before applying limit/offset)
     const totalSnapshot = await query.get();
     const totalCount = totalSnapshot.size;
 
@@ -62,7 +74,7 @@ class FirebaseEmailLogService extends FirebaseBaseService {
     query = query.limit(limit);
 
     const snapshot = await query.get();
-    const emailLogs = snapshot.docs.map((doc) => this._docToObject(doc));
+    const logs = snapshot.docs.map((doc) => this._docToObject(doc));
 
     // Calculate pagination info
     const totalPages = Math.ceil(totalCount / limit);
@@ -70,14 +82,11 @@ class FirebaseEmailLogService extends FirebaseBaseService {
     const hasPrev = page > 1;
 
     return {
-      emailLogs,
-      pagination: {
-        currentPage: page,
-        totalPages,
-        totalCount,
-        hasNext,
-        hasPrev,
-      },
+      logs,
+      totalPages,
+      totalCount,
+      hasNext,
+      hasPrev,
     };
   }
 

@@ -442,21 +442,15 @@ class AdminController extends BaseController {
       status,
       orderId,
       userEmail,
-      emailType = "order_confirmation",
-      dateFrom,
-      dateTo,
       page = 1,
       limit = 50,
     } = req.query;
 
-    // Build filters object
+    // Build filters object - simplified, only essential filters
     const filters = {};
     if (status && status !== "all") filters.status = status;
     if (orderId) filters.orderId = orderId;
     if (userEmail) filters.userEmail = userEmail.trim();
-    if (emailType && emailType !== "all") filters.emailType = emailType;
-    if (dateFrom) filters.dateFrom = dateFrom;
-    if (dateTo) filters.dateTo = dateTo;
 
     // Build options object
     const options = {
@@ -521,16 +515,9 @@ class AdminController extends BaseController {
    * @private
    */
   async _getEmailStatisticsHandler(req, res) {
-    const { dateFrom, dateTo, emailType = "order_confirmation" } = req.query;
+    this._logAction("Fetching email statistics");
 
-    const filters = {};
-    if (emailType && emailType !== "all") filters.emailType = emailType;
-    if (dateFrom) filters.dateFrom = dateFrom;
-    if (dateTo) filters.dateTo = dateTo;
-
-    this._logAction("Fetching email statistics", { filters });
-
-    const statistics = await firebaseService.getEmailStatistics(filters);
+    const statistics = await firebaseService.getEmailStatistics();
     this._sendSuccessResponse(res, { statistics });
   }
 

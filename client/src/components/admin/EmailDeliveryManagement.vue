@@ -86,7 +86,7 @@
         <!-- Filters -->
         <div class="bg-white rounded-2xl border border-gray-200 p-6">
             <h3 class="text-lg font-semibold text-gray-900 mb-4">Filters</h3>
-            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-2">Status</label>
                     <select v-model="filters.status" @change="loadEmailLogs"
@@ -109,12 +109,6 @@
                     <label class="block text-sm font-medium text-gray-700 mb-2">User Email</label>
                     <input v-model="filters.userEmail" @input="debouncedSearch" type="email"
                         placeholder="Enter email address..."
-                        class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary" />
-                </div>
-
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Date Range</label>
-                    <input v-model="filters.dateFrom" @change="loadEmailLogs" type="date"
                         class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary" />
                 </div>
             </div>
@@ -178,7 +172,21 @@
                         <tr v-for="log in emailLogs" :key="log.id"
                             class="hover:bg-gray-50 transition-colors duration-200">
                             <td class="px-6 py-4 whitespace-nowrap">
-                                <div class="text-sm font-medium text-gray-900">{{ log.orderId }}</div>
+                                <div class="flex items-center gap-2">
+                                    <span class="text-sm font-medium text-gray-900 font-mono">
+                                        {{ formatOrderId(log.orderId) }}
+                                    </span>
+                                    <button 
+                                        @click="copyOrderId(log.orderId)"
+                                        :title="`Copy full order ID: ${log.orderId}`"
+                                        class="p-1 text-gray-400 hover:text-gray-600 transition-colors duration-200"
+                                    >
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                                                  d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path>
+                                        </svg>
+                                    </button>
+                                </div>
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap">
                                 <div class="text-sm text-gray-900">{{ log.userEmail }}</div>
@@ -281,7 +289,6 @@ const filters = reactive({
     status: '',
     orderId: '',
     userEmail: '',
-    dateFrom: '',
 })
 
 // Debounced search for text inputs
@@ -333,13 +340,7 @@ const loadEmailLogs = async (page = 1) => {
 // Load email statistics
 const loadStatistics = async () => {
     try {
-        // Build filters object - only include non-empty values
-        const activeFilters = {}
-        if (filters.dateFrom) {
-            activeFilters.dateFrom = filters.dateFrom
-        }
-
-        const response = await apiClient.getEmailStatistics(activeFilters)
+        const response = await apiClient.getEmailStatistics()
         statistics.value = response.statistics
     } catch (error) {
         console.error('Error loading email statistics:', error)
@@ -367,7 +368,6 @@ const clearFilters = () => {
     filters.status = ''
     filters.orderId = ''
     filters.userEmail = ''
-    filters.dateFrom = ''
     loadEmailLogs(1)
 }
 
@@ -401,6 +401,47 @@ const formatDate = (dateString) => {
         })
     } catch (error) {
         return dateString
+    }
+}
+
+// Format order ID for display (truncate long IDs)
+const formatOrderId = (orderId) => {
+    if (!orderId) return 'Unknown'
+    
+    // For Stripe session IDs (cs_test_...) or (cs_live_...)
+    if (orderId.startsWith('cs_')) {
+        // Extract meaningful part and create shorter display
+        const parts = orderId.split('_')
+        if (parts.length >= 3) {
+            // Show prefix + first 8 chars of the actual ID
+            const prefix = `${parts[0]}_${parts[1]}`
+            const shortId = parts[2].substring(0, 8)
+            return `${prefix}_${shortId}...`
+        }
+    }
+    
+    // For other IDs, just truncate
+    if (orderId.length > 20) {
+        return `${orderId.substring(0, 16)}...`
+    }
+    
+    return orderId
+}
+
+// Copy order ID to clipboard
+const copyOrderId = async (orderId) => {
+    try {
+        await navigator.clipboard.writeText(orderId)
+        notifications.success('Copied!', 'Order ID copied to clipboard')
+    } catch (error) {
+        // Fallback for older browsers
+        const textArea = document.createElement('textarea')
+        textArea.value = orderId
+        document.body.appendChild(textArea)
+        textArea.select()
+        document.execCommand('copy')
+        document.body.removeChild(textArea)
+        notifications.success('Copied!', 'Order ID copied to clipboard')
     }
 }
 
