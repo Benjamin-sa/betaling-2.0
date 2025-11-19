@@ -5,7 +5,7 @@
   ]">
 
 
-    <div class="relative aspect-w-4 aspect-h-3 bg-gray-100">
+    <div class="relative aspect-w-4 aspect-h-3 bg-white border-b border-gray-50">
       <!-- Test Mode Badge -->
       <div v-if="product.isTestMode"
         class="absolute top-2 left-2 z-20 inline-flex items-center px-2 py-1 rounded-full text-xs font-bold bg-warning text-white shadow-lg border-2 border-white">
@@ -28,7 +28,7 @@
               :src="image" 
               :alt="`${product.name} - Afbeelding ${index + 1}`" 
               @error="handleImageError"
-              class="absolute inset-0 w-full h-full object-cover transform transition-transform group-hover:scale-105" 
+              class="absolute inset-0 w-full h-full object-contain p-2 transform transition-transform duration-300 group-hover:scale-105" 
             />
           </TransitionGroup>
         </div>

@@ -270,6 +270,7 @@ function createProductData(inputData, options = {}) {
       inputData[ProductFields.IMAGE] || "",
       "string"
     ),
+    [ProductFields.IMAGES]: inputData[ProductFields.IMAGES] || [],
     [ProductFields.REQUIRES_TIMESLOT]: requiresTimeslot || false,
     [ProductFields.IS_TEST_MODE]: transformValue(
       inputData[ProductFields.IS_TEST_MODE] !== undefined
@@ -293,6 +294,7 @@ function createProductUpdateData(inputData, options = {}) {
     ProductFields.DESCRIPTION,
     ProductFields.PRICE,
     ProductFields.IMAGE,
+    ProductFields.IMAGES,
     ProductFields.REQUIRES_TIMESLOT,
     ProductFields.IS_TEST_MODE,
     ProductFields.STRIPE_PRICE_ID,
@@ -349,6 +351,9 @@ function createProductUpdateData(inputData, options = {}) {
         break;
       case ProductFields.IS_TEST_MODE:
         transformedData[field] = transformValue(value, "boolean");
+        break;
+      case ProductFields.IMAGES:
+        transformedData[field] = value;
         break;
       default:
         transformedData[field] = transformValue(value, "string");
