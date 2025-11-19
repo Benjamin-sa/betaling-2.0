@@ -60,7 +60,7 @@
                                 <span class="text-xs font-normal text-info ml-1">(zichtbaar voor klanten)</span>
                             </label>
                             <textarea id="eventDescription" v-model="newEvent.description" required rows="3"
-                                placeholder="Beschrijf het event voor je klanten - wat kunnen ze verwachten?"
+                                placeholder="Beschrijf het event voor je klanten - Behoudt het kort (staat onder titel hoofdpagina)"
                                 class="w-full px-3 sm:px-4 py-2 sm:py-3 text-base sm:text-lg border-2 border-gray-200 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary transition-all duration-200"></textarea>
                         </div>
 
